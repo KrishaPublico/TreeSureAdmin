@@ -28,44 +28,79 @@
   <!-- Main Content -->
   <div class="main-content">
     <h1>👥 User Management</h1>
-    
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Username</th>
-          <th>Password</th>
-          <th>Contact Number</th>
-          <th>Address</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="usersTableBody"></tbody>
-    </table>
-  </div>
 
-  <div class="user-form">
-    <h2>Add User</h2>
-    <form id="addUserForm">
-      <input type="text" id="name" placeholder="Full Name" required>
-      <input type="text" id="username" placeholder="Username" required>
-      <input type="password" id="password" placeholder="Password" required>
-      <input type="text" id="contact" placeholder="Contact Number" required>
-      <input type="text" id="address" placeholder="Address" required>
-      <select id="role">
-        <option value="Admin">Admin</option>
-        <option value="Forester">Forester</option>
-        <option value="Applicant">Applicant</option>
-      </select>
-      <select id="status">
-        <option value="true">Active</option>
-        <option value="false">Inactive</option>
-      </select>
-      <button type="submit">➕ Add User</button>
-    </form>
-  </div>
+    <!-- User Table -->
+    <div class="user-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Contact Number</th>
+            <th>Address</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+    </div>
+
+
+<!-- Add User Form -->
+<div class="user-form">
+  <h2>Add User</h2>
+  <form id="addUserForm">
+    <div class="form-row">
+      <div class="form-group">
+        <input type="text" id="name" placeholder="Full Name" required>
+      </div>
+      <div class="form-group">
+        <input type="text" id="username" placeholder="Username" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <input type="password" id="password" placeholder="Password" required>
+      </div>
+      <div class="form-group">
+        <input type="text" id="contact" placeholder="Contact Number" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <input type="text" id="address" placeholder="Address" required>
+      </div>
+      <div class="form-group">
+        <select id="role">
+          <option value="Admin">Admin</option>
+          <option value="Forester">Forester</option>
+          <option value="Applicant">Applicant</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <select id="status">
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ✅ Centered Button -->
+    <div class="form-actions">
+      <button type="submit" class="btn-submit">➕ Add User</button>
+    </div>
+  </form>
+</div>
+
+
 
 <script type="module">
   import { db, checkLogin, logout } from "./js/script.js";

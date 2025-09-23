@@ -267,56 +267,72 @@ button.edit-btn:hover { background-color: #e0a800; }
 button.delete-btn { background-color: #dc3545; color: #fff; }
 button.delete-btn:hover { background-color: #b02a37; }
 
+/* User Form Styling */
 .user-form {
-  background-color: #fff;
-  padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  width: 90%;            /* Adjust width to match table */
-  max-width: 1000px;     /* Optional: same max width as table */
-  margin: 30px auto;     /* Center horizontally */
-  box-sizing: border-box; /* Include padding in width */
+  margin-top: 20px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.user-form h2 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #2e7d32;
+}
+
+.user-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
 }
 
 .user-form input,
-.user-form select,
-.user-form button {
-  width: 100%;            /* Stretch inputs & selects to full form width */
-  padding: 12px 15px;     /* Extra padding so text isn't cut off */
-  margin-bottom: 12px;
-  border-radius: 5px;
+.user-form select {
+  padding: 10px;
   border: 1px solid #ccc;
-  font-size: 1rem;
-  box-sizing: border-box; /* Include padding in width */
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.btn-submit {
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.3s ease;
+}
+
+.btn-submit:hover {
+  background: #1b5e20;
 }
 
 
-
-
-/* ---------- RESPONSIVE ---------- */
-@media (max-width: 1024px) {
-  .cards { grid-template-columns: repeat(2, 1fr); }
-  .charts { grid-template-columns: 1fr; }
-}
-
+/* Responsive: single column on small screens */
 @media (max-width: 768px) {
-  .sidebar { width: 180px; }
-  .main-content { margin-left: 180px; }
-  .cards { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 500px) {
-  table, thead, tbody, th, td, tr { display: block; }
-  thead tr { display: none; }
-  tbody tr { margin-bottom: 15px; background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-  tbody td { padding-left: 50%; position: relative; }
-  tbody td::before {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    width: 45%;
-    white-space: nowrap;
-    font-weight: 600;
-    content: attr(data-label);
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }

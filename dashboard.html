@@ -1,83 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard - Tree Inventory Admin</title>
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <title>Dashboard - Tree Inventory Admin</title>
+  <link rel="stylesheet" href="css/style.css">
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Leaflet.js -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
 
 <!-- Sidebar -->
 <div class="sidebar">
-    <div class="logo-container">
-        <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo">
-        <span class="logo-text">TreeSure</span>
-    </div>
-    <ul>
-        <li><a href="dashboard.html">📊 Dashboard</a></li>
-        <li><a href="trees.html">🌲 Trees</a></li>
-        <li><a href="users.html">👥 Users</a></li>
-        <li><a href="applications.html">🗂 Applications</a></li>
-        <li><a href="reports.html">📑 Reports</a></li>
-        <li><a href="settings.html">⚙ Settings</a></li>
-        <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
-
-    </ul>
+  <div class="logo-container">
+    <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo">
+    <span class="logo-text">TreeSure</span>
+  </div>
+  <ul>
+    <li><a href="dashboard.html">📊 Dashboard</a></li>
+    <li><a href="trees.html">🌲 Trees</a></li>
+    <li><a href="users.html">👥 Users</a></li>
+    <li><a href="applications.html">🗂 Applications</a></li>
+    <li><a href="reports.html">📑 Reports</a></li>
+    <li><a href="settings.html">⚙ Settings</a></li>
+    <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+  </ul>
 </div>
 
 <!-- Main Content -->
 <div class="main-content">
-    <header>
-        <h1>Welcome, <span id="adminName"></span> 👤</h1>
-    </header>
+  <header>
+    <h1>Welcome, <span id="adminName"></span> 👤</h1>
+  </header>
 
-    <!-- Dashboard Cards -->
-    <div class="cards" id="dashboard-cards">
-        <div class="card">🌲 Total Trees<br><span id="totalTrees">120</span></div>
-        <div class="card">🌱 Species Count<br><span id="speciesCount">15</span></div>
-        <div class="card">📋 Pending Requests<br><span id="pendingRequests">8</span></div>
-        <div class="card">👷 Active Foresters<br><span id="activeForesters">5</span></div>
-    </div>
+  <!-- Dashboard Cards -->
+  <div class="cards" id="dashboard-cards">
+    <div class="card">🌲 Total Trees<br><span id="totalTrees">120</span></div>
+    <div class="card">🌱 Species Count<br><span id="speciesCount">15</span></div>
+    <div class="card">📋 Pending Requests<br><span id="pendingRequests">8</span></div>
+    <div class="card">👷 Active Users<br><span id="activeForesters">0</span></div>
+  </div>
 
-    <!-- Charts and Map -->
-    <div class="charts">
-        <div class="chart-container">
-            <h3>🌱 Trees per Species</h3>
-            <canvas id="speciesChart" width="400" height="200"></canvas>
-        </div>
-        <div class="chart-container">
-            <h3>📍 Tree Locations Map</h3>
-            <div id="treeMap" style="width:100%; height:400px;"></div>
-        </div>
+  <!-- Charts and Map -->
+  <div class="charts">
+    <div class="chart-container">
+      <h3>🌱 Trees per Species</h3>
+      <canvas id="speciesChart" width="400" height="200"></canvas>
     </div>
+    <div class="chart-container">
+      <h3>📍 Tree Locations Map</h3>
+      <div id="treeMap" style="width:100%; height:400px;"></div>
+    </div>
+  </div>
 
-    <!-- Recent Activities -->
-    <div class="activities">
-        <h3>Recent Activities</h3>
-        <ul id="recentActivities">
-            <li>🌳 Planted 20 new Narra trees</li>
-            <li>✅ Approved 5 applications</li>
-            <li>📍 Updated tree locations in Tuguegarao</li>
-        </ul>
-    </div>
+  <!-- Recent Activities -->
+  <div class="activities">
+    <h3>Recent Activities</h3>
+    <ul id="recentActivities">
+      <li>🌳 Planted 20 new Narra trees</li>
+      <li>✅ Approved 5 applications</li>
+      <li>📍 Updated tree locations in Tuguegarao</li>
+    </ul>
+  </div>
 </div>
 
 <!-- Firebase + Dashboard Logic -->
 <script type="module">
-  import { checkLogin, logout } from "./js/script.js"; // ✅ fix path
+  import { db, checkLogin, logout } from "./js/script.js";
+  import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // attach logout function
+  // ✅ check login
+  checkLogin();
   window.logout = logout;
 
-  // check login
-  checkLogin();
+  // ✅ Real-time Active Users
+  const usersRef = collection(db, "users");
+  const activeUsersEl = document.getElementById("activeForesters");
+
+  onSnapshot(usersRef, (snapshot) => {
+    let activeUsers = 0;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.active) {
+        activeUsers++;
+      }
+    });
+    activeUsersEl.textContent = activeUsers;
+  });
 
   // ✅ Chart Example
   const ctx = document.getElementById('speciesChart').getContext('2d');
@@ -87,7 +100,7 @@
       labels: ['Narra', 'Mahogany', 'Acacia'],
       datasets: [{
         label: 'Tree Count',
-        data: [50, 30, 20], // ✅ match length
+        data: [50, 30, 20], // placeholder data
         backgroundColor: ['#4caf50','#81c784','#66bb6a']
       }]
     }
@@ -99,7 +112,6 @@
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // Force Leaflet to redraw if container is hidden
   setTimeout(() => { map.invalidateSize(); }, 200);
 
   // Example markers
@@ -109,7 +121,6 @@
   L.marker([18.3620, 121.6455]).addTo(map).bindPopup("Tree 4: Molave");
   L.marker([18.3588, 121.6422]).addTo(map).bindPopup("Tree 5: Yakal");
 </script>
-
 
 </body>
 </html>

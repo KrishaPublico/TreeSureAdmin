@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Applications</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body onload="checkLogin()">
+<div class="sidebar">
+       <div class="logo-container">
+        <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo">
+        <span class="logo-text">TreeSure</span>
+    </div>
+    <ul>
+        <li><a href="dashboard.html">📊 Dashboard</a></li>
+        <li><a href="trees.html">🌲 Trees</a></li>
+        <li><a href="users.html">👥 Users</a></li>
+        <li><a href="applications.html">🗂 Applications</a></li>
+        <li><a href="reports.html">📑 Reports</a></li>
+        <li><a href="settings.html">⚙ Settings</a></li>
+        <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <h1>🗂 Applications</h1>
+    <table id="applicationsTable">
+    <tr><th>Applicant</th><th>Type</th><th>Date Submitted</th><th>Status</th><th>Actions</th></tr>
+</table>
+
+</div>
+<!-- Load your Firebase script as a module -->
+  <script type="module">
+     import { checkLogin, logout } from "./js/script.js";
+
+    // Run login check on load
+    checkLogin();
+
+    // Hook up logout button
+    document.getElementById("logoutBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      logout();
+    });
+  </script>
+</body>
+</html>

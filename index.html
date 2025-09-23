@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TreeSure Admin Login</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+
+  <div class="login-box" role="main" aria-labelledby="loginHeading">
+    <div class="logo-container">
+      <img src="assets/images/treesurelogo.png" alt="TreeSure logo" class="logo">
+      <h1 id="loginHeading" class="logo-text">TreeSure</h1>
+    </div>
+
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="Enter email" required />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Enter password" required />
+      </div>
+
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <!-- your firebase/script module -->
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>

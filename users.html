@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Management</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body onload="checkLogin()">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo-container">
+      <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo">
+      <span class="logo-text">TreeSure</span>
+    </div>
+
+    <ul>
+      <li><a href="dashboard.html">📊 Dashboard</a></li>
+      <li><a href="trees.html">🌲 Trees</a></li>
+      <li><a href="users.html" class="active">👥 Users</a></li>
+      <li><a href="applications.html">🗂 Applications</a></li>
+      <li><a href="reports.html">📑 Reports</a></li>
+      <li><a href="settings.html">⚙ Settings</a></li>
+      <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>👥 User Management</h1>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Password</th>
+          <th>Contact Number</th>
+          <th>Address</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="user-form">
+    <h2>Add User</h2>
+    <form id="addUserForm">
+      <input type="text" id="name" placeholder="Full Name" required>
+      <input type="text" id="username" placeholder="Username" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <input type="text" id="contact" placeholder="Contact Number" required>
+      <input type="text" id="address" placeholder="Address" required>
+      <select id="role">
+        <option value="Admin">Admin</option>
+        <option value="Forester">Forester</option>
+        <option value="Applicant">Applicant</option>
+      </select>
+      <select id="status">
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+      <button type="submit">➕ Add User</button>
+    </form>
+  </div>
+
+<script type="module">
+  import { db, checkLogin, logout } from "./js/script.js";
+  import { 
+    collection, getDocs, doc, setDoc, deleteDoc, updateDoc 
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ✅ Run login check on load
+  checkLogin();
+
+  // ✅ Logout
+  document.getElementById("logoutBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    logout();
+  });
+
+  const tbody = document.getElementById("usersTableBody");
+  const usersRef = collection(db, "users");
+
+  // ✅ READ users
+  async function loadUsers() {
+    tbody.innerHTML = "";
+    const querySnapshot = await getDocs(usersRef);
+
+    querySnapshot.forEach((docSnap) => {
+      const user = docSnap.data();
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${user.name || "N/A"}</td>
+        <td>${user.username || "N/A"}</td>
+        <td>${user.password || "N/A"}</td>
+        <td>${user.contact || "N/A"}</td>
+        <td>${user.address || "N/A"}</td>
+        <td>${user.role || "N/A"}</td>
+        <td>${user.active ? "Active" : "Inactive"}</td>
+        <td>
+          <button data-id="${docSnap.id}" class="edit-btn">✏️ Edit</button>
+          <button data-id="${docSnap.id}" class="delete-btn">🗑️ Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    attachRowEvents();
+  }
+
+  // ✅ Generate unique custom ID like 11-111, 11-112
+  async function generateUserId() {
+    const querySnapshot = await getDocs(usersRef);
+    const ids = querySnapshot.docs.map(docSnap => docSnap.id);
+
+    let lastNumber = 111; // start number if no users
+    if (ids.length > 0) {
+      const numbers = ids.map(id => parseInt(id.split("-")[1]));
+      lastNumber = Math.max(...numbers) + 1;
+    }
+
+    return `11-${lastNumber}`;
+  }
+
+  // ✅ CREATE user with custom ID
+  document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const newUser = {
+      name: document.getElementById("name").value,
+      username: document.getElementById("username").value,
+      password: document.getElementById("password").value,
+      contact: document.getElementById("contact").value,
+      address: document.getElementById("address").value,
+      role: document.getElementById("role").value,
+      active: document.getElementById("status").value === "true"
+    };
+
+    const customId = await generateUserId();
+    await setDoc(doc(db, "users", customId), newUser);
+
+    alert("User added successfully!");
+    e.target.reset();
+    loadUsers();
+  });
+
+  // ✅ DELETE user
+  async function deleteUser(id) {
+    await deleteDoc(doc(db, "users", id));
+    alert("User deleted!");
+    loadUsers();
+  }
+
+  // ✅ UPDATE user
+  async function editUser(id) {
+    const name = prompt("Enter new name:");
+    const role = prompt("Enter new role:");
+    const active = confirm("Set user active?");
+
+    if (name && role) {
+      await updateDoc(doc(db, "users", id), {
+        name: name,
+        role: role,
+        active: active
+      });
+      alert("User updated!");
+      loadUsers();
+    }
+  }
+
+  // ✅ Attach edit/delete buttons
+  function attachRowEvents() {
+    document.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.addEventListener("click", () => deleteUser(btn.dataset.id));
+    });
+
+    document.querySelectorAll(".edit-btn").forEach(btn => {
+      btn.addEventListener("click", () => editUser(btn.dataset.id));
+    });
+  }
+
+  // ✅ Load users on page load
+  loadUsers();
+</script>
+
+</body>
+</html>

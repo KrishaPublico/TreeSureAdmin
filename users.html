@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>User Management</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- ✅ Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body onload="checkLogin()">
 
@@ -34,6 +36,7 @@
       <table>
         <thead>
           <tr>
+            <th>User ID</th>
             <th>Name</th>
             <th>Username</th>
             <th>Password</th>
@@ -48,179 +51,190 @@
       </table>
     </div>
 
+    <!-- Add User Form -->
+    <div class="user-form">
+      <h2>Add User</h2>
+      <form id="addUserForm">
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="name" placeholder="Full Name" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="username" placeholder="Username" required>
+          </div>
+        </div>
 
-<!-- Add User Form -->
-<div class="user-form">
-  <h2>Add User</h2>
-  <form id="addUserForm">
-    <div class="form-row">
-      <div class="form-group">
-        <input type="text" id="name" placeholder="Full Name" required>
-      </div>
-      <div class="form-group">
-        <input type="text" id="username" placeholder="Username" required>
-      </div>
+        <div class="form-row">
+          <div class="form-group">
+            <input type="password" id="password" placeholder="Password" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="contact" placeholder="Contact Number" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="address" placeholder="Address" required>
+          </div>
+          <div class="form-group">
+            <select id="role">
+              <option value="Admin">Admin</option>
+              <option value="Forester">Forester</option>
+              <option value="Applicant">Applicant</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <select id="status">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ✅ Centered Button with Icon -->
+        <div class="form-actions">
+          <button type="submit" class="btn-submit">
+            <i class="fa fa-user-plus"></i> Add User
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <input type="password" id="password" placeholder="Password" required>
-      </div>
-      <div class="form-group">
-        <input type="text" id="contact" placeholder="Contact Number" required>
-      </div>
-    </div>
+  <script type="module">
+    import { db, checkLogin, logout } from "./js/script.js";
+    import { 
+      collection, getDocs, doc, deleteDoc, updateDoc, setDoc, getDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    <div class="form-row">
-      <div class="form-group">
-        <input type="text" id="address" placeholder="Address" required>
-      </div>
-      <div class="form-group">
-        <select id="role">
-          <option value="Admin">Admin</option>
-          <option value="Forester">Forester</option>
-          <option value="Applicant">Applicant</option>
-        </select>
-      </div>
-    </div>
+    // ✅ Run login check on load
+    checkLogin();
 
-    <div class="form-row">
-      <div class="form-group">
-        <select id="status">
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- ✅ Centered Button -->
-    <div class="form-actions">
-      <button type="submit" class="btn-submit">➕ Add User</button>
-    </div>
-  </form>
-</div>
-
-
-
-<script type="module">
-  import { db, checkLogin, logout } from "./js/script.js";
-  import { 
-    collection, getDocs, doc, setDoc, deleteDoc, updateDoc 
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  // ✅ Run login check on load
-  checkLogin();
-
-  // ✅ Logout
-  document.getElementById("logoutBtn").addEventListener("click", (e) => {
-    e.preventDefault();
-    logout();
-  });
-
-  const tbody = document.getElementById("usersTableBody");
-  const usersRef = collection(db, "users");
-
-  // ✅ READ users
-  async function loadUsers() {
-    tbody.innerHTML = "";
-    const querySnapshot = await getDocs(usersRef);
-
-    querySnapshot.forEach((docSnap) => {
-      const user = docSnap.data();
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${user.name || "N/A"}</td>
-        <td>${user.username || "N/A"}</td>
-        <td>${user.password || "N/A"}</td>
-        <td>${user.contact || "N/A"}</td>
-        <td>${user.address || "N/A"}</td>
-        <td>${user.role || "N/A"}</td>
-        <td>${user.active ? "Active" : "Inactive"}</td>
-        <td>
-          <button data-id="${docSnap.id}" class="edit-btn">✏️ Edit</button>
-          <button data-id="${docSnap.id}" class="delete-btn">🗑️ Delete</button>
-        </td>
-      `;
-      tbody.appendChild(row);
+    // ✅ Logout
+    document.getElementById("logoutBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      logout();
     });
 
-    attachRowEvents();
-  }
+    const tbody = document.getElementById("usersTableBody");
+    const usersRef = collection(db, "users");
 
-  // ✅ Generate unique custom ID like 11-111, 11-112
-  async function generateUserId() {
-    const querySnapshot = await getDocs(usersRef);
-    const ids = querySnapshot.docs.map(docSnap => docSnap.id);
+    // ✅ READ users
+    async function loadUsers() {
+      tbody.innerHTML = "";
+      const querySnapshot = await getDocs(usersRef);
 
-    let lastNumber = 111; // start number if no users
-    if (ids.length > 0) {
-      const numbers = ids.map(id => parseInt(id.split("-")[1]));
-      lastNumber = Math.max(...numbers) + 1;
+      // ✅ Reset counter if collection is empty
+      if (querySnapshot.empty) {
+        await setDoc(doc(db, "counters", "userCounter"), { count: 0 });
+      }
+
+      querySnapshot.forEach((docSnap) => {
+        const user = docSnap.data();
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${user.id || docSnap.id}</td>
+          <td>${user.name || "N/A"}</td>
+          <td>${user.username || "N/A"}</td>
+          <td>${user.password || "N/A"}</td>
+          <td>${user.contact || "N/A"}</td>
+          <td>${user.address || "N/A"}</td>
+          <td>${user.role || "N/A"}</td>
+          <td>${user.active ? "Active" : "Inactive"}</td>
+          <td>
+            <button data-id="${docSnap.id}" class="edit-btn">✏️ Edit</button>
+            <button data-id="${docSnap.id}" class="delete-btn">🗑️ Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      attachRowEvents();
     }
 
-    return `11-${lastNumber}`;
-  }
+ // ✅ CREATE user with sequential ID (fills gaps)
+document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-  // ✅ CREATE user with custom ID
-  document.getElementById("addUserForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const newUser = {
-      name: document.getElementById("name").value,
-      username: document.getElementById("username").value,
-      password: document.getElementById("password").value,
-      contact: document.getElementById("contact").value,
-      address: document.getElementById("address").value,
-      role: document.getElementById("role").value,
-      active: document.getElementById("status").value === "true"
-    };
-
-    const customId = await generateUserId();
-    await setDoc(doc(db, "users", customId), newUser);
-
-    alert("User added successfully!");
-    e.target.reset();
-    loadUsers();
+  // 1. Get all existing user IDs
+  const querySnapshot = await getDocs(usersRef);
+  let existingIds = [];
+  querySnapshot.forEach((docSnap) => {
+    existingIds.push(parseInt(docSnap.id, 10)); // convert "001" → 1
   });
 
-  // ✅ DELETE user
-  async function deleteUser(id) {
-    await deleteDoc(doc(db, "users", id));
-    alert("User deleted!");
-    loadUsers();
+  // 2. Find the smallest available ID
+  let newIdNumber = 1;
+  while (existingIds.includes(newIdNumber)) {
+    newIdNumber++;
   }
 
-  // ✅ UPDATE user
-  async function editUser(id) {
-    const name = prompt("Enter new name:");
-    const role = prompt("Enter new role:");
-    const active = confirm("Set user active?");
+  // 3. Format ID as 3 digits
+  const customId = String(newIdNumber).padStart(3, "0");
 
-    if (name && role) {
-      await updateDoc(doc(db, "users", id), {
-        name: name,
-        role: role,
-        active: active
-      });
-      alert("User updated!");
+  // 4. Create new user object
+  const newUser = {
+    id: customId,
+    name: document.getElementById("name").value,
+    username: document.getElementById("username").value,
+    password: document.getElementById("password").value,
+    contact: document.getElementById("contact").value,
+    address: document.getElementById("address").value,
+    role: document.getElementById("role").value,
+    active: document.getElementById("status").value === "true"
+  };
+
+  // 5. Store user with custom ID
+  await setDoc(doc(db, "users", customId), newUser);
+
+  alert(`✅ User added successfully with ID: ${customId}`);
+  e.target.reset();
+  loadUsers();
+});
+
+
+    // ✅ DELETE user
+    async function deleteUser(id) {
+      await deleteDoc(doc(db, "users", id));
+      alert("User deleted!");
       loadUsers();
     }
-  }
 
-  // ✅ Attach edit/delete buttons
-  function attachRowEvents() {
-    document.querySelectorAll(".delete-btn").forEach(btn => {
-      btn.addEventListener("click", () => deleteUser(btn.dataset.id));
-    });
+    // ✅ UPDATE user
+    async function editUser(id) {
+      const name = prompt("Enter new name:");
+      const role = prompt("Enter new role:");
+      const active = confirm("Set user active?");
 
-    document.querySelectorAll(".edit-btn").forEach(btn => {
-      btn.addEventListener("click", () => editUser(btn.dataset.id));
-    });
-  }
+      if (name && role) {
+        await updateDoc(doc(db, "users", id), {
+          name: name,
+          role: role,
+          active: active
+        });
+        alert("User updated!");
+        loadUsers();
+      }
+    }
 
-  // ✅ Load users on page load
-  loadUsers();
-</script>
+    // ✅ Attach edit/delete buttons
+    function attachRowEvents() {
+      document.querySelectorAll(".delete-btn").forEach(btn => {
+        btn.addEventListener("click", () => deleteUser(btn.dataset.id));
+      });
+
+      document.querySelectorAll(".edit-btn").forEach(btn => {
+        btn.addEventListener("click", () => editUser(btn.dataset.id));
+      });
+    }
+
+    // ✅ Load users on page load
+    loadUsers();
+  </script>
 
 </body>
 </html>

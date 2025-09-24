@@ -24,6 +24,9 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 const auth = getAuth(app);
 
+
+
+
 // ------------------ LOGIN ------------------
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
@@ -43,6 +46,26 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Login failed: " + error.message);
       }
     });
+  
+    // ------------------ PASSWORD TOGGLE ------------------
+    const passwordInput = document.getElementById("password");
+    const togglePassword = document.getElementById("togglePassword");
+    const eyeOpen = document.getElementById("eyeOpen");
+    const eyeSlash = document.getElementById("eyeSlash");
+
+    if (togglePassword) {
+      togglePassword.addEventListener("click", () => {
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          eyeOpen.style.display = "inline";
+          eyeSlash.style.display = "none";
+        } else {
+          passwordInput.type = "password";
+          eyeOpen.style.display = "none";
+          eyeSlash.style.display = "inline";
+        }
+      });
+    }
   }
 
   // ✅ Attach logout listener (only if button exists)
@@ -54,7 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-
 // ------------------ CHECK LOGIN ------------------
 export function checkLogin() {
   onAuthStateChanged(auth, (user) => {
@@ -82,3 +104,5 @@ export async function logout() {
     alert("Error logging out: " + error.message);
   }
 }
+
+

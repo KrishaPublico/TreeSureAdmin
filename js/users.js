@@ -125,9 +125,6 @@ function attachRowEvents() {
   });
 }
 
-
-
-
 // ✅ Search/filter users
 document.getElementById("searchInput").addEventListener("input", () => {
   const filter = document.getElementById("searchInput").value.toLowerCase();

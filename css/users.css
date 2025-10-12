@@ -27,26 +27,39 @@ tbody tr:nth-child(even) {
   background-color: #f9f9f9; 
 }
 
+/* Action Buttons Container */
+.action-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
 /* Action Buttons */
 button.edit-btn,
 button.delete-btn {
-  padding: 5px 10px;
-  margin-right: 5px;
+  padding: 6px 14px;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+  transition: background-color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
 }
+
 button.edit-btn { 
   background-color: #ffc107; 
-  color: #fff; 
 }
 button.edit-btn:hover { 
   background-color: #e0a800; 
 }
+
 button.delete-btn { 
   background-color: #dc3545; 
-  color: #fff; 
 }
 button.delete-btn:hover { 
   background-color: #b02a37; 
@@ -120,23 +133,24 @@ button.delete-btn:hover {
     grid-template-columns: 1fr;
   }
 }
+
 /* Center the search bar */
 .search-bar {
   display: flex;
-  justify-content: center; /* Center horizontally */
+  justify-content: center;
   margin-bottom: 20px;
 }
 
 /* Container for input + icon */
 .search-input-container {
   position: relative;
-  width: 300px; /* Adjust width as needed */
+  width: 300px;
 }
 
 /* Search input styling */
 .search-input-container input {
   width: 100%;
-  padding: 10px 12px 10px 35px; /* Left padding for icon */
+  padding: 10px 12px 10px 35px;
   border: 1px solid #ccc;
   border-radius: 25px;
   font-size: 14px;
@@ -150,5 +164,5 @@ button.delete-btn:hover {
   transform: translateY(-50%);
   color: #999;
   font-size: 14px;
-  pointer-events: none; /* so clicks go to input */
+  pointer-events: none;
 }

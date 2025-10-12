@@ -1,0 +1,287 @@
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+}
+
+.main-content {
+  margin-left: 260px;
+  padding: 20px;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* TITLE */
+.main-content h1 {
+  font-size: 28px;
+  color: #2e7d32;
+  margin-bottom: 20px;
+}
+
+/* FOLDER LIST */
+.folder-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* FOLDER ITEM */
+.folder-item {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.applicant-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.applicant-folder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 140px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 10px;
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.applicant-folder:hover {
+  transform: scale(1.1);
+  background: #c8e6c9;
+}
+
+.folder-icon {
+  font-size: 36px;
+  margin-right: 15px;
+  color: #f4b400;
+}
+
+.applicant-name {
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+}
+
+#filesSection {
+  margin-top: 40px;
+  display: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+th {
+  background-color: #f4f4f4;
+}
+
+/* ACTION BUTTONS */
+.action-btn {
+  width: 110px;
+  height: 36px;
+  background-color: #1b5e20;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* Main buttons: Schedule & Proceed */
+.action-btn-main {
+  background: linear-gradient(135deg, #43a047, #66bb6a);
+  color: white;
+  border: none;
+  padding: 16px 50px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 400px;
+  white-space: nowrap;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.action-btn-main:hover {
+  background: linear-gradient(135deg, #66bb6a, #43a047);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+
+/* Assign Forester button in modal */
+#assignForesterBtn {
+  background: linear-gradient(135deg, #43a047, #66bb6a); /* green gradient */
+  color: white;
+  border: none;
+  padding: 16px;
+  font-size: 18px;
+  border-radius: 12px; /* smooth edges */
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2); /* subtle shadow */
+}
+
+#assignForesterBtn:hover {
+  background: linear-gradient(135deg, #66bb6a, #43a047); /* hover gradient */
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+#scheduleBtn, #proceedBtn {
+  background-color: #2e7d32; /* green theme */
+  color: white;
+  border: none;
+  padding: 12px 30px; /* smaller padding */
+  border-radius: 8px;
+  font-size: 16px; /* slightly smaller text */
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+  min-width: 200px; /* adjust width as needed */
+  white-space: nowrap;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15); /* subtle shadow */
+}
+
+#scheduleBtn:hover, #proceedBtn:hover {
+  background-color: #45a049; /* lighter green on hover */
+  transform: translateY(-2px); /* subtle lift effect */
+}
+
+
+#scheduleContainer {
+  display: flex; /* keep the buttons side by side */
+  gap: 20px; /* space between buttons */
+  justify-content: center; /* center horizontally */
+  margin-top: 40px; /* space above the buttons */
+}
+#saveAppointmentBtn {
+  background-color: #2e7d32; /* green */
+  color: white;
+  border: none;
+  padding: 12px 25px; /* adjust size */
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15); /* subtle shadow */
+}
+
+#saveAppointmentBtn:hover {
+  background-color: #45a049; /* lighter green on hover */
+  transform: translateY(-2px); /* subtle lift effect */
+}
+
+#assignForesterBtn {
+  background-color: #2e7d32; /* same green */
+  color: white;
+  border: none;
+  padding: 12px 25px; /* same size as Save Appointment */
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15); /* subtle shadow */
+}
+
+#assignForesterBtn:hover {
+  background-color: #45a049; /* lighter green on hover */
+  transform: translateY(-2px); /* subtle lift effect */
+}
+
+
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed; 
+  z-index: 1000; 
+  left: 0;
+  top: 0;
+  width: 100%; 
+  height: 100%; 
+  overflow: auto; 
+  background-color: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #fff;
+  margin: auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  text-align: center;
+  color: #2e7d32;
+}
+
+/* Close button */
+.close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #000;
+}
+
+/* Inputs & select */
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+

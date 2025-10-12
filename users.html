@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>User Management</title>
-  <link rel="stylesheet" href="css/style.css">   <!-- General styles -->
-  <link rel="stylesheet" href="css/users.css">   <!-- User-specific styles -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/users.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
@@ -29,100 +29,98 @@
   </div>
 
   <!-- Main Content -->
-<div class="main-content">
-  <h1>👥 User Management</h1>
+  <div class="main-content">
+    <h1>👥 User Management</h1>
 
-  <!-- Add User Form (moved above the table) -->
-  <div class="user-form">
-    <h2>Add / Update User</h2>
-    <form id="addUserForm">
-      <input type="hidden" id="userId">
-      <div class="form-row">
-        <div class="form-group">
-          <input type="text" id="name" placeholder="Full Name" required>
-        </div>
-        <div class="form-group">
-          <input type="text" id="username" placeholder="Username" required>
-        </div>
-      </div>
+    <!-- Add User Form -->
+    <div class="user-form">
+      <h2>Add / Update User</h2>
+      <form id="addUserForm">
+        <input type="hidden" id="userId">
 
-      <div class="form-row">
-        <div class="form-group">
-          <input type="password" id="password" placeholder="Password" required>
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="name" placeholder="Full Name" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="username" placeholder="Username" required>
+          </div>
         </div>
-        <div class="form-group">
-          <input type="text" id="contact" placeholder="Contact Number" required>
-        </div>
-      </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <input type="text" id="address" placeholder="Address" required>
+        <div class="form-row">
+          <div class="form-group">
+            <input type="password" id="password" placeholder="Password" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="contact" placeholder="Contact Number" required>
+          </div>
         </div>
-        <div class="form-group">
-          <select id="role">
-            <option value="Admin">Admin</option>
-            <option value="Forester">Forester</option>
-            <option value="Applicant">Applicant</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <select id="status">
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="address" placeholder="Address" required>
+          </div>
+          <div class="form-group">
+            <select id="role">
+              <option value="Admin">Admin</option>
+              <option value="Forester">Forester</option>
+              <option value="Applicant">Applicant</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button type="submit" class="btn-submit">
-          <i class="fa fa-user-plus"></i> Add User
-        </button>
+        <div class="form-row">
+          <div class="form-group">
+            <select id="status">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-submit">
+            <i class="fa fa-user-plus"></i> Add User
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div style="margin: 40px 0;"></div>
+
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <div class="search-input-container">
+        <i class="fa fa-search search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Search users..." />
       </div>
-    </form>
+    </div>
+
+    <!-- User Table -->
+    <div class="user-table">
+      <h2>List of Users</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Contact Number</th>
+            <th>Address</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+      
+        </tbody>
+      </table>
+    </div>
   </div>
-  
-    <!-- Space between form and table -->
-  <div style="margin: 40px 0;"></div>
 
-<!-- Search Bar -->
-<div class="search-bar">
-  <div class="search-input-container">
-    <i class="fa fa-search search-icon"></i>
-    <input type="text" id="searchInput" placeholder="Search users..." />
-  </div>
-</div>
-
-
-
-  <!-- User Table (now below the form) -->
-  <div class="user-table">
-    <h2>List of Users</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>User ID</th>
-          <th>Name</th>
-          <th>Username</th>
-          <th>Password</th>
-          <th>Contact Number</th>
-          <th>Address</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="usersTableBody"></tbody>
-    </table>
-  </div>
-</div>
-
-
-
-  <!-- ✅ External script -->
+  <!-- ✅ Use module to import JS -->
   <script type="module" src="js/users.js"></script>
 </body>
 </html>

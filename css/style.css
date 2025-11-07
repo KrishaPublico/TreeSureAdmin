@@ -6,11 +6,10 @@
   box-sizing: border-box; 
   margin: 0; 
   padding: 0; 
-  font-family: 'Poppins', sans-serif; /* Apply new font globally */
+  font-family: 'Poppins', sans-serif;
 }
 html, body { height: 100%; }
 
-/* Make BODY a true flex container that ALWAYS centers */
 body.login-page {
   display: flex !important;
   align-items: center !important;
@@ -19,7 +18,7 @@ body.login-page {
   background: linear-gradient(135deg, #95e198 0%, #d2e0d2 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  padding: 20px; /* keeps tiny screens from touching edges */
+  padding: 20px;
 }
 
 /* ---------- LOGIN CARD ---------- */
@@ -36,7 +35,6 @@ body.login-page {
   gap: 18px;
 }
 
-/* Logo area */
 .logo-container {
   display: flex;
   flex-direction: column;
@@ -46,7 +44,6 @@ body.login-page {
 .logo { width: 72px; height: auto; }
 .logo-text { color: #2f5d3a; font-size: 1.6rem; font-weight: 700; }
 
-/* Form */
 form { width: 100%; display: flex; flex-direction: column; gap: 12px; text-align: left; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 13px; color: #444; font-weight: 600; }
@@ -63,7 +60,6 @@ form { width: 100%; display: flex; flex-direction: column; gap: 12px; text-align
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.12);
 }
 
-/* Button */
 button[type="submit"] {
   margin-top: 6px;
   width: 100%;
@@ -79,13 +75,11 @@ button[type="submit"] {
 }
 button[type="submit"]:hover { background: #2e7d32; transform: translateY(-1px); }
 
-/* Small screens */
 @media (max-width: 420px) {
   .login-box { padding: 24px 18px; width: 94%; }
   .logo { width: 60px; }
   .logo-text { font-size: 1.3rem; }
 }
-
 
 /* ---------- DASHBOARD PAGE ---------- */
 .sidebar {
@@ -97,6 +91,7 @@ button[type="submit"]:hover { background: #2e7d32; transform: translateY(-1px); 
   background: #2e7d32;
   padding: 20px 0;
   color: #fff;
+  z-index: 1000;
 }
 
 .sidebar .logo-container {
@@ -136,7 +131,6 @@ button[type="submit"]:hover { background: #2e7d32; transform: translateY(-1px); 
   background: #1b5e20;
 }
 
-/* Main Content */
 .main-content {
   margin-left: 230px;
   padding: 20px;
@@ -158,7 +152,7 @@ header h1 {
 }
 
 .card {
-   background: #2e7d32;
+  background: #2e7d32;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
@@ -197,7 +191,7 @@ header h1 {
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-.activities h3 {
+.activities h3 { 
   margin-bottom: 15px;
   color: #2e7d32;
 }
@@ -212,7 +206,7 @@ header h1 {
   font-size: 14px;
 }
 
-/* Responsive */
+/* Responsive - Sidebar stays permanent on desktop/tablet (≥769px) */
 @media (max-width: 1024px) {
   .cards {
     grid-template-columns: repeat(2, 1fr);
@@ -222,17 +216,62 @@ header h1 {
   }
 }
 
+/* Sidebar remains visible on website screens (≥769px) */
+@media (min-width: 769px) {
+  .sidebar {
+    position: fixed;
+    width: 230px;
+    display: flex !important;
+    flex-direction: column;
+  }
+  .main-content {
+    margin-left: 230px;
+  }
+}
+
+/* Mobile layout - sidebar can collapse on small screens (<769px) */
 @media (max-width: 768px) {
   .sidebar {
     width: 180px;
   }
   .main-content {
     margin-left: 180px;
+    padding: 15px;
   }
   .cards {
     grid-template-columns: 1fr;
   }
 }
 
+#treeMap {
+  width: 100%;
+  height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+}
 
+.extra-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
 
+.extra-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.extra-card h3 {
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+@media (max-width: 900px) {
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+}

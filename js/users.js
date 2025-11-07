@@ -3,7 +3,6 @@ import {
   collection,
   getDocs,
   doc,
-  deleteDoc,
   updateDoc,
   setDoc,
   getDoc,
@@ -49,8 +48,9 @@ export async function loadUsers() {
         <td>${user.role || "N/A"}</td>
         <td>${user.active ? "Active" : "Inactive"}</td>
         <td>
-          <button data-id="${docSnap.id}" class="edit-btn">✏️ Edit</button>
-          <button data-id="${docSnap.id}" class="delete-btn">🗑️ Delete</button>
+          <button data-id="${docSnap.id}" class="edit-btn">
+            <i class="fas fa-edit"></i> Edit
+          </button>
         </td>
       `;
 
@@ -109,20 +109,8 @@ document.getElementById("addUserForm").addEventListener("submit", async (e) => {
   }
 });
 
-// ✅ Delete User
-async function deleteUser(id) {
-  if (!confirm("Are you sure you want to delete this user?")) return;
-  await deleteDoc(doc(db, "users", id));
-  alert("User deleted!");
-  loadUsers();
-}
-
-// ✅ Attach Events for Edit/Delete buttons
+// ✅ Attach Events for Edit button only
 function attachRowEvents() {
-  document.querySelectorAll(".delete-btn").forEach((btn) => {
-    btn.addEventListener("click", () => deleteUser(btn.dataset.id));
-  });
-
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const docSnap = await getDoc(doc(db, "users", btn.dataset.id));

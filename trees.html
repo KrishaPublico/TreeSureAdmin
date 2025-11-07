@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Tree Records</title>
+  <title>Tree Records by Applicant</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/trees.css">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+
 </head>
+
 <body>
   <div class="sidebar">
     <div class="logo-container">
@@ -13,96 +20,25 @@
       <span class="logo-text">TreeSure</span>
     </div>
     <ul>
-      <li><a href="dashboard.html">📊 Dashboard</a></li>
-      <li><a href="trees.html" class="active">🌲 Trees</a></li>
-      <li><a href="users.html">👥 Users</a></li>
-      <li><a href="applications.html">🗂 Applications</a></li>
-      <li><a href="reports.html">📑 Reports</a></li>
-      <li><a href="settings.html">⚙ Settings</a></li>
-      <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+      <li><a href="dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
+      <li><a href="trees.html"><i class="fa-solid fa-tree"></i> Trees</a></li>
+      <li><a href="users.html"><i class="fa-solid fa-users"></i> Users</a></li>
+      <li><a href="applications.html"><i class="fa-solid fa-file-lines"></i> Applications</a></li>
+      <li><a href="reports.html"><i class="fa-solid fa-chart-line"></i> Reports</a></li>
+      <li><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
+      <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
     </ul>
   </div>
 
   <div class="main-content">
-    <h1>🌲 Tree Records</h1>
-    <table id="treesTable">
-      <tr>
-        <th>Tree ID</th>
-        <th>Species</th>
-        <th>Diameter</th>
-        <th>Height</th>
-        <th>Volume</th>
-        <th>GPS Location</th>
-        <th>Inventoried By</th>
-        <th>Photo</th>
-      </tr>
-    </table>
+    <h1>🌳 Tree Records</h1>
+    <div id="loadingMessage">
+      Loading tree records <span class="spinner"></span>
+    </div>
+    <div id="treesContainer" class="trees-container"></div>
   </div>
 
-  <!-- Firebase Logic -->
- <script type="module">
-  import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { db, checkLogin, logout } from "./js/script.js";
-
-  // ✅ Check login state
-  checkLogin();
-  document.getElementById("logoutBtn").addEventListener("click", (e) => {
-    e.preventDefault();
-    logout();
-  });
-
-  async function loadTrees() {
-    const table = document.getElementById("treesTable");
-
-    try {
-      // 🔹 Get all users (each user has a tree_inventory subcollection)
-      const usersSnapshot = await getDocs(collection(db, "users"));
-
-      for (const userDoc of usersSnapshot.docs) {
-        const userData = userDoc.data();
-        const inventoryRef = collection(db, `users/${userDoc.id}/tree_inventory`);
-        const treesSnapshot = await getDocs(inventoryRef);
-
-        for (const treeDoc of treesSnapshot.docs) {
-          const tree = treeDoc.data();
-          const row = table.insertRow(-1);
-
-          // 🔸 Insert table data
-          row.insertCell(0).textContent = tree.tree_no || treeDoc.id;
-          row.insertCell(1).textContent = tree.specie || "N/A";
-          row.insertCell(2).textContent = tree.diameter || "N/A";
-          row.insertCell(3).textContent = tree.height || "N/A";
-          row.insertCell(4).textContent = tree.volume || "N/A";
-          row.insertCell(5).textContent = `${tree.latitude || "N/A"}, ${tree.longitude || "N/A"}`;
-          row.insertCell(6).textContent = tree.forester_name || userData.name || "Unknown";
-
-          // 🔸 Display Photo (from photo_url)
-          const photoCell = row.insertCell(7);
-          if (tree.photo_url && tree.photo_url.startsWith("http")) {
-            const img = document.createElement("img");
-            img.src = tree.photo_url;
-            img.alt = "Tree Photo";
-            img.classList.add("tree-photo");
-            img.addEventListener("click", () => window.open(tree.photo_url, "_blank"));
-            photoCell.appendChild(img);
-          } else {
-            photoCell.textContent = "No photo";
-          }
-        }
-      }
-    } catch (err) {
-      console.error("❌ Error loading trees:", err);
-      const errorRow = table.insertRow(-1);
-      const errorCell = errorRow.insertCell(0);
-      errorCell.colSpan = 8;
-      errorCell.style.color = "red";
-      errorCell.textContent = "Error loading tree records.";
-    }
-  }
-
-  // ✅ Initialize table on load
-  loadTrees();
-</script>
-
+  <script type="module" src="./js/trees.js"></script>
 </body>
+
 </html>

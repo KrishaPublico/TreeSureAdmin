@@ -11,8 +11,9 @@ import {
 
 // ------------------ FIREBASE CONFIG ------------------
 const firebaseConfig = {
-  apiKey: "AIzaSyAhCnePK0JxgzmMg2Dx2gUgGEyPpfUC5l4",
+  apiKey: "AIzaSyBqlgPkoI7MkbAFwl07WLs-_jHvbSOXPvo",
   authDomain: "treesure-6496c.firebaseapp.com",
+  databaseURL: "https://treesure-6496c-default-rtdb.firebaseio.com",
   projectId: "treesure-6496c",
   storageBucket: "treesure-6496c.firebasestorage.app",
   messagingSenderId: "324875915553",

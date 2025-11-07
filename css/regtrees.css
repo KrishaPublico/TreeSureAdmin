@@ -15,8 +15,8 @@ body {
 
 /* ===== Sidebar ===== */
 .sidebar {
-  width: 240px;
-  background: #1e5631;
+  width: 230px;
+  background: #2e7d32;
   color: #fff;
   flex-shrink: 0;
   display: flex;
@@ -26,6 +26,7 @@ body {
   top: 0;
   left: 0;
   bottom: 0;
+  z-index: 1000;
 }
 
 .logo-container {
@@ -71,9 +72,9 @@ body {
 
 /* ===== Main Content ===== */
 .main-content {
-  margin-left: 240px;
+  margin-left: 230px;
   padding: 30px;
-  width: calc(100% - 240px);
+  width: calc(100% - 230px);
 }
 
 .main-content h1 {
@@ -118,14 +119,29 @@ body {
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 768px) {
+/* Sidebar remains visible on website screens (≥769px) */
+@media (min-width: 769px) {
   .sidebar {
-    width: 200px;
+    width: 230px;
+    position: fixed;
   }
 
   .main-content {
-    margin-left: 200px;
-    width: calc(100% - 200px);
+    margin-left: 230px;
+    width: calc(100% - 230px);
+  }
+}
+
+/* Tablet layout */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 180px;
+  }
+
+  .main-content {
+    margin-left: 180px;
+    width: calc(100% - 180px);
+    padding: 20px;
   }
 
   #treesTable th, 
@@ -135,6 +151,7 @@ body {
   }
 }
 
+/* Mobile layout - sidebar collapses */
 @media (max-width: 576px) {
   .sidebar {
     position: relative;

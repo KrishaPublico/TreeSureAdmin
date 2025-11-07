@@ -1,116 +1,204 @@
 import { db } from "./script.js";
-import { doc, getDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  setDoc,
+  addDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// DOM Elements
+// ------------------ ELEMENTS ------------------
 const proceedBtn = document.getElementById("proceedBtn");
 const inventoryModal = document.getElementById("inventoryModal");
 const closeInventoryModal = document.getElementById("closeInventoryModal");
-const assignForesterBtn = document.getElementById("assignForesterBtn");
 
-const foresterSelect = document.getElementById("foresterName"); // <select> for foresters
+const foresterMultiSelect = document.getElementById("foresterMultiSelect");
 const applicantNameInput = document.getElementById("applicantNameInput");
-const applicantAddressInput = document.getElementById("applicantAddressInput");
-const applicantContactInput = document.getElementById("applicantContactInput");
+const appointmentType = document.getElementById("appointmentType");
+const appointmentLocation = document.getElementById("appointmentLocation");
+const appointmentRemarks = document.getElementById("appointmentRemarks");
 
+const reviewAppointmentBtn = document.getElementById("reviewAppointmentBtn");
+const inventoryFormStep = document.getElementById("inventoryFormStep");
+const inventoryReviewStep = document.getElementById("inventoryReviewStep");
+const backToEditBtn = document.getElementById("backToEditBtn");
+const confirmAppointmentBtn = document.getElementById("confirmAppointmentBtn");
+
+const reviewApplicant = document.getElementById("reviewApplicant");
+const reviewType = document.getElementById("reviewType");
+const reviewDate = document.getElementById("reviewDate");
+const reviewLocation = document.getElementById("reviewLocation");
+const reviewRemarks = document.getElementById("reviewRemarks");
+const reviewForesters = document.getElementById("reviewForesters");
+
+// ------------------ VARIABLES ------------------
 let currentApplicantId = null;
-let forestersLoaded = false; // ensure foresters are loaded once
+let adminId = null; // ✅ Will store logged-in admin's Gmail
 
-// ------------------ Set Current Applicant ------------------
+// ------------------ AUTH ------------------
+const auth = getAuth();
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    adminId = user.email; // ✅ Gmail of logged-in admin
+    console.log("✅ Logged in as:", adminId);
+  } else {
+    console.warn("⚠️ No admin logged in");
+  }
+});
+
+// ------------------ FUNCTIONS ------------------
 export function setCurrentApplicant(userId) {
   currentApplicantId = userId;
 }
 
-// ------------------ Load Foresters ------------------
+// Load all active foresters into the multi-select
 async function loadForesters() {
-  foresterSelect.innerHTML = "<option value=''>Select Forester</option>"; // default option
+  foresterMultiSelect.innerHTML = "";
+  const q = query(
+    collection(db, "users"),
+    where("role", "==", "Forester"),
+    where("active", "==", true)
+  );
+  const snapshot = await getDocs(q);
 
-  try {
-    const q = query(
-      collection(db, "users"),
-      where("role", "==", "Forester"),   // match exactly your Firestore role
-      where("active", "==", true)        // optional, only active foresters
-    );
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    const opt = document.createElement("option");
+    opt.value = docSnap.id;
+    opt.textContent = data.name || "Unnamed Forester";
+    foresterMultiSelect.appendChild(opt);
+  });
+}
 
-    const forestersSnapshot = await getDocs(q);
+// ------------------ OPEN MODAL ------------------
+if (proceedBtn) {
+  proceedBtn.addEventListener("click", async () => {
+    if (!currentApplicantId) return alert("⚠️ Select an applicant first.");
 
-    if (forestersSnapshot.empty) {
-      foresterSelect.innerHTML += "<option value=''>No Foresters Available</option>";
+    const userRef = doc(db, "users", currentApplicantId);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) return alert("Applicant not found.");
+    const applicantData = userSnap.data();
+
+    applicantNameInput.value = applicantData.name || "";
+    await loadForesters();
+
+    inventoryModal.style.display = "block";
+    inventoryFormStep.style.display = "block";
+    inventoryReviewStep.style.display = "none";
+  });
+}
+
+if (closeInventoryModal) {
+  closeInventoryModal.addEventListener("click", () => {
+    inventoryModal.style.display = "none";
+  });
+}
+
+window.addEventListener("click", (e) => {
+  if (e.target === inventoryModal) inventoryModal.style.display = "none";
+});
+
+// ------------------ REVIEW STEP ------------------
+if (reviewAppointmentBtn) {
+  reviewAppointmentBtn.addEventListener("click", () => {
+    const selectedForesters = Array.from(foresterMultiSelect.selectedOptions);
+
+    if (selectedForesters.length === 0)
+      return alert("⚠️ Please select at least one forester.");
+    if (!appointmentType.value || !appointmentLocation.value.trim()) {
+      alert("⚠️ Fill out all required fields.");
       return;
     }
 
-    forestersSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const option = document.createElement("option");
-      option.value = docSnap.id; // store forester's userId
-      option.textContent = data.name || "Unnamed Forester";
-      foresterSelect.appendChild(option);
-    });
+    // Populate review details
+    reviewApplicant.textContent = applicantNameInput.value;
+    reviewType.textContent = appointmentType.value;
+    reviewDate.textContent = "⏱ Automatically set when created";
+    reviewLocation.textContent = appointmentLocation.value;
+    reviewRemarks.textContent = appointmentRemarks.value || "None";
+    reviewForesters.innerHTML = selectedForesters
+      .map((f) => f.textContent)
+      .join(", ");
 
-    forestersLoaded = true;
-  } catch (err) {
-    console.error("Error loading foresters:", err);
-    alert("Failed to load foresters.");
-  }
+    // Switch view
+    inventoryFormStep.style.display = "none";
+    inventoryReviewStep.style.display = "block";
+  });
 }
 
+// ------------------ BACK TO EDIT ------------------
+if (backToEditBtn) {
+  backToEditBtn.addEventListener("click", () => {
+    inventoryFormStep.style.display = "block";
+    inventoryReviewStep.style.display = "none";
+  });
+}
 
-// ------------------ Open Inventory Modal ------------------
-proceedBtn.addEventListener("click", async () => {
-  if (!currentApplicantId) return alert("Select an applicant first.");
+// ------------------ CONFIRM APPOINTMENT ------------------
+if (confirmAppointmentBtn) {
+  confirmAppointmentBtn.addEventListener("click", async () => {
+    const selectedForesters = Array.from(
+      foresterMultiSelect.selectedOptions
+    ).map((opt) => opt.value);
 
-  try {
-    const userDoc = await getDoc(doc(db, "users", currentApplicantId));
-    const userData = userDoc.data() || {};
+    if (selectedForesters.length === 0)
+      return alert("⚠️ Please select at least one forester.");
 
-    applicantNameInput.value = userData.name || "";
-    applicantAddressInput.value = userData.address || "";
-    applicantContactInput.value = userData.contact || "";
+    try {
+      // 🔹 Fetch all existing tree tagging appointments
+      const snapshot = await getDocs(collection(db, "appointments"));
+      const existingDocs = snapshot.docs
+        .filter((docSnap) => docSnap.id.startsWith("tree_tagging_appointment_"))
+        .map((docSnap) => docSnap.id);
 
-    await loadForesters(); // populate forester dropdown (only first time)
+      // 🔹 Determine the next available index
+      let maxIndex = 0;
+      existingDocs.forEach((id) => {
+        const num = parseInt(id.replace("tree_tagging_appointment_", ""));
+        if (!isNaN(num) && num > maxIndex) {
+          maxIndex = num;
+        }
+      });
 
-    inventoryModal.style.display = "block";
-  } catch (err) {
-    console.error("Error fetching applicant info:", err);
-    alert("Failed to load applicant data.");
-  }
-});
+      const nextIndex = String(maxIndex + 1).padStart(2, "0");
+      const newDocId = `tree_tagging_appointment_${nextIndex}`;
 
-// ------------------ Close Modal ------------------
-closeInventoryModal.addEventListener("click", () => (inventoryModal.style.display = "none"));
-window.addEventListener("click", (event) => {
-  if (event.target === inventoryModal) inventoryModal.style.display = "none";
-});
+      // 🔹 Create the new appointment document
+      await setDoc(doc(db, "appointments", newDocId), {
+        adminId,
+        applicantId: currentApplicantId,
+        appointmentType: appointmentType.value,
+        location: appointmentLocation.value.trim(),
+        status: "Pending",
+        treeIds: [],
+        remarks: appointmentRemarks.value || "",
+        createdAt: serverTimestamp(),
+        completedAt: null,
+        foresterIds: selectedForesters, // ✅ multiple foresters in one doc
+      });
 
-// ------------------ Assign Forester ------------------
-assignForesterBtn.addEventListener("click", async () => {
-  const selectedForesterId = foresterSelect.value;
-  const visitDate = document.getElementById("visitDate").value;
+      alert(
+        `✅ Appointment "${newDocId}" assigned to ${selectedForesters.length} forester(s).`
+      );
+      inventoryModal.style.display = "none";
 
-  if (!selectedForesterId) return alert("Please select a forester.");
-  if (!visitDate) return alert("Please select the date of visit.");
-
-  try {
-    const foresterDoc = await getDoc(doc(db, "users", selectedForesterId));
-    const foresterName = foresterDoc.data()?.name || "Unnamed Forester";
-
-    await updateDoc(doc(db, "users", currentApplicantId), {
-      treeInventoryAssignment: {
-        foresterId: selectedForesterId,
-        foresterName: foresterName,
-        applicantName: applicantNameInput.value,
-        address: applicantAddressInput.value,
-        contact: applicantContactInput.value,
-        visitDate: visitDate, // <-- store date here
-        assignedAt: new Date()
-      }
-    });
-
-    alert(`✅ Forester ${foresterName} assigned successfully for ${visitDate}!`);
-    inventoryModal.style.display = "none";
-    foresterSelect.value = "";
-    document.getElementById("visitDate").value = "";
-  } catch (err) {
-    console.error("Error assigning forester:", err);
-    alert("Failed to assign forester.");
-  }
-});
+      // Reset form
+      appointmentType.value = "";
+      appointmentLocation.value = "";
+      appointmentRemarks.value = "";
+      foresterMultiSelect.selectedIndex = -1;
+    } catch (err) {
+      console.error("❌ Error creating appointment:", err);
+      alert("Failed to create appointment: " + err.message);
+    }
+  });
+}

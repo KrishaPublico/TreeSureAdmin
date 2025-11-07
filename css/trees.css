@@ -1,28 +1,194 @@
- body {
-      font-family: Arial, sans-serif;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background-color: #4CAF50;
-      color: white;
-    }
-    img.tree-photo {
-      width: 90px;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    img.tree-photo:hover {
-      transform: scale(1.15);
-    }
+body {
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 230px;
+  padding: 20px;
+}
+
+/* Add more breathing space around each applicant folder */
+.applicant-folder {
+  margin-top: 35px;     /* ✅ Adds space above each folder */
+  margin-bottom: 25px;  /* Keeps bottom spacing consistent */
+  padding: 0 10px;
+}
+
+/* Optional: For the first folder, make sure it’s not too close to the page title */
+.applicant-folder:first-child {
+  margin-top: 50px; /* You can tweak this value to your liking */
+}
+
+/* Folder header (top of the folder) */
+.applicant-header {
+  cursor: pointer;
+  background-color: #2d6a4f; /* deep green */
+  color: white;
+  padding: 14px 20px;
+  border-radius: 10px 10px 0 0; /* rounded only on top */
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+/* Hover effect for folder header */
+.applicant-header:hover {
+  background-color: #1b4332;
+  transform: scale(1.01);
+}
+
+/* Table container appearance below header */
+.tree-table-container {
+  margin-top: 0;
+  border: 1px solid #eee;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+
+/* ==============================
+   🌲 GREEN TABLE THEME
+============================== */
+
+/* ==============================
+   🌿 MODERN GREEN TABLE DESIGN
+============================== */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background-color: #f0fdf4; /* very light mint green */
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Table Header */
+th {
+  background-color: #16a34a; /* bright emerald green */
+  color: #ffffff;
+  font-weight: 600;
+  padding: 14px 10px;
+  text-align: center;
+  border-bottom: 2px solid #15803d;
+  letter-spacing: 0.5px;
+}
+
+/* Table Cells */
+td {
+  border: 1px solid #dcfce7;
+  padding: 12px;
+  text-align: center;
+  color: #14532d; /* deep green text */
+  font-size: 0.95rem;
+}
+
+/* Alternating Row Colors */
+tr:nth-child(even) {
+  background-color: #e7f9ed;
+}
+
+/* Row Hover Effect */
+tr:hover {
+  background-color: #bbf7d0; /* light mint hover */
+  transition: background 0.25s ease;
+}
+
+/* Optional Sticky Header for Long Tables */
+.tree-table-container {
+  margin-top: 12px;
+  overflow-x: auto;
+  animation: fadeIn 0.4s ease forwards;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+/* Tree Photo Styling */
+img.tree-photo {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid #16a34a;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+img.tree-photo:hover {
+  transform: scale(1.12);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Folder Header (Applicant Section) */
+.applicant-header {
+  cursor: pointer;
+  background: linear-gradient(90deg, #15803d, #16a34a);
+  color: white;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background 0.3s ease;
+  margin-top: 24px; /* Adjust top margin */
+}
+
+.applicant-header:hover {
+  background: linear-gradient(90deg, #166534, #15803d);
+}
+
+
+/* Spinner centered */
+#loadingMessage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  color: #333;
+  margin: 25px 0;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #ccc;
+  border-top: 3px solid #2d6a4f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+/* Sidebar remains visible on website screens (≥769px) */
+@media (min-width: 769px) {
+  .main-content {
+    margin-left: 230px;
+  }
+}
+
+/* Mobile layout - sidebar adjusts on small screens (<769px) */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 180px;
+    padding: 15px;
+  }
+}

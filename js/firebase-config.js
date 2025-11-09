@@ -7,7 +7,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 
 // ------------------ FIREBASE CONFIG ------------------
 const firebaseConfig = {
-  apiKey: "AIzaSyBqlgPkoI7MkbAFwl07WLs-_jHvbSOXPvo",
+  apiKey: "AIzaSyBca-tYDQIXxSzOAz2jph3Mse6rJ3Ag9is",
   authDomain: "treesure-6496c.firebaseapp.com",
   databaseURL: "https://treesure-6496c-default-rtdb.firebaseio.com",
   projectId: "treesure-6496c",

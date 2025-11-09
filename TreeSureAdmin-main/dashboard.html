@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard - Tree Inventory Admin</title>
+  <link rel="stylesheet" href="css/dashboard.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo-container">
+      <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo" />
+      <span class="logo-text">TreeSure</span>
+    </div>
+
+    <ul>
+      <li><a href="dashboard.html" class="active"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
+      <li><a href="trees.html"><i class="fa-solid fa-tree"></i> Trees</a></li>
+      <li><a href="users.html"><i class="fa-solid fa-users"></i> Users</a></li>
+      <li><a href="applications.html"><i class="fa-solid fa-file-lines"></i> Applications</a></li>
+      <li><a href="reports.html"><i class="fa-solid fa-chart-line"></i> Reports</a></li>
+      <li><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
+      <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header>
+      <h1>Welcome, <span id="adminName"></span> 👤</h1>
+    </header>
+
+    <!-- Dashboard Summary Cards -->
+    <div class="cards" id="dashboard-cards">
+      <div class="card">🌲 Total Tagged Trees<br><span id="totalTaggedTrees">0</span></div>
+      <div class="card">🌱 Species Count<br><span id="speciesCount">0</span></div>
+      <div class="card"> Total Foresters<br><span id="totalForester">0</span></div>
+      <div class="card">🙋‍♂️ Total Applicants<br><span id="totalApplicants">0</span></div>
+      <div class="card">📋 Total Applications<br><span id="totalApplications">0</span></div>
+      <div class="card">🕓 Pending Applications<br><span id="pendingApplications">0</span></div>
+      <div class="card">✅ Approved Applications<br><span id="approvedApplications">0</span></div>
+      <div class="card">📅 Applications This Month<br><span id="applicationsThisMonth">0</span></div>
+      <div class="card">🌲 Trees Tagged This Month<br><span id="treesTaggedThisMonth">0</span></div>
+      <div class="card">📍 Active Appointments<br><span id="activeAppointments">0</span></div>
+      <div class="card">✅ Completed Appointments<br><span id="completedAppointments">0</span></div>
+      <div class="card">📊 Avg Trees/Forester<br><span id="avgTreesPerForester">0</span></div>
+    </div>
+
+    <!-- Application Type Breakdown -->
+    <div class="stats-section">
+      <h3>📊 Application Statistics by Type</h3>
+      <div class="app-type-cards">
+        <div class="app-type-card">
+          <div class="app-type-icon">🪪</div>
+          <div class="app-type-label">CTPO</div>
+          <div class="app-type-count" id="ctpoCount">0</div>
+        </div>
+        <div class="app-type-card">
+          <div class="app-type-icon">🪵</div>
+          <div class="app-type-label">PLTP</div>
+          <div class="app-type-count" id="pltpCount">0</div>
+        </div>
+        <div class="app-type-card">
+          <div class="app-type-icon">🪵</div>
+          <div class="app-type-label">SPLT</div>
+          <div class="app-type-count" id="spltCount">0</div>
+        </div>
+        <div class="app-type-card">
+          <div class="app-type-icon">📋</div>
+          <div class="app-type-label">Permit to Cut</div>
+          <div class="app-type-count" id="ptcCount">0</div>
+        </div>
+        <div class="app-type-card">
+          <div class="app-type-icon">🪚</div>
+          <div class="app-type-label">Chainsaw</div>
+          <div class="app-type-count" id="chainsawCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts">
+      <div class="chart-container">
+        <h3>🌿 Trees per Species</h3>
+        <canvas id="speciesChart" width="400" height="200"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <h3>👷 Trees per Forester</h3>
+        <canvas id="applicantChart" width="400" height="200"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <h3>📊 Application Status Distribution</h3>
+        <canvas id="statusChart" width="400" height="200"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <h3>📋 Appointment Types Distribution</h3>
+        <canvas id="appointmentTypeChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Performers Section -->
+    <div class="stats-section">
+      <h3>🏆 Top Performers</h3>
+      <div class="top-performers-grid">
+        <div class="performer-card">
+          <h4>🥇 Most Active Forester</h4>
+          <div id="topForester" class="performer-name">Loading...</div>
+          <div id="topForesterCount" class="performer-stat">0 trees tagged</div>
+        </div>
+        <div class="performer-card">
+          <h4>🌲 Most Common Species</h4>
+          <div id="topSpecies" class="performer-name">Loading...</div>
+          <div id="topSpeciesCount" class="performer-stat">0 trees</div>
+        </div>
+        <div class="performer-card">
+          <h4>📍 Most Active Location</h4>
+          <div id="topLocation" class="performer-name">Loading...</div>
+          <div id="topLocationCount" class="performer-stat">0 appointments</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Filters -->
+    <div class="map-filters">
+      <h3>🗺️ Tree Locations Map</h3>
+      <div class="filter-controls">
+        <label for="speciesFilter">Filter by Species:</label>
+        <select id="speciesFilter">
+          <option value="all" selected>All Species</option>
+        </select>
+
+        <label for="foresterFilter">Filter by Forester:</label>
+        <select id="foresterFilter">
+          <option value="all" selected>All Foresters</option>
+        </select>
+
+        <label for="locationFilter">Municipality:</label>
+        <select id="locationFilter">
+          <option value="all" selected>All</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Map -->
+    <div class="map-container">
+      <div id="treeMap"></div>
+    </div>
+
+    <!-- Tagging Trends -->
+    <div class="chart-container" style="margin-top: 25px;">
+      <h3>📈 Tree Tagging Trends Over Time</h3>
+      <canvas id="trendsChart" width="400" height="180"></canvas>
+    </div>
+
+    <!-- Monthly Comparison -->
+    <div class="stats-section" style="margin-top: 25px;">
+      <h3>📅 Monthly Performance Comparison</h3>
+      <div class="monthly-stats">
+        <div class="monthly-card">
+          <div class="monthly-label">This Month</div>
+          <div class="monthly-value" id="thisMonthTrees">0</div>
+          <div class="monthly-desc">Trees Tagged</div>
+        </div>
+        <div class="monthly-card">
+          <div class="monthly-label">Last Month</div>
+          <div class="monthly-value" id="lastMonthTrees">0</div>
+          <div class="monthly-desc">Trees Tagged</div>
+        </div>
+        <div class="monthly-card">
+          <div class="monthly-label">Growth</div>
+          <div class="monthly-value" id="growthPercentage">0%</div>
+          <div class="monthly-desc">vs Last Month</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="activities" style="margin-top: 25px;">
+      <h3>🕓 Recent Activities</h3>
+      <ul id="recentActivities">
+        <li>Loading recent updates...</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Dashboard Logic -->
+  <script type="module" src="./js/dashboard.js"></script>
+</body>
+
+</html>

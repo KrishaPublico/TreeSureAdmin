@@ -1,0 +1,172 @@
+/* ---------- SIDEBAR DROPDOWN STYLING ---------- */
+
+/* Dropdown container */
+.dropdown {
+  position: relative;
+}
+
+/* Dropdown toggle (Applications tab) */
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 18px;
+  font-size: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  position: relative;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.dropdown-toggle:hover {
+  background: #1b5e20;
+}
+
+/* Left icon */
+.dropdown-toggle i:first-child {
+  font-size: 16px;
+}
+
+/* Dropdown arrow */
+/* Dropdown arrow icon — always visible and steady */
+.dropdown-icon {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);       /* default no rotation */
+  font-size: 13px;
+  color: #fff;                        /* visible color to match sidebar */
+  transition: transform 0.28s ease, color 0.28s ease, opacity 0.28s ease;
+  pointer-events: none;               /* allow clicks to pass through */
+  opacity: 1 !important;              /* always visible */
+  visibility: visible !important;     /* never hidden by other rules */
+}
+
+/* rotate only when dropdown is open */
+.dropdown.open .dropdown-icon {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+  display: none;
+  flex-direction: column;
+  background: #e9f3e9; /* light green-gray tone — modern & professional */
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  margin: 0;
+  padding: 4px 0;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08); /* subtle depth */
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dropdown.open .dropdown-menu {
+  display: flex;
+}
+
+/* Dropdown items */
+.dropdown-menu li {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Button inside dropdown */
+.dropdown-menu button.app-type-btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #2e2e2e; /* darker text for readability */
+  padding: 8px 32px;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background 0.25s ease, color 0.25s ease;
+  display: block;
+  font-weight: 500;
+}
+
+/* Hover effect — elegant green tint */
+.dropdown-menu button.app-type-btn:hover {
+  background-color: #cde3cd;
+  color: #1b5e20;
+}
+
+/* Divider between buttons (light gray) */
+.dropdown-menu button.app-type-btn + button.app-type-btn {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+/* ---------- 2ND LEVEL DROPDOWN ---------- */
+
+/* Cutting Permit container */
+.dropdown-sub {
+  position: relative;
+  width: 100%;
+}
+
+/* Submenu toggle button */
+.sub-toggle {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 6px 30px;
+  font-size: 13.5px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sub-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Submenu arrow */
+.sub-icon {
+  font-size: 12px;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.dropdown-sub.open .sub-icon {
+  transform: rotate(180deg);
+}
+
+/* Submenu list */
+.sub-menu {
+  display: none;
+  flex-direction: column;
+  background: #9ccc9c;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.dropdown-sub.open .sub-menu {
+  display: flex;
+}
+
+/* Submenu items */
+.sub-menu .app-type-btn {
+  padding: 6px 45px;
+  font-size: 13px;
+  color: #fff;
+  background: none;
+  border: none;
+  text-align: left;
+  transition: background 0.25s;
+}
+
+.sub-menu .app-type-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}

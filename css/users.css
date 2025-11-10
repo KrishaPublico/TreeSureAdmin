@@ -109,7 +109,7 @@ button.edit-btn:hover {
 
 .form-actions {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end; /* align button to the right */
   margin-top: 10px;
 }
 
@@ -117,16 +117,25 @@ button.edit-btn:hover {
   background: #2e7d32;
   color: #fff;
   border: none;
-  padding: 10px 30px;
+  padding: 8px 18px; /* smaller padding */
   border-radius: 8px;
+  font-size: 14px;
   cursor: pointer;
-  font-size: 15px;
-  transition: background 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px; /* space between icon and text */
+  width: auto; /* fit content */
+  max-width: 180px;
+  white-space: nowrap; /* prevent wrapping */
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
 .btn-submit:hover {
-  background: #1b5e20;
+  background-color: #1b5e20;
+  transform: translateY(-1px);
 }
+
 
 /* ---------- SEARCH BAR ---------- */
 .search-bar {
@@ -137,7 +146,8 @@ button.edit-btn:hover {
 
 .search-input-container {
   position: relative;
-  width: 300px;
+  width: 600px; /* increased width */
+  max-width: 90%; /* responsive */
 }
 
 .search-input-container input {
@@ -146,6 +156,14 @@ button.edit-btn:hover {
   border: 1px solid #ccc;
   border-radius: 25px;
   font-size: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* added shadow */
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input-container input:focus {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); /* stronger shadow on focus */
+  border-color: #2e7d32; /* optional focus border color */
 }
 
 .search-icon {
@@ -158,34 +176,8 @@ button.edit-btn:hover {
   pointer-events: none;
 }
 
-/* ---------- RESPONSIVE DESIGN ---------- */
-/* Sidebar remains visible on website screens (≥769px) */
-@media (min-width: 769px) {
-  .main-content {
-    margin-left: 230px;
-  }
-}
 
-/* Mobile layout - sidebar adjusts on small screens (<769px) */
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 180px;
-    padding: 15px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  table {
-    font-size: 13px;
-  }
-
-  button.edit-btn {
-    padding: 5px 10px;
-    font-size: 0.8rem;
-  }
-}
+/* ---------- EDIT BUTTON ---------- */
 .edit-btn {
   background-color: #007bff;
   color: #fff;
@@ -209,3 +201,113 @@ button.edit-btn:hover {
 .edit-btn i {
   font-size: 14px;
 }
+
+/* ---------- TOAST / NOTIFICATION STYLES ---------- */
+#toast-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Toast style */
+.toast {
+  width: 400px;
+  max-width: 90vw;
+  padding: 25px 30px;
+  border-radius: 16px;
+  background-color: #fff;
+  color: #333;
+  font-weight: 500;
+  font-size: 1.2rem;
+  text-align: center; /* center text */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.4s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Show animation */
+.toast.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Small font for confirmation toast */
+.toast .small-message {
+  font-size: 1rem;
+  text-align: center;
+}
+
+/* Success toast with check icon */
+.toast .message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 1.0rem;
+}
+
+/* Icon style */
+.toast .message .icon {
+  font-size: 20px;
+  color: #28a745; /* green check */
+}
+
+/* Close icon (right side) */
+.toast .close-btn {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #555;
+}
+
+/* OK button */
+.toast .ok-btn {
+  margin-top: 25px;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  background-color: #28a745;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.toast .ok-btn:hover {
+  background-color: #218838;
+}
+
+/* ---------- ICON IN H1 ---------- */
+
+h1 {
+  font-size: 1.5rem; /* smaller font size */
+  font-weight: 600;  /* optional: slightly bold */
+  color: #2e7d32;   /* keep the green color */
+  margin-bottom: 20px; /* spacing below heading */
+  display: flex;
+  align-items: center;
+}
+
+h1 i {
+  font-size: 1.2rem; /* smaller icon */
+  margin-right: 8px;
+  vertical-align: middle;
+  color: #2e7d32;
+}
+
+
+

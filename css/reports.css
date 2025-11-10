@@ -11,57 +11,7 @@ body {
   color: #333;
 }
 
-/* Sidebar */
-.sidebar {
-  width: 240px;
-  background-color: #2e7d32;
-  color: #fff;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  overflow-y: auto;
-}
 
-.sidebar .logo-container {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-}
-
-.sidebar .logo {
-  width: 40px;
-  margin-right: 10px;
-}
-
-.sidebar .logo-text {
-  font-weight: 600;
-  font-size: 18px;
-}
-
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-}
-
-.sidebar ul li {
-  margin: 8px 0;
-}
-
-.sidebar ul li a {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background 0.3s;
-}
-
-.sidebar ul li a:hover,
-.sidebar ul li a.active {
-  background-color: #388e3c;
-}
 
 /* Main Content */
 .main-content {
@@ -365,36 +315,7 @@ tbody tr:hover {
   margin-bottom: 8px;
 }
 
-/* Responsive Fixes */
-/* Sidebar remains visible on website screens (≥769px) */
-@media (min-width: 769px) {
-  .main-content {
-    margin-left: 230px;
-    padding: 30px;
-    width: calc(100% - 230px);
-  }
-}
 
-/* Mobile layout - sidebar hidden on small screens (<769px) */
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 180px;
-    padding: 20px;
-    width: calc(100% - 180px);
-  }
-
-  .sidebar {
-    width: 180px;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .chart-box:last-child {
-    grid-column: auto;
-  }
-}
 
 /* ===== APPLICATION DETAILS MODAL ===== */
 .modal {

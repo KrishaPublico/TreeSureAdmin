@@ -5,6 +5,8 @@
   <meta charset="UTF-8" />
   <title>Reports - TreeSure</title>
   <link rel="stylesheet" href="css/reports.css" />
+  <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/topbar.css">
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,30 +23,18 @@
 </head>
 
 <body onload="checkLogin()">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="logo-container">
-      <img
-        src="assets/images/treesurelogo.png"
-        alt="TreeSure Logo"
-        class="logo"
-      />
-      <span class="logo-text">TreeSure</span>
-    </div>
+ <!-- Sidebar (loaded dynamically) -->
+  <div id="sidebar-container"></div>
 
-    <ul>
-      <li><a href="dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
-      <li><a href="trees.html"><i class="fa-solid fa-tree"></i> Trees</a></li>
-      <li><a href="users.html"><i class="fa-solid fa-users"></i> Users</a></li>
-      <li><a href="applications.html"><i class="fa-solid fa-file-lines"></i> Applications</a></li>
-      <li><a href="reports.html" class="active"><i class="fa-solid fa-chart-line"></i> Reports</a></li>
-      <li><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
-      <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
-    </ul>
-  </div>
+
 
   <!-- Main Content -->
   <div class="main-content">
+    <div class="top-horizontal-bar"> </div>
+  
+
+      <!-- Top Horizontal Bar -->
+
     <header>
       <h1>📑 Reports Dashboard</h1>
       <p>Comprehensive analytics and system summaries</p>
@@ -211,6 +201,56 @@
 
   <!-- Scripts -->
   <script type="module" src="./js/reports.js"></script>
+
+
+   <!-- Load Sidebar Dynamically -->
+  <script>
+    fetch("sidebar.html")
+  .then(res => res.text())
+  .then(html => {
+    document.getElementById("sidebar-container").innerHTML = html;
+
+    // Highlight the active page link
+    const current = window.location.pathname.split("/").pop();
+    document.querySelectorAll(".sidebar a").forEach(link => {
+      if (link.getAttribute("href") === current) {
+        link.classList.add("active");
+      }
+    });
+
+    // Logout handler
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", e => {
+        e.preventDefault();
+        localStorage.clear();
+        window.location.href = "login.html";
+      });
+    }
+
+    // --------- ADD DROPDOWN FUNCTIONALITY ---------
+
+    // Main Applications dropdown
+    document.querySelectorAll(".dropdown-toggle").forEach(drop => {
+      drop.addEventListener("click", e => {
+        e.preventDefault(); // prevent link jump
+        drop.parentElement.classList.toggle("open");
+      });
+    });
+
+    // Sub-dropdown (Cutting Permit)
+    document.querySelectorAll(".sub-toggle").forEach(sub => {
+      sub.addEventListener("click", e => {
+        e.preventDefault();
+        const subMenu = sub.nextElementSibling;
+        subMenu.classList.toggle("open");
+      });
+    });
+
+    // ---------------------------------------------
+  });
+
+  </script>
 
   <!-- 📤 Export Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>

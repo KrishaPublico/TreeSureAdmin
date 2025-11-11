@@ -105,7 +105,6 @@ body {
   color: #1b5e20;
 }
 
-
 /* ---------- MAIN CONTENT ---------- */
 .main-content {
   flex: 1;
@@ -126,38 +125,40 @@ body {
 }
 
 /* ---------- DROPDOWN MENUS ---------- */
-/* Applications dropdown menu hidden by default */
+/* Main dropdown (Applications) */
 .dropdown .dropdown-menu {
   display: none;
   list-style: none;
   padding: 0;
   margin: 0;
-  background-color: #f4f6f8; /* optional base color */
+  background-color: #f4f6f8;
   border-radius: 5px;
- 
+}
+.dropdown-toggle,
+.sub-icon {
+  transition: transform 0.3s ease;
+  transform: rotate(0deg); /* default: pointing down */
 }
 
-/* Show dropdown menu when parent has 'open' */
-.dropdown.open .dropdown-menu {
+/* Show main dropdown when parent has 'open' */
+.dropdown.open > .dropdown-menu {
   display: block;
-  background-color: #e8e8e8; /* background color when opened */
 }
 
-/* Sub-menu hidden by default */
-.sub-menu {
+/* Sub-dropdown (Cutting Permits) */
+.dropdown-sub .sub-menu {
   display: none;
-  padding-left: 10px;
+  padding-left: 15px; /* indent for nested */
+  list-style: none;
 }
 
 /* Show sub-menu when parent has 'open' */
-.sub-menu.open {
+.dropdown-sub.open > .sub-menu {
   display: block;
-  background-color: #eaeaea; /* sub-menu background */
 }
 
-/* Optional hover effects */
-.app-type-btn:hover {
+
+/* Optional hover effects for sub-menu buttons */
+.sub-menu button.app-type-btn:hover {
   background-color: #cceeff;
 }
-
-

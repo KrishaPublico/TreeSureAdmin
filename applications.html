@@ -172,7 +172,12 @@
     <div id="filePreviewModal" class="modal" style="display:none;">
       <div class="modal-content" style="max-width:90%; max-height:90vh;">
         <span class="close" id="closeFilePreview">&times;</span>
-        <h2 id="previewTitle">File Preview</h2>
+        <div class="preview-header">
+          <h2 id="previewTitle">File Preview</h2>
+          <a id="downloadFileBtn" class="action-btn-secondary" href="#" target="_blank" rel="noopener">
+            <i class="fa fa-download"></i> Download
+          </a>
+        </div>
         <iframe id="previewFrame" style="width:100%; height:70vh; border:1px solid #ccc;"></iframe>
       </div>
     </div>

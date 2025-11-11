@@ -13,9 +13,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const tbody = document.getElementById("usersTableBody");
   const addUserForm = document.getElementById("addUserForm");
-  const btnSubmit = document.querySelector(".btn-submit");
+  const addUserSubmitBtn = document.querySelector(".user-form .btn-submit");
   const searchInput = document.getElementById("searchInput");
   const usersRef = collection(db, "users");
+  const editModal = document.getElementById("editUserModal");
+  const editForm = document.getElementById("editUserForm");
+  const closeEditModalBtn = document.getElementById("closeEditModal");
+  const editUserIdInput = document.getElementById("editUserId");
+  const editNameInput = document.getElementById("editName");
+  const editUsernameInput = document.getElementById("editUsername");
+  const editPasswordInput = document.getElementById("editPassword");
+  const editContactInput = document.getElementById("editContact");
+  const editAddressInput = document.getElementById("editAddress");
+  const editRoleSelect = document.getElementById("editRole");
+  const editStatusSelect = document.getElementById("editStatus");
 
   // ---------------- LOGOUT ----------------
   const logoutBtn = document.getElementById("logoutBtn");
@@ -27,36 +38,69 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---------------- CONFIRMATION TOAST ----------------
-// Confirmation toast (no icon, smaller font)
-function showConfirmationToast(message) {
+// Confirmation toast that supports configurable buttons
+function showConfirmationToast(message, options = {}) {
   return new Promise((resolve, reject) => {
     const container = document.getElementById("toast-container");
     if (!container) return reject("Toast container missing");
 
+    const {
+      confirmText = "OK",
+      cancelText = null,
+    } = options;
+
     const toast = document.createElement("div");
     toast.className = "toast";
-    toast.innerHTML = `
-      <div class="message small-message">
-        <span>${message}</span>
-      </div>
-      <div class="close-btn">&times;</div>
-      <button class="ok-btn">OK</button>
-    `;
-    container.appendChild(toast);
 
-    setTimeout(() => toast.classList.add("show"), 100);
+    const messageWrapper = document.createElement("div");
+    messageWrapper.className = "message small-message";
+    const messageSpan = document.createElement("span");
+    messageSpan.textContent = message;
+    messageWrapper.appendChild(messageSpan);
+    toast.appendChild(messageWrapper);
 
-    toast.querySelector(".close-btn").addEventListener("click", () => {
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "close-btn";
+    closeBtn.innerHTML = "&times;";
+    closeBtn.addEventListener("click", () => {
       toast.classList.remove("show");
       setTimeout(() => toast.remove(), 400);
       reject("Cancelled by user");
     });
+    toast.appendChild(closeBtn);
 
-    toast.querySelector(".ok-btn").addEventListener("click", () => {
+    const actions = document.createElement("div");
+    actions.className = "toast-actions";
+
+    if (cancelText) {
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "cancel-btn";
+      cancelBtn.textContent = cancelText;
+      cancelBtn.addEventListener("click", () => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 400);
+        reject("Cancelled by user");
+      });
+      actions.appendChild(cancelBtn);
+    }
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "ok-btn";
+    confirmBtn.textContent = confirmText;
+    confirmBtn.addEventListener("click", () => {
       toast.classList.remove("show");
       setTimeout(() => toast.remove(), 400);
       resolve(true);
     });
+    actions.appendChild(confirmBtn);
+
+    toast.appendChild(actions);
+    container.appendChild(toast);
+
+    setTimeout(() => toast.classList.add("show"), 100);
   });
 }
 
@@ -133,30 +177,52 @@ function showSuccessToast(message) {
   function attachRowEvents() {
     tbody.querySelectorAll(".edit-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const docSnap = await getDoc(doc(db, "users", btn.dataset.id));
-        if (!docSnap.exists()) return showConfirmationToast("User not found");
+        try {
+          const docSnap = await getDoc(doc(db, "users", btn.dataset.id));
+          if (!docSnap.exists()) {
+            await showConfirmationToast("User not found");
+            return;
+          }
 
-        const user = docSnap.data();
-
-        document.getElementById("userId").value = btn.dataset.id;
-        document.getElementById("name").value = user.name || "";
-        document.getElementById("username").value = user.username || "";
-        document.getElementById("password").value = user.password || "";
-        document.getElementById("contact").value = user.contact || "";
-        document.getElementById("address").value = user.address || "";
-        document.getElementById("role").value = user.role || "Applicant";
-        document.getElementById("status").value = user.active ? "true" : "false";
-
-        btnSubmit.innerHTML = `<i class="fa fa-save"></i> Update User`;
+          const user = docSnap.data();
+          openEditModal(btn.dataset.id, user);
+        } catch (err) {
+          console.error("Failed to open edit modal:", err);
+          showConfirmationToast("Unable to load user details");
+        }
       });
     });
+  }
+
+  function openEditModal(userId, userData) {
+    editUserIdInput.value = userId;
+    editNameInput.value = userData.name || "";
+    editUsernameInput.value = userData.username || "";
+    editPasswordInput.value = userData.password || "";
+    editContactInput.value = userData.contact || "";
+    editAddressInput.value = userData.address || "";
+    editRoleSelect.value = userData.role || "Applicant";
+    editStatusSelect.value = userData.active ? "true" : "false";
+
+    if (editModal) {
+      editModal.classList.add("show");
+      editModal.setAttribute("aria-hidden", "false");
+    }
+  }
+
+  function closeEditModal() {
+    if (editModal) {
+      editModal.classList.remove("show");
+      editModal.setAttribute("aria-hidden", "true");
+    }
+    editForm?.reset();
+    if (editUserIdInput) editUserIdInput.value = "";
   }
 
   // ---------------- ADD / UPDATE USER ----------------
 addUserForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const userId = document.getElementById("userId").value;
   const userData = {
     name: document.getElementById("name").value.trim(),
     username: document.getElementById("username").value.trim(),
@@ -169,30 +235,26 @@ addUserForm.addEventListener("submit", async (e) => {
 
   try {
     // Confirmation prompt (no icon)
-    await showConfirmationToast(
-      userId ? "Are you sure you want to update this user?" : "Are you sure you want to add this user?"
-    );
+    await showConfirmationToast("Are you sure you want to add this user?", {
+      confirmText: "Yes",
+      cancelText: "Cancel",
+    });
 
-    if (userId) {
-      await updateDoc(doc(db, "users", userId), userData);
-      // Success toast with check icon
-      showSuccessToast("User updated successfully!");
-    } else {
-      const snapshot = await getDocs(usersRef);
-      const existingIds = snapshot.docs.map(docSnap => parseInt(docSnap.id, 10) || 0);
+    const snapshot = await getDocs(usersRef);
+    const existingIds = snapshot.docs.map((docSnap) => parseInt(docSnap.id, 10) || 0);
 
-      let newIdNumber = 1;
-      while (existingIds.includes(newIdNumber)) newIdNumber++;
-      const customId = String(newIdNumber).padStart(3, "0");
+    let newIdNumber = 1;
+    while (existingIds.includes(newIdNumber)) newIdNumber++;
+    const customId = String(newIdNumber).padStart(3, "0");
 
-      await setDoc(doc(db, "users", customId), { id: customId, ...userData });
-      showSuccessToast(`User added successfully with ID: ${customId}`);
-    }
+    await setDoc(doc(db, "users", customId), { id: customId, ...userData });
+    showSuccessToast(`User added successfully with ID: ${customId}`);
 
     // Reset form
     addUserForm.reset();
-    document.getElementById("userId").value = "";
-    btnSubmit.innerHTML = `<i class="fa fa-user-plus"></i> Add User`;
+    if (addUserSubmitBtn) {
+      addUserSubmitBtn.innerHTML = `<i class="fa fa-user-plus"></i> Add User`;
+    }
 
     // Reload table
     loadUsers();
@@ -200,6 +262,51 @@ addUserForm.addEventListener("submit", async (e) => {
     console.log("Action cancelled or error:", err);
   }
 });
+
+  editForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const userId = editUserIdInput.value;
+    if (!userId) {
+      console.warn("Missing user id for edit");
+      return;
+    }
+
+    const updatedData = {
+      name: editNameInput.value.trim(),
+      username: editUsernameInput.value.trim(),
+      password: editPasswordInput.value,
+      contact: editContactInput.value.trim(),
+      address: editAddressInput.value.trim(),
+      role: editRoleSelect.value,
+      active: editStatusSelect.value === "true",
+    };
+
+    try {
+      closeEditModal();
+      await showConfirmationToast("Are you sure you want to update this user?", {
+        confirmText: "Yes",
+        cancelText: "Cancel",
+      });
+      await updateDoc(doc(db, "users", userId), updatedData);
+      showSuccessToast("User updated successfully!");
+      closeEditModal();
+      loadUsers();
+    } catch (err) {
+      if (err === "Cancelled by user") {
+        openEditModal(userId, updatedData);
+      } else {
+        console.log("Edit cancelled or error:", err);
+      }
+    }
+  });
+
+  closeEditModalBtn?.addEventListener("click", closeEditModal);
+  editModal?.addEventListener("click", (event) => {
+    if (event.target === editModal) {
+      closeEditModal();
+    }
+  });
 
 
   // ---------------- SEARCH / FILTER ----------------

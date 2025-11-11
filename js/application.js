@@ -415,7 +415,8 @@ async function showApplicantFiles(
 
       tr.querySelector(".view-btn").addEventListener("click", async () => {
         const btn = tr.querySelector(".view-btn");
-        let fileUrl = btn.dataset.url;
+        const fileUrl = btn.dataset.url;
+        const docTitle = btn.dataset.title || "Document";
 
         if (!fileUrl || fileUrl === "#" || fileUrl.trim() === "") {
           alert("No file URL available for this document.");
@@ -423,14 +424,29 @@ async function showApplicantFiles(
         }
 
         const modal = document.getElementById("filePreviewModal");
-        const iframe = document.getElementById("filePreviewFrame");
-        const link = document.getElementById("downloadLink");
+        const iframe = document.getElementById("previewFrame");
+        const titleEl = document.getElementById("previewTitle");
+        const downloadBtn = document.getElementById("downloadFileBtn");
 
-        const encodedUrl = encodeURIComponent(fileUrl);
-        const viewerUrl = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+        if (!modal || !iframe || !titleEl || !downloadBtn) {
+          window.open(fileUrl, "_blank");
+          return;
+        }
+
+        titleEl.textContent = `File Preview - ${docTitle}`;
+        downloadBtn.href = fileUrl;
+
+        const fileExt = fileUrl.split("?")[0].split(".").pop()?.toLowerCase();
+        const isImage = ["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(fileExt);
+        const isPdf = fileExt === "pdf";
+        let viewerUrl = fileUrl;
+
+        if (!isImage && !isPdf) {
+          const encodedUrl = encodeURIComponent(fileUrl);
+          viewerUrl = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+        }
 
         iframe.src = viewerUrl;
-        link.href = fileUrl;
         modal.style.display = "flex";
       });
 
@@ -450,14 +466,20 @@ async function showApplicantFiles(
     if (closeFilePreview && !closeFilePreview.dataset.listenerAttached) {
       closeFilePreview.addEventListener("click", () => {
         filePreviewModal.style.display = "none";
-        document.getElementById("filePreviewFrame").src = "";
+        const iframe = document.getElementById("previewFrame");
+        if (iframe) iframe.src = "";
+        const downloadBtn = document.getElementById("downloadFileBtn");
+        if (downloadBtn) downloadBtn.href = "#";
       });
       closeFilePreview.dataset.listenerAttached = "true";
 
       window.addEventListener("click", (e) => {
         if (e.target === filePreviewModal) {
           filePreviewModal.style.display = "none";
-          document.getElementById("filePreviewFrame").src = "";
+          const iframe = document.getElementById("previewFrame");
+          if (iframe) iframe.src = "";
+          const downloadBtn = document.getElementById("downloadFileBtn");
+          if (downloadBtn) downloadBtn.href = "#";
         }
       });
     }

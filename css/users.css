@@ -256,6 +256,13 @@ button.edit-btn:hover {
   font-size: 1.0rem;
 }
 
+.toast-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
 /* Icon style */
 .toast .message .icon {
   font-size: 20px;
@@ -291,6 +298,23 @@ button.edit-btn:hover {
   background-color: #218838;
 }
 
+.toast .cancel-btn {
+  margin-top: 25px;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  background-color: #e0e0e0;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.toast .cancel-btn:hover {
+  background-color: #c7c7c7;
+}
+
 /* ---------- ICON IN H1 ---------- */
 
 h1 {
@@ -307,6 +331,67 @@ h1 i {
   margin-right: 8px;
   vertical-align: middle;
   color: #2e7d32;
+}
+
+/* ---------- EDIT USER MODAL ---------- */
+.edit-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.edit-modal.show {
+  display: flex;
+}
+
+.edit-modal .modal-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  width: 100%;
+  max-width: 640px;
+  position: relative;
+}
+
+.edit-modal .modal-card h2 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  color: #2e7d32;
+}
+
+.edit-modal .close-modal {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: #555;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.edit-modal .close-modal:hover {
+  color: #000;
+}
+
+.edit-modal .form-row {
+  margin-bottom: 12px;
+}
+
+.edit-modal input,
+.edit-modal select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
 

@@ -220,17 +220,38 @@
         document.querySelectorAll(".dropdown-toggle").forEach(drop => {
           drop.addEventListener("click", e => {
             e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
+            
+            // Close other dropdowns first
+            document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
+              if (openDropdown !== drop.parentElement) {
+                openDropdown.classList.remove("open");
+              }
+            });
+            
             drop.parentElement.classList.toggle("open");
           });
         });
         document.querySelectorAll(".sub-toggle").forEach(sub => {
           sub.addEventListener("click", e => {
             e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
             sub.nextElementSibling.classList.toggle("open");
           });
         });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener("click", e => {
+          if (!e.target.closest(".dropdown")) {
+            document.querySelectorAll(".dropdown.open").forEach(dropdown => {
+              dropdown.classList.remove("open");
+            });
+          }
+        });
 
         // ---------- APPLICATION TYPE BUTTONS ----------
+        // When clicking application type buttons on dashboard, navigate to applications.html
+        // and store the selected type so applications.html can load it
         const appButtons = [
           { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
           { id: "pltpBtn", type: "pltp", title: "PLTP Applications" },
@@ -244,20 +265,18 @@
           const element = document.getElementById(btn.id);
           if (element) {
             element.addEventListener("click", () => {
-              document.getElementById("applicationTypeTitle").style.display = "block";
-              document.getElementById("applicationTypeTitle").textContent = btn.title;
-
-              // Call loadApplicants from application.js
-              if (typeof loadApplicants === "function") {
-                loadApplicants(btn.type);
-              } else {
-                console.error("loadApplicants function not found!");
-              }
+              // Store the selected application type
+              localStorage.setItem("selectedApplicationType", btn.type);
+              localStorage.setItem("selectedApplicationTitle", btn.title);
+              // Navigate to applications page
+              window.location.href = "applications.html";
             });
           }
         });
       });
   </script>
+  
+  <script type="module" src="js/application-temp-fix.js"></script>
 
   <!-- Dashboard Logic -->
   <script type="module" src="./js/dashboard.js"></script>

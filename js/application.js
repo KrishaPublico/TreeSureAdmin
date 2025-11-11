@@ -15,54 +15,16 @@ import { setCurrentApplicant } from "./treeInventory.js";
 
 // ------------------ INITIALIZATION ------------------
 checkLogin();
-document.getElementById("logoutBtn").addEventListener("click", logout);
 
-const applicantsContainer = document.getElementById("applicantsContainer");
-const filesSection = document.getElementById("filesSection");
-const filesBody = document.getElementById("filesBody");
-const applicantTitle = document.getElementById("applicantTitle");
-const applicationTypeTitle = document.getElementById("applicationTypeTitle");
-
-const scheduleContainer = document.getElementById("scheduleContainer");
-const scheduleBtn = document.getElementById("scheduleBtn");
-const scheduleModal = document.getElementById("scheduleModal");
-const closeModal = document.getElementById("closeModal");
-const saveAppointmentBtn = document.getElementById("saveAppointmentBtn");
-const appointmentDate = document.getElementById("appointmentDate");
-const appointmentTime = document.getElementById("appointmentTime");
-
-// Cutting Forester Assignment Elements
-const assignCuttingForesterBtn = document.getElementById(
-  "assignCuttingForesterBtn"
-);
-const proceedBtn = document.getElementById("proceedBtn");
-const cuttingForesterModal = document.getElementById("cuttingForesterModal");
-const closeCuttingForesterModal = document.getElementById(
-  "closeCuttingForesterModal"
-);
-const cuttingFormStep = document.getElementById("cuttingFormStep");
-const cuttingReviewStep = document.getElementById("cuttingReviewStep");
-const cuttingApplicantName = document.getElementById("cuttingApplicantName");
-const cuttingPermitType = document.getElementById("cuttingPermitType");
-const cuttingLocation = document.getElementById("cuttingLocation");
-const cuttingRemarks = document.getElementById("cuttingRemarks");
-const cuttingForesterMultiSelect = document.getElementById(
-  "cuttingForesterMultiSelect"
-);
-const reviewCuttingBtn = document.getElementById("reviewCuttingBtn");
-const cuttingBackToEditBtn = document.getElementById("cuttingBackToEditBtn");
-const confirmCuttingBtn = document.getElementById("confirmCuttingBtn");
-const cuttingReviewApplicant = document.getElementById(
-  "cuttingReviewApplicant"
-);
-const cuttingReviewPermitType = document.getElementById(
-  "cuttingReviewPermitType"
-);
-const cuttingReviewLocation = document.getElementById("cuttingReviewLocation");
-const cuttingReviewRemarks = document.getElementById("cuttingReviewRemarks");
-const cuttingReviewForesters = document.getElementById(
-  "cuttingReviewForesters"
-);
+// ------------------ DOM ELEMENTS (Lazy-loaded) ------------------
+let applicantsContainer, filesSection, filesBody, applicantTitle, applicationTypeTitle;
+let scheduleContainer, scheduleBtn, scheduleModal, closeModal, saveAppointmentBtn;
+let assignCuttingForesterBtn, proceedBtn;
+let cuttingForesterModal, closeCuttingForesterModal, cuttingFormStep, cuttingReviewStep;
+let cuttingApplicantName, cuttingPermitType, cuttingLocation, cuttingRemarks;
+let cuttingForesterMultiSelect, reviewCuttingBtn, cuttingBackToEditBtn, confirmCuttingBtn;
+let cuttingReviewApplicant, cuttingReviewPermitType, cuttingReviewLocation, cuttingReviewRemarks, cuttingReviewForesters;
+let commentBtn, commentModal, closeCommentModal, sendCommentBtn, commentDocumentSelect;
 
 let currentOpenUserId = null;
 let currentApplicationType = null;
@@ -102,10 +64,21 @@ async function loadForesters(selectElement) {
 // Priority:
 // 1) uploads map inside applications/{type}/applicants/{id} (current structure)
 // 2) uploads subcollection applications/{type}/applicants/{id}/uploads/{docLabel} (fallback if you migrate later)
-async function getUploadUrl(appType, applicantId, docLabel, searchMode = "auto") {
+async function getUploadUrl(
+  appType,
+  applicantId,
+  docLabel,
+  searchMode = "auto"
+) {
   try {
     const tryMap = async () => {
-      const applicantRef = doc(db, "applications", appType, "applicants", applicantId);
+      const applicantRef = doc(
+        db,
+        "applications",
+        appType,
+        "applicants",
+        applicantId
+      );
       const snap = await getDoc(applicantRef);
       if (!snap.exists()) return null;
       const data = snap.data() || {};
@@ -116,7 +89,15 @@ async function getUploadUrl(appType, applicantId, docLabel, searchMode = "auto")
     };
 
     const trySubcollection = async () => {
-      const uploadDocRef = doc(db, "applications", appType, "applicants", applicantId, "uploads", docLabel);
+      const uploadDocRef = doc(
+        db,
+        "applications",
+        appType,
+        "applicants",
+        applicantId,
+        "uploads",
+        docLabel
+      );
       const upSnap = await getDoc(uploadDocRef);
       if (!upSnap.exists()) return null;
       const u = upSnap.data() || {};
@@ -154,7 +135,13 @@ async function getUploadUrl(appType, applicantId, docLabel, searchMode = "auto")
 // If empty, falls back to the uploads subcollection and returns a normalized object.
 async function loadUnifiedUploads(appType, applicantId) {
   try {
-    const applicantRef = doc(db, "applications", appType, "applicants", applicantId);
+    const applicantRef = doc(
+      db,
+      "applications",
+      appType,
+      "applicants",
+      applicantId
+    );
     const applicantSnap = await getDoc(applicantRef);
     let fromMap = {};
     if (applicantSnap.exists()) {
@@ -169,11 +156,21 @@ async function loadUnifiedUploads(appType, applicantId) {
     }
 
     // Fallback: check subcollection
-    const uploadsColRef = collection(db, "applications", appType, "applicants", applicantId, "uploads");
+    const uploadsColRef = collection(
+      db,
+      "applications",
+      appType,
+      "applicants",
+      applicantId,
+      "uploads"
+    );
     const subSnap = await getDocs(uploadsColRef);
 
     if (subSnap.empty) {
-      console.warn("⚠️ No uploads found in map or subcollection for:", { appType, applicantId });
+      console.warn("⚠️ No uploads found in map or subcollection for:", {
+        appType,
+        applicantId,
+      });
       return { uploads: {}, source: "none" };
     }
 
@@ -189,7 +186,10 @@ async function loadUnifiedUploads(appType, applicantId) {
         ...u,
       };
     });
-    console.log("📥 Using uploads from subcollection (count):", Object.keys(normalized).length);
+    console.log(
+      "📥 Using uploads from subcollection (count):",
+      Object.keys(normalized).length
+    );
     return { uploads: normalized, source: "subcollection" };
   } catch (e) {
     console.error("❌ Error loading unified uploads:", e);
@@ -337,7 +337,12 @@ async function showApplicantFiles(
     // CTPO: Show tree tagging/inventory button
     proceedBtn.style.display = "block";
     assignCuttingForesterBtn.style.display = "none";
-  } else if (type === "pltp" || type === "splt" || type === "ptc" || type === "permitCut") {
+  } else if (
+    type === "pltp" ||
+    type === "splt" ||
+    type === "ptc" ||
+    type === "permitCut"
+  ) {
     // Cutting permits: Show cutting forester assignment button
     proceedBtn.style.display = "none";
     assignCuttingForesterBtn.style.display = "block";
@@ -350,81 +355,104 @@ async function showApplicantFiles(
   setCurrentApplicant(userId, userData);
 
   try {
-    console.log("🔍 Fetching applicant from:", `applications/${type}/applicants/${userId}`);
-    // Read uploads from map first, then fallback to uploads subcollection
-    const { uploads, source } = await loadUnifiedUploads(type, userId);
+    console.log(
+      "🔍 Fetching applicant from:",
+      `applications/${type}/applicants/${userId}`
+    );
+    
+    // Fetch uploads from the subcollection (matching reports.js approach)
+    const uploadsRef = collection(db, `applications/${type}/applicants/${userId}/uploads`);
+    const uploadsSnap = await getDocs(uploadsRef);
+    
     filesBody.innerHTML = "";
 
-    console.log("� Uploads source:", source);
-    console.log("📁 Uploads object:", uploads);
-    console.log("📁 Number of files:", Object.keys(uploads).length);
-
-    if (Object.keys(uploads).length === 0) {
-      console.warn("⚠️ No files in uploads object");
+    if (uploadsSnap.empty) {
+      console.warn("⚠️ No uploads found in subcollection");
       filesBody.innerHTML =
-        "<tr><td colspan='5' style='text-align:center'>No files found.</td></tr>";
+        "<tr><td colspan='5' style='text-align:center'>No files have been uploaded yet.</td></tr>";
       return;
     }
 
-    // Display each upload as a table row
-    Object.entries(uploads).forEach(([docId, docData]) => {
+    console.log(`📤 Found ${uploadsSnap.size} upload document(s) in subcollection`);
+
+    // Display each uploaded file as a table row
+    uploadsSnap.forEach((uploadDoc) => {
+      const docData = uploadDoc.data();
+      const docId = uploadDoc.id;
+      
+      console.log(`📄 Upload document "${docId}":`, docData);
+      
       const title = docData.title || docId;
       const fileName = docData.fileName || "Unknown";
-      let uploadedAt = docData.uploadedAt?.toDate
-        ? docData.uploadedAt.toDate().toLocaleString()
-        : docData.uploadedAt ?? "-";
+      const url = docData.url || docData.URL || "";
+      
+      // Skip if no URL (placeholder)
+      if (!url || url.trim() === "") {
+        console.log(`⏭️ Skipping "${docId}" - no URL`);
+        return;
+      }
+      
+      // Handle both Firestore Timestamp and string dates
+      let uploadedAt = "-";
+      if (docData.uploadedAt?.toDate) {
+        uploadedAt = docData.uploadedAt.toDate().toLocaleString();
+      } else if (typeof docData.uploadedAt === "string" && docData.uploadedAt.trim()) {
+        uploadedAt = docData.uploadedAt;
+      }
+
+      const reuploadAllowed = docData.reuploadAllowed || false;
+      
+      // Check if there are comments in subcollection
+      const hasComment = false; // We'll update this if needed
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${escapeHtml(title)}</td>
+        <td>${escapeHtml(title)} ${hasComment ? '💬' : ''} ${reuploadAllowed ? '🔄' : ''}</td>
         <td>${escapeHtml(fileName)}</td>
         <td>${escapeHtml(uploadedAt)}</td>
-        <td><button class="action-btn view-btn" data-url="${escapeHtml(
-          docData.url ?? "#"
-        )}" data-docid="${escapeHtml(docId)}" data-title="${escapeHtml(title)}">View</button></td>
+        <td><button class="action-btn view-btn" data-url="${escapeHtml(url)}" data-docid="${escapeHtml(docId)}" data-title="${escapeHtml(title)}">View</button></td>
       `;
 
       tr.querySelector(".view-btn").addEventListener("click", async () => {
         const btn = tr.querySelector(".view-btn");
-        let url = btn.dataset.url;
-        const docIdAttr = btn.dataset.docid; // key id
-        const docTitleAttr = btn.dataset.title; // human title
+        let fileUrl = btn.dataset.url;
 
-        if (!url || url === "#") {
-          console.log("ℹ️ No URL on row, resolving via Firestore for:", { docId: docIdAttr, title: docTitleAttr });
-          // Try with doc id first
-          url = await getUploadUrl(currentApplicationType, currentOpenUserId, docIdAttr, "auto");
-          // If not found and title differs, try with title as key
-          if (!url && docTitleAttr && docTitleAttr !== docIdAttr) {
-            url = await getUploadUrl(currentApplicationType, currentOpenUserId, docTitleAttr, "auto");
-          }
-          if (!url) {
-            alert("No file URL available for this document.");
-            return;
-          }
-          // cache it on the button for subsequent clicks
-          btn.dataset.url = url;
+        if (!fileUrl || fileUrl === "#" || fileUrl.trim() === "") {
+          alert("No file URL available for this document.");
+          return;
         }
 
         const modal = document.getElementById("filePreviewModal");
         const iframe = document.getElementById("filePreviewFrame");
         const link = document.getElementById("downloadLink");
 
-        const encodedUrl = encodeURIComponent(url);
+        const encodedUrl = encodeURIComponent(fileUrl);
         const viewerUrl = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
 
         iframe.src = viewerUrl;
-        link.href = url;
+        link.href = fileUrl;
         modal.style.display = "flex";
       });
 
-      const filePreviewModal = document.getElementById("filePreviewModal");
-      const closeFilePreview = document.getElementById("closeFilePreview");
+      filesBody.appendChild(tr);
+    });
 
+    // Check if we actually added any rows
+    if (filesBody.children.length === 0) {
+      filesBody.innerHTML =
+        "<tr><td colspan='5' style='text-align:center'>No files have been uploaded yet.</td></tr>";
+    }
+
+    // Set up file preview modal close handlers (only once)
+    const filePreviewModal = document.getElementById("filePreviewModal");
+    const closeFilePreview = document.getElementById("closeFilePreview");
+
+    if (closeFilePreview && !closeFilePreview.dataset.listenerAttached) {
       closeFilePreview.addEventListener("click", () => {
         filePreviewModal.style.display = "none";
         document.getElementById("filePreviewFrame").src = "";
       });
+      closeFilePreview.dataset.listenerAttached = "true";
 
       window.addEventListener("click", (e) => {
         if (e.target === filePreviewModal) {
@@ -432,131 +460,89 @@ async function showApplicantFiles(
           document.getElementById("filePreviewFrame").src = "";
         }
       });
+    }
 
-      filesBody.appendChild(tr);
-    });
   } catch (err) {
-    console.error("Error loading applicant files:", err);
+    console.error("❌ Error loading applicant files:", err);
     filesBody.innerHTML =
-      "<tr><td colspan='5' style='color:red;text-align:center'>Error loading files.</td></tr>";
+      "<tr><td colspan='5' style='color:red;text-align:center'>Error loading files: " + err.message + "</td></tr>";
   }
 }
 
-// ------------------ SCHEDULE MODAL ------------------
-scheduleBtn?.addEventListener("click", () => {
-  if (!currentOpenUserId) return alert("Select an applicant first.");
-  scheduleModal.style.display = "block";
-});
-closeModal?.addEventListener(
-  "click",
-  () => (scheduleModal.style.display = "none")
-);
-window.addEventListener("click", (event) => {
-  if (event.target === scheduleModal) scheduleModal.style.display = "none";
-});
+// ------------------ APPLICATION TYPE BUTTONS (wait for sidebar) ------------------
 
-// ------------------ APPLICATION TYPE BUTTONS ------------------
-const ctpoBtn = document.getElementById("ctpoBtn");
-const pltpBtn = document.getElementById("pltpBtn");
-// HTML uses id="spltpBtn" (SPLTP) so select that element
-const spltpBtn = document.getElementById("spltpBtn");
-const permitCutBtn = document.getElementById("permitCutBtn");
-const chainsawBtn = document.getElementById("chainsawBtn");
+// Function to attach listeners once sidebar is loaded
+function attachSidebarListeners() {
+  const ctpoBtn = document.getElementById("ctpoBtn");
+  const pltpBtn = document.getElementById("pltpBtn");
+  const spltpBtn = document.getElementById("spltpBtn");
+  const permitCutBtn = document.getElementById("permitCutBtn");
+  const cttBtn = document.getElementById("cttBtn");
+  const chainsawBtn = document.getElementById("chainsawBtn");
 
-function handleAppButtonClick(type, title) {
-  applicationTypeTitle.textContent = title;
-  loadApplicants(type);
+  function handleAppButtonClick(type, title) {
+    applicationTypeTitle.textContent = title;
+    loadApplicants(type);
+  }
+
+  ctpoBtn?.addEventListener("click", () => {
+    console.log("CTPO button clicked");
+    handleAppButtonClick("ctpo", "CTPO Applications");
+  });
+  pltpBtn?.addEventListener("click", () => {
+    console.log("PLTP button clicked");
+    handleAppButtonClick("pltp", "PLTP Applications");
+  });
+  spltpBtn?.addEventListener("click", () => {
+    console.log("SPLTP button clicked");
+    handleAppButtonClick("splt", "SPLT Applications");
+  });
+  permitCutBtn?.addEventListener("click", () => {
+    console.log("Permit to Cut button clicked");
+    handleAppButtonClick("ptc", "Permit to Cut Applications");
+  });
+  cttBtn?.addEventListener("click", () => {
+    console.log("CTT button clicked");
+    handleAppButtonClick("ctt", "Certificate to Travel Applications");
+  });
+  chainsawBtn?.addEventListener("click", () => {
+    console.log("Chainsaw button clicked");
+    handleAppButtonClick("chainsaw", "Chainsaw Permit Applications");
+  });
+
+  console.log("✅ Sidebar event listeners attached successfully!");
+  console.log("Found buttons:", { ctpoBtn, pltpBtn, spltpBtn, permitCutBtn, cttBtn, chainsawBtn });
 }
 
-ctpoBtn?.addEventListener("click", () =>
-  handleAppButtonClick("ctpo", "CTPO Applications")
-);
-pltpBtn?.addEventListener("click", () =>
-  handleAppButtonClick("pltp", "PLTP Applications")
-);
-spltpBtn?.addEventListener("click", () =>
-  handleAppButtonClick("splt", "SPLT Applications")
-);
-permitCutBtn?.addEventListener("click", () =>
-  handleAppButtonClick("ptc", "Permit to Cut Applications")
-);
-chainsawBtn?.addEventListener("click", () =>
-  handleAppButtonClick("chainsaw", "Chainsaw Permit Applications")
-);
+// Wait for sidebar to be loaded dynamically in applications.html
+document.addEventListener("sidebarLoaded", attachSidebarListeners);
+
+// Expose for direct calls from pages that load the sidebar dynamically
+window.attachSidebarListeners = attachSidebarListeners;
+// Expose loadApplicants so it can be called from navigation
+window.loadApplicants = loadApplicants;
 
 // ------------------ INITIAL PAGE LOAD ------------------
 window.addEventListener("DOMContentLoaded", async () => {
   await loadApplicationStats(); // load summary stats first
 });
 
-// ------------------ WALK-IN APPOINTMENT HANDLER ------------------
-saveAppointmentBtn?.addEventListener("click", async () => {
-  try {
-    if (!currentOpenUserId) {
-      alert("⚠️ Please select an applicant first.");
-      return;
-    }
-
-    // get applicant info that was set by setCurrentApplicant
-    const applicantData = JSON.parse(
-      localStorage.getItem("currentApplicantData") || "{}"
-    );
-    const applicantName =
-      applicantData.applicantName || applicantData.name || "Unnamed Applicant";
-
-    const walkInPurpose =
-      document.getElementById("walkInPurpose")?.value.trim() || "";
-    const walkInRemarks =
-      document.getElementById("walkInAppointmentRemarks")?.value.trim() || "";
-
-    if (!walkInPurpose) {
-      alert("⚠️ Please fill in the purpose of the visit.");
-      return;
-    }
-
-    const adminId = "admin001"; // TODO: replace with actual logged-in admin id/email
-
-    // Create appointment in Firestore
-    await addDoc(collection(db, "appointments"), {
-      adminId,
-      applicantId: currentOpenUserId,
-      applicantName,
-      appointmentType: "Walk-in Submission",
-      purpose: walkInPurpose,
-      location: "Municipal DENR Office",
-      remarks: walkInRemarks,
-      status: "Pending",
-      foresterId: null,
-      treeIds: [],
-      createdAt: serverTimestamp(),
-      completedAt: null,
-    });
-
-    alert(`✅ Walk-in appointment for ${applicantName} recorded successfully!`);
-    scheduleModal.style.display = "none";
-
-    // Clear modal inputs
-    document.getElementById("walkInPurpose").value = "";
-    document.getElementById("walkInAppointmentRemarks").value = "";
-  } catch (err) {
-    console.error("❌ Error saving walk-in appointment:", err);
-    alert("Failed to record appointment: " + err.message);
-  }
-});
-
 // ------------------ COMMENT MODAL ------------------
-const commentBtn = document.getElementById("commentBtn");
-const commentModal = document.getElementById("commentModal");
-const closeCommentModal = document.getElementById("closeCommentModal");
-const sendCommentBtn = document.getElementById("sendCommentBtn");
-const commentDocumentSelect = document.getElementById("commentDocumentSelect");
+function initCommentModal() {
+  commentBtn = document.getElementById("commentBtn");
+  commentModal = document.getElementById("commentModal");
+  closeCommentModal = document.getElementById("closeCommentModal");
+  sendCommentBtn = document.getElementById("sendCommentBtn");
+  commentDocumentSelect = document.getElementById("commentDocumentSelect");
+
+  if (!commentBtn || !commentModal) return; // Elements not ready yet
 
 commentBtn.addEventListener("click", async () => {
   if (!currentOpenUserId) {
     alert("Please select an applicant first before commenting.");
     return;
   }
-  
+
   // Populate the document dropdown with uploaded files
   await populateCommentDocuments();
   commentModal.style.display = "flex";
@@ -565,15 +551,19 @@ commentBtn.addEventListener("click", async () => {
 // Populate document dropdown in comment modal
 async function populateCommentDocuments() {
   commentDocumentSelect.innerHTML = "";
-  
-  try {
-    // Read uploads using unified loader (map first then subcollection)
-    console.log("🔍 Fetching documents for comments from:", `applications/${currentApplicationType}/applicants/${currentOpenUserId}`);
-    const { uploads, source } = await loadUnifiedUploads(currentApplicationType, currentOpenUserId);
-    console.log("📄 Uploads for comments (source=", source, "):", uploads);
 
-    if (Object.keys(uploads).length === 0) {
-      console.warn("⚠️ No documents found");
+  try {
+    // Fetch uploads from subcollection (matching reports.js approach)
+    console.log(
+      "🔍 Fetching documents for comments from:",
+      `applications/${currentApplicationType}/applicants/${currentOpenUserId}/uploads`
+    );
+    
+    const uploadsRef = collection(db, `applications/${currentApplicationType}/applicants/${currentOpenUserId}/uploads`);
+    const uploadsSnap = await getDocs(uploadsRef);
+    
+    if (uploadsSnap.empty) {
+      console.warn("⚠️ No uploads found in subcollection");
       const opt = document.createElement("option");
       opt.textContent = "No documents uploaded";
       opt.disabled = true;
@@ -581,16 +571,40 @@ async function populateCommentDocuments() {
       return;
     }
 
-    // Populate dropdown with uploaded documents
-    Object.entries(uploads).forEach(([docId, docData]) => {
+    console.log(`📄 Found ${uploadsSnap.size} upload(s) for comments`);
+
+    // Filter out uploads without URLs (placeholders)
+    let hasValidUploads = false;
+    
+    uploadsSnap.forEach((uploadDoc) => {
+      const docData = uploadDoc.data();
+      const docId = uploadDoc.id;
+      const url = docData.url || docData.URL || "";
+      
+      // Skip placeholders without URLs
+      if (!url || url.trim() === "") {
+        console.log(`⏭️ Skipping "${docId}" for comments - no URL`);
+        return;
+      }
+      
+      hasValidUploads = true;
       const fileName = docData.fileName || "Unknown";
       const title = docData.title || docId;
-      
+
       const opt = document.createElement("option");
-      opt.value = docId; // Use the document ID as value (e.g., "Letter of Application")
+      opt.value = docId; // Use the document ID as value
       opt.textContent = `${title} - ${fileName}`;
       commentDocumentSelect.appendChild(opt);
     });
+
+    if (!hasValidUploads) {
+      console.warn("⚠️ No valid uploaded documents found");
+      commentDocumentSelect.innerHTML = "";
+      const opt = document.createElement("option");
+      opt.textContent = "No documents uploaded";
+      opt.disabled = true;
+      commentDocumentSelect.appendChild(opt);
+    }
   } catch (err) {
     console.error("Error loading documents for comment:", err);
     const opt = document.createElement("option");
@@ -629,53 +643,69 @@ sendCommentBtn.addEventListener("click", async () => {
     // Get admin identity for attribution
     const auth = getAuth();
     const adminEmail = auth.currentUser?.email || "Admin";
-    
-    console.log(`💬 Saving comments for ${currentApplicationType.toUpperCase()} application`);
 
-    // For each selected document, create/update a comment and enable reupload flag
-    // ALWAYS write to the applicant document's uploads map (this is what Flutter reads)
+    console.log(
+      `💬 Saving comments for ${currentApplicationType.toUpperCase()} application`
+    );
+
+    // For each selected document, save comment to the comments subcollection
     for (const docId of selectedDocs) {
-      const applicantRef = doc(
+      // Update the upload document to set reuploadAllowed flag
+      const uploadDocRef = doc(
         db,
         "applications",
         currentApplicationType,
         "applicants",
-        currentOpenUserId
+        currentOpenUserId,
+        "uploads",
+        docId
       );
 
-      // Structure matches Flutter app expectations:
-      // applications/{type}/applicants/{id} with uploads map containing comments
       await setDoc(
-        applicantRef,
+        uploadDocRef,
         {
-          uploads: {
-            [docId]: {
-              reuploadAllowed: true,
-              lastCommentAt: serverTimestamp(),
-              comments: {
-                [docId]: {
-                  message,
-                  from: adminEmail,
-                  createdAt: serverTimestamp(),
-                }
-              }
-            }
-          }
+          reuploadAllowed: true,
+          lastCommentAt: serverTimestamp(),
         },
         { merge: true }
       );
-      console.log(`✅ Comment saved to ${currentApplicationType}/applicants/${currentOpenUserId}/uploads/${docId}`);
+
+      // Add comment to comments subcollection
+      const commentsRef = collection(
+        db,
+        "applications",
+        currentApplicationType,
+        "applicants",
+        currentOpenUserId,
+        "uploads",
+        docId,
+        "comments"
+      );
+
+      await addDoc(commentsRef, {
+        message,
+        from: adminEmail,
+        createdAt: serverTimestamp(),
+      });
+
+      console.log(
+        `✅ Comment saved to ${currentApplicationType}/applicants/${currentOpenUserId}/uploads/${docId}/comments`
+      );
     }
 
     const docCount = selectedDocs.length;
     alert(
-      `✅ Comment sent to ${docCount} document${docCount > 1 ? "s" : ""} in ${currentApplicationType.toUpperCase()}!\n\nThe applicant can now re-upload the selected document${docCount > 1 ? "s" : ""}.`
+      `✅ Comment sent to ${docCount} document${
+        docCount > 1 ? "s" : ""
+      } in ${currentApplicationType.toUpperCase()}!\n\nThe applicant can now re-upload the selected document${
+        docCount > 1 ? "s" : ""
+      }.`
     );
-    
+
     document.getElementById("commentMessage").value = "";
     commentDocumentSelect.selectedIndex = -1;
     commentModal.style.display = "none";
-    
+
     // Refresh the files table to show updated state
     await showApplicantFiles(
       currentOpenUserId,
@@ -689,7 +719,34 @@ sendCommentBtn.addEventListener("click", async () => {
   }
 });
 
+closeCommentModal.addEventListener("click", () => {
+  commentModal.style.display = "none";
+});
+}
+
 // ==================== CUTTING FORESTER ASSIGNMENT ====================
+function initCuttingForesterModal() {
+  assignCuttingForesterBtn = document.getElementById("assignCuttingForesterBtn");
+  proceedBtn = document.getElementById("proceedBtn");
+  cuttingForesterModal = document.getElementById("cuttingForesterModal");
+  closeCuttingForesterModal = document.getElementById("closeCuttingForesterModal");
+  cuttingFormStep = document.getElementById("cuttingFormStep");
+  cuttingReviewStep = document.getElementById("cuttingReviewStep");
+  cuttingApplicantName = document.getElementById("cuttingApplicantName");
+  cuttingPermitType = document.getElementById("cuttingPermitType");
+  cuttingLocation = document.getElementById("cuttingLocation");
+  cuttingRemarks = document.getElementById("cuttingRemarks");
+  cuttingForesterMultiSelect = document.getElementById("cuttingForesterMultiSelect");
+  reviewCuttingBtn = document.getElementById("reviewCuttingBtn");
+  cuttingBackToEditBtn = document.getElementById("cuttingBackToEditBtn");
+  confirmCuttingBtn = document.getElementById("confirmCuttingBtn");
+  cuttingReviewApplicant = document.getElementById("cuttingReviewApplicant");
+  cuttingReviewPermitType = document.getElementById("cuttingReviewPermitType");
+  cuttingReviewLocation = document.getElementById("cuttingReviewLocation");
+  cuttingReviewRemarks = document.getElementById("cuttingReviewRemarks");
+  cuttingReviewForesters = document.getElementById("cuttingReviewForesters");
+
+  if (!cuttingForesterModal) return; // Elements not ready yet
 
 // Close modal
 if (closeCuttingForesterModal) {
@@ -839,4 +896,132 @@ if (confirmCuttingBtn) {
       alert("Failed to create assignment: " + err.message);
     }
   });
+}
+
+window.addEventListener("click", (e) => {
+  if (e.target === cuttingForesterModal)
+    cuttingForesterModal.style.display = "none";
+});
+}
+
+// ------------------ INITIALIZE SCHEDULE MODAL ------------------
+function initScheduleModal() {
+  scheduleContainer = document.getElementById("scheduleContainer");
+  scheduleBtn = document.getElementById("scheduleBtn");
+  scheduleModal = document.getElementById("scheduleModal");
+  closeModal = document.getElementById("closeModal");
+  saveAppointmentBtn = document.getElementById("saveAppointmentBtn");
+
+  if (!scheduleModal) return; // Elements not ready yet
+
+  scheduleBtn?.addEventListener("click", () => {
+    if (!currentOpenUserId) return alert("Select an applicant first.");
+    scheduleModal.style.display = "block";
+  });
+  closeModal?.addEventListener(
+    "click",
+    () => (scheduleModal.style.display = "none")
+  );
+  window.addEventListener("click", (event) => {
+    if (event.target === scheduleModal) scheduleModal.style.display = "none";
+  });
+
+  saveAppointmentBtn?.addEventListener("click", async () => {
+    try {
+      if (!currentOpenUserId) {
+        alert("Select an applicant first.");
+        return;
+      }
+
+      // get applicant info that was set by setCurrentApplicant
+      const applicantData = JSON.parse(
+        localStorage.getItem("currentApplicantData") || "{}"
+      );
+      const applicantName =
+        applicantData.applicantName || applicantData.name || "Unnamed Applicant";
+
+      const walkInPurpose =
+        document.getElementById("walkInPurpose")?.value.trim() || "";
+      const walkInRemarks =
+        document.getElementById("walkInAppointmentRemarks")?.value.trim() || "";
+
+      if (!walkInPurpose) {
+        alert("Please enter a purpose for the appointment.");
+        return;
+      }
+
+      const adminId = "admin001"; // TODO: replace with actual logged-in admin id/email
+
+      // Fetch all existing walk-in appointments to determine the next index
+      const snapshot = await getDocs(collection(db, "appointments"));
+      const existingDocs = snapshot.docs
+        .filter((docSnap) => docSnap.id.startsWith("walk_in_appointment_"))
+        .map((docSnap) => docSnap.id);
+
+      // Determine the next available index
+      let maxIndex = 0;
+      existingDocs.forEach((id) => {
+        const num = parseInt(id.replace("walk_in_appointment_", ""));
+        if (!isNaN(num) && num > maxIndex) {
+          maxIndex = num;
+        }
+      });
+
+      const nextIndex = String(maxIndex + 1).padStart(2, "0");
+      const newDocId = `walk_in_appointment_${nextIndex}`;
+
+      // Create appointment in Firestore with custom document ID
+      await setDoc(doc(db, "appointments", newDocId), {
+        adminId,
+        applicantId: currentOpenUserId,
+        applicantName,
+        appointmentType: "Walk-in Submission",
+        purpose: walkInPurpose,
+        location: "Municipal DENR Office",
+        remarks: walkInRemarks,
+        status: "Pending",
+        foresterId: null,
+        treeIds: [],
+        createdAt: serverTimestamp(),
+        completedAt: null,
+      });
+
+      alert(`✅ Walk-in appointment "${newDocId}" for ${applicantName} recorded successfully!`);
+      scheduleModal.style.display = "none";
+
+      // Clear modal inputs
+      document.getElementById("walkInPurpose").value = "";
+      document.getElementById("walkInAppointmentRemarks").value = "";
+    } catch (err) {
+      console.error("❌ Error saving walk-in appointment:", err);
+      alert("Failed to record appointment: " + err.message);
+    }
+  });
+}
+
+// ------------------ MAIN INITIALIZATION ------------------
+function initElements() {
+  // Get main container elements
+  applicantsContainer = document.getElementById("applicantsContainer");
+  filesSection = document.getElementById("filesSection");
+  filesBody = document.getElementById("filesBody");
+  applicantTitle = document.getElementById("applicantTitle");
+  applicationTypeTitle = document.getElementById("applicationTypeTitle");
+
+  // Initialize modal systems
+  initScheduleModal();
+  initCommentModal();
+  initCuttingForesterModal();
+
+  // logoutBtn lives inside the dynamically-inserted sidebar
+  const _logoutBtn = document.getElementById("logoutBtn");
+  if (_logoutBtn) _logoutBtn.addEventListener("click", logout);
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initElements);
+} else {
+  // DOM already loaded
+  initElements();
 }

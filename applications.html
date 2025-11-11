@@ -12,10 +12,10 @@
 </head>
 
 <body>
- <div id="sidebar-container"></div>
+  <div id="sidebar-container"></div>
   <!-- MAIN CONTENT -->
   <div class="main-content">
-     <div class="top-horizontal-bar"> </div>
+    <div class="top-horizontal-bar"> </div>
     <h1>🗂 Applications</h1>
 
     <h2 id="applicationTypeTitle" style="text-align:center; display:none;"></h2>
@@ -38,69 +38,256 @@
       <div id="scheduleContainer" style="display:none; gap:10px; justify-content:center;">
         <button id="scheduleBtn" class="action-btn-main">Schedule Walk-in Appointment</button>
         <button id="proceedBtn" class="action-btn-main" style="display:none;">Proceed to Tree Inventory</button>
-        <button id="assignCuttingForesterBtn" class="action-btn-main" style="display:none;">Assign Forester for Cutting</button>
+        <button id="assignCuttingForesterBtn" class="action-btn-main" style="display:none;">Assign Forester for
+          Cutting</button>
         <button id="commentBtn" class="action-btn-secondary">Comment</button>
       </div>
     </div>
 
-    <!-- Modals (Schedule, Inventory, Comment, Cutting, File Preview) -->
-    <!-- ...keep all your modal HTML as it is (scheduleModal, inventoryModal, commentModal, cuttingForesterModal, filePreviewModal) ... -->
+    <!-- ========== SCHEDULE MODAL ========== -->
+    <div id="scheduleModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>📅 Schedule Walk-in Appointment</h2>
+        <label>Purpose:</label>
+        <input type="text" id="walkInPurpose" placeholder="e.g., Document Submission" />
+        <label>Remarks (optional):</label>
+        <textarea id="walkInAppointmentRemarks" rows="3"
+          placeholder="Additional notes..."></textarea>
+        <button id="saveAppointmentBtn" class="action-btn-main">Save Appointment</button>
+      </div>
+    </div>
+
+    <!-- ========== INVENTORY MODAL ========== -->
+    <div id="inventoryModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeInventoryModal">&times;</span>
+        <h2>🌲 Tree Inventory Appointment</h2>
+
+        <!-- Form Step -->
+        <div id="inventoryFormStep">
+          <label>Applicant Name:</label>
+          <input type="text" id="applicantNameInput" readonly />
+
+          <label>Appointment Type:</label>
+          <select id="appointmentType">
+            <option value="">-- Select Type --</option>
+            <option value="Tree Tagging">Tree Tagging</option>
+            <option value="Tree Inventory">Tree Inventory</option>
+          </select>
+
+          <label>Location:</label>
+          <input type="text" id="appointmentLocation" placeholder="e.g., Applicant's property" />
+
+          <label>Remarks (optional):</label>
+          <textarea id="appointmentRemarks" rows="3" placeholder="Additional instructions..."></textarea>
+
+          <label>Assign Forester(s):</label>
+          <select id="foresterMultiSelect" multiple size="5">
+            <!-- Options populated dynamically -->
+          </select>
+
+          <button id="reviewAppointmentBtn" class="action-btn-main">Review Appointment</button>
+        </div>
+
+        <!-- Review Step -->
+        <div id="inventoryReviewStep" style="display:none;">
+          <h3>📋 Review Appointment</h3>
+          <p><strong>Applicant:</strong> <span id="reviewApplicant"></span></p>
+          <p><strong>Type:</strong> <span id="reviewType"></span></p>
+          <p><strong>Date:</strong> <span id="reviewDate"></span></p>
+          <p><strong>Location:</strong> <span id="reviewLocation"></span></p>
+          <p><strong>Remarks:</strong> <span id="reviewRemarks"></span></p>
+          <p><strong>Assigned Forester(s):</strong> <span id="reviewForesters"></span></p>
+
+          <button id="backToEditBtn" class="action-btn-secondary">Back to Edit</button>
+          <button id="confirmAppointmentBtn" class="action-btn-main">Confirm & Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== COMMENT MODAL ========== -->
+    <div id="commentModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeCommentModal">&times;</span>
+        <h2>💬 Add Comment & Request Reupload</h2>
+
+        <label>Select Document(s) to Comment On:</label>
+        <select id="commentDocumentSelect" multiple size="5">
+          <!-- Options populated dynamically -->
+        </select>
+
+        <label>Your Comment:</label>
+        <textarea id="commentMessage" rows="4"
+          placeholder="Explain what needs to be corrected..."></textarea>
+
+        <button id="sendCommentBtn" class="action-btn-main">Send Comment</button>
+      </div>
+    </div>
+
+    <!-- ========== CUTTING FORESTER MODAL ========== -->
+    <div id="cuttingForesterModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeCuttingForesterModal">&times;</span>
+        <h2>🪓 Assign Cutting Forester</h2>
+
+        <!-- Form Step -->
+        <div id="cuttingFormStep">
+          <label>Applicant Name:</label>
+          <input type="text" id="cuttingApplicantName" readonly />
+
+          <label>Permit Type:</label>
+          <p id="cuttingPermitType" style="font-weight:bold; margin:5px 0;"></p>
+
+          <label>Location:</label>
+          <input type="text" id="cuttingLocation" placeholder="e.g., Lot 123, Barangay XYZ" />
+
+          <label>Remarks (optional):</label>
+          <textarea id="cuttingRemarks" rows="3" placeholder="Additional instructions..."></textarea>
+
+          <label>Assign Forester(s):</label>
+          <select id="cuttingForesterMultiSelect" multiple size="5">
+            <!-- Options populated dynamically -->
+          </select>
+
+          <button id="reviewCuttingBtn" class="action-btn-main">Review Assignment</button>
+        </div>
+
+        <!-- Review Step -->
+        <div id="cuttingReviewStep" style="display:none;">
+          <h3>📋 Review Cutting Assignment</h3>
+          <p><strong>Applicant:</strong> <span id="cuttingReviewApplicant"></span></p>
+          <p><strong>Permit Type:</strong> <span id="cuttingReviewPermitType"></span></p>
+          <p><strong>Location:</strong> <span id="cuttingReviewLocation"></span></p>
+          <p><strong>Remarks:</strong> <span id="cuttingReviewRemarks"></span></p>
+          <p><strong>Assigned Forester(s):</strong> <span id="cuttingReviewForesters"></span></p>
+
+          <button id="cuttingBackToEditBtn" class="action-btn-secondary">Back to Edit</button>
+          <button id="confirmCuttingBtn" class="action-btn-main">Confirm & Assign</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== FILE PREVIEW MODAL ========== -->
+    <div id="filePreviewModal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:90%; max-height:90vh;">
+        <span class="close" id="closeFilePreview">&times;</span>
+        <h2 id="previewTitle">File Preview</h2>
+        <iframe id="previewFrame" style="width:100%; height:70vh; border:1px solid #ccc;"></iframe>
+      </div>
+    </div>
 
   </div>
 
   <!-- ----------------- DYNAMIC SIDEBAR & BUTTON HANDLERS ----------------- -->
- <!-- Load Sidebar Dynamically -->
+  <!-- Load Sidebar Dynamically -->
   <script>
     fetch("sidebar.html")
-  .then(res => res.text())
-  .then(html => {
-    document.getElementById("sidebar-container").innerHTML = html;
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("sidebar-container").innerHTML = html;
 
-    // Highlight the active page link
-    const current = window.location.pathname.split("/").pop();
-    document.querySelectorAll(".sidebar a").forEach(link => {
-      if (link.getAttribute("href") === current) {
-        link.classList.add("active");
-      }
-    });
+        // Highlight the active page link
+        const current = window.location.pathname.split("/").pop();
+        document.querySelectorAll(".sidebar a").forEach(link => {
+          if (link.getAttribute("href") === current) {
+            link.classList.add("active");
+          }
+        });
 
-    // Logout handler
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", e => {
-        e.preventDefault();
-        localStorage.clear();
-        window.location.href = "login.html";
+        // Logout handler 
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", e => {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = "login.html";
+          });
+        }
+
+        // --------- ADD DROPDOWN FUNCTIONALITY ---------
+
+        // Main Applications dropdown
+        document.querySelectorAll(".dropdown-toggle").forEach(drop => {
+          drop.addEventListener("click", e => {
+            e.preventDefault(); // prevent link jump
+            e.stopPropagation(); // prevent event bubbling
+            
+            // Close other dropdowns first
+            document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
+              if (openDropdown !== drop.parentElement) {
+                openDropdown.classList.remove("open");
+              }
+            });
+            
+            drop.parentElement.classList.toggle("open");
+          });
+        });
+
+        // Sub-dropdown (Cutting Permit)
+        document.querySelectorAll(".sub-toggle").forEach(sub => {
+          sub.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
+            const subMenu = sub.nextElementSibling;
+            subMenu.classList.toggle("open");
+          });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener("click", e => {
+          if (!e.target.closest(".dropdown")) {
+            document.querySelectorAll(".dropdown.open").forEach(dropdown => {
+              dropdown.classList.remove("open");
+            });
+          }
+        });
+
+        // --------- TRIGGER APPLICATION TYPE BUTTONS ---------
+        // Now that sidebar is loaded, dispatch custom events for the application type buttons
+        // These will be caught by the application.js event listeners
+
+        window.dispatchEvent(new Event('sidebarLoaded'));
+        // Signal to other scripts that the sidebar is ready
+        document.dispatchEvent(new Event("sidebarLoaded"));
+
+        // Also attempt to call attachSidebarListeners if the module has exposed it yet.
+        // Use a short retry loop to avoid race conditions between this inline script and the module loader.
+        (function tryAttach(retries = 0) {
+          if (window.attachSidebarListeners) {
+            window.attachSidebarListeners();
+            
+            // Check if we navigated here from dashboard with a selected app type
+            const selectedType = localStorage.getItem("selectedApplicationType");
+            const selectedTitle = localStorage.getItem("selectedApplicationTitle");
+            
+            if (selectedType && selectedTitle) {
+              // Clear the stored values
+              localStorage.removeItem("selectedApplicationType");
+              localStorage.removeItem("selectedApplicationTitle");
+              
+              // Load the selected application type
+              setTimeout(() => {
+                const appTypeTitle = document.getElementById("applicationTypeTitle");
+                if (appTypeTitle && window.loadApplicants) {
+                  appTypeTitle.textContent = selectedTitle;
+                  window.loadApplicants(selectedType);
+                }
+              }, 100);
+            }
+            return;
+          }
+          if (retries >= 50) return; // give up after ~2.5s
+          setTimeout(() => tryAttach(retries + 1), 50);
+        })();
+        // ---------------------------------------------
       });
-    }
 
-    // --------- ADD DROPDOWN FUNCTIONALITY ---------
-
-    // Main Applications dropdown
-    document.querySelectorAll(".dropdown-toggle").forEach(drop => {
-      drop.addEventListener("click", e => {
-        e.preventDefault(); // prevent link jump
-        drop.parentElement.classList.toggle("open");
-      });
-    });
-
-    // Sub-dropdown (Cutting Permit)
-    document.querySelectorAll(".sub-toggle").forEach(sub => {
-      sub.addEventListener("click", e => {
-        e.preventDefault();
-        const subMenu = sub.nextElementSibling;
-        subMenu.classList.toggle("open");
-      });
-    });
-
-    // ---------------------------------------------
-  });
-
-  </script>
-
- <!-- SCRIPTS -->
+  </script> <!-- SCRIPTS -->
+  <script type="module" src="js/application-temp-fix.js"></script>
   <script type="module" src="js/application.js"></script>
 
 
 </body>
+
 </html>

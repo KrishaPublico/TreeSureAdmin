@@ -69,6 +69,226 @@ const municipalityCoords = {
   allacapan: [18.23, 121.54],
 };
 
+const APPLICATION_LABELS = {
+  ctpo: "CTPO",
+  pltp: "PLTP",
+  splt: "SPLT",
+  spltp: "SPLT",
+  ptc: "Permit to Cut",
+  permitcut: "Permit to Cut",
+  "permit-to-cut": "Permit to Cut",
+  permitcutting: "Permit to Cut",
+  permitcutpermit: "Permit to Cut",
+  chainsaw: "Chainsaw",
+  chainsawregistration: "Chainsaw",
+  "chainsaw registration": "Chainsaw",
+  chainsawpermit: "Chainsaw",
+  "chainsaw permit": "Chainsaw",
+  chainsawpermits: "Chainsaw",
+  ctt: "CTT",
+};
+
+const DASHBOARD_COUNTER_KEYS = [
+  "CTPO",
+  "PLTP",
+  "SPLT",
+  "Permit to Cut",
+  "Chainsaw",
+];
+
+let userDirectory = new Map();
+
+function normalizeApplicationType(rawType) {
+  if (!rawType) return "OTHER";
+  const key = rawType.toString().trim().toLowerCase();
+  return APPLICATION_LABELS[key] || rawType.toString().toUpperCase();
+}
+
+function toTitleCase(value) {
+  if (!value) return "";
+  return value
+    .toString()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function parseTimestamp(value) {
+  if (!value && value !== 0) return null;
+  if (value instanceof Date) return value;
+  if (typeof value?.toDate === "function") {
+    try {
+      return value.toDate();
+    } catch (err) {
+      console.warn("⚠️ Failed to parse Firestore timestamp", err);
+    }
+  }
+  if (typeof value === "number") {
+    return new Date(value);
+  }
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    typeof value.seconds === "number"
+  ) {
+    return new Date(value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6));
+  }
+  return null;
+}
+
+function formatStatus(value) {
+  if (!value) return "Pending";
+  const normalized = value.toString().trim().toLowerCase();
+  if (!normalized) return "Pending";
+  if (normalized.includes("approve")) return "Approved";
+  if (normalized.includes("deny") || normalized.includes("reject")) return "Denied";
+  if (normalized.includes("review")) return "Under Review";
+  if (normalized.includes("complete")) return "Completed";
+  if (normalized.includes("active")) return "Active";
+  if (normalized.includes("schedule")) return "Scheduled";
+  if (normalized.includes("pending")) return "Pending";
+  return toTitleCase(value);
+}
+
+function toNumber(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string") {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function inferMunicipality(treeData = {}, ownerData = {}) {
+  const direct = treeData.municipality || treeData.cityMunicipality || treeData.municipalityName;
+  if (direct) return toTitleCase(direct);
+
+  const searchSpace = [
+    treeData.location,
+    treeData.address,
+    treeData.barangay,
+    ownerData.address,
+    ownerData.municipality,
+    ownerData.city,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (searchSpace) {
+    for (const key of Object.keys(municipalityCoords)) {
+      if (searchSpace.includes(key)) {
+        return toTitleCase(key);
+      }
+    }
+  }
+  return "Unspecified";
+}
+
+function normalizeTreeRecord(treeData, ownerData = {}, ownerId) {
+  if (!treeData) return null;
+  const municipality = inferMunicipality(treeData, ownerData);
+  const latitude = toNumber(treeData.latitude ?? treeData.lat ?? treeData.location?.lat);
+  const longitude = toNumber(treeData.longitude ?? treeData.lng ?? treeData.location?.lng);
+  const dateTagged =
+    parseTimestamp(treeData.date_tagged) ||
+    parseTimestamp(treeData.dateTagged) ||
+    parseTimestamp(treeData.taggedAt) ||
+    parseTimestamp(treeData.timestamp) ||
+    parseTimestamp(treeData.createdAt);
+
+  const species = treeData.specie || treeData.species || treeData.treeSpecies || "Unknown";
+  const foresterName =
+    treeData.forester_name ||
+    treeData.foresterName ||
+    treeData.inventoriedBy ||
+    ownerData.name ||
+    "Unknown Forester";
+
+  return {
+    id: treeData.id,
+    tree_no: treeData.tree_no || treeData.treeId || treeData.tree_id || treeData.id,
+    specie: species,
+    species,
+    municipality,
+    barangay:
+      treeData.barangay ||
+      treeData.barangayName ||
+      treeData.locationBarangay ||
+      ownerData.barangay ||
+      "",
+    latitude,
+    longitude,
+    diameter: treeData.diameter || treeData.dbh || null,
+    height: treeData.height || treeData.treeHeight || null,
+    volume: treeData.volume || null,
+    foresterName,
+    ownerId,
+    ownerName: ownerData.name || treeData.applicantName || "Unknown Owner",
+    date_tagged: dateTagged,
+    raw: treeData,
+  };
+}
+
+function normalizeTreeFromAppointment(treeData, treeId, appointmentId, appointmentData = {}) {
+  if (!treeData) return null;
+  const foresterId =
+    treeData.forester_id ||
+    treeData.foresterId ||
+    (Array.isArray(appointmentData.foresterIds)
+      ? appointmentData.foresterIds[0]
+      : null);
+  const foresterInfo = foresterId ? userDirectory.get(foresterId) : null;
+  const applicantInfo = appointmentData.applicantId
+    ? userDirectory.get(appointmentData.applicantId)
+    : null;
+
+  const municipality = inferMunicipality(treeData, applicantInfo || {});
+  const latitude = toNumber(treeData.latitude ?? treeData.lat ?? treeData.location?.lat);
+  const longitude = toNumber(treeData.longitude ?? treeData.lng ?? treeData.location?.lng);
+  const dateTagged =
+    parseTimestamp(treeData.timestamp) ||
+    parseTimestamp(treeData.date_tagged) ||
+    parseTimestamp(treeData.dateTagged) ||
+    parseTimestamp(treeData.createdAt) ||
+    parseTimestamp(appointmentData.createdAt);
+
+  const species = treeData.specie || treeData.species || treeData.treeSpecies || "Unknown";
+  const foresterName =
+    treeData.forester_name ||
+    treeData.foresterName ||
+    foresterInfo?.name ||
+    "Unknown Forester";
+
+  return {
+    id: treeId,
+    appointmentId,
+    tree_no: treeData.tree_no || treeData.tree_id || treeId,
+    specie: species,
+    species,
+    municipality,
+    barangay: treeData.barangay || appointmentData.barangay || "",
+    latitude,
+    longitude,
+    diameter: treeData.diameter || treeData.dbh || null,
+    height: treeData.height || null,
+    volume: treeData.volume || null,
+    foresterName,
+    ownerId: appointmentData.applicantId || null,
+    ownerName: applicantInfo?.name || treeData.applicantName || "Unknown Owner",
+    date_tagged: dateTagged,
+    raw: treeData,
+  };
+}
+
 // ---------- Initialize Map ----------
 function initMap() {
   map = L.map("treeMap").setView([18.3, 121.7], 9);
@@ -90,133 +310,145 @@ async function fetchUserTrees(userId) {
 
 // ---------- Load Applications Data ----------
 async function loadApplicationsData() {
-  // 🔹 DUMMY DATA MODE - Comment out to use real Firebase data
-  const USE_DUMMY_DATA = true;
-  
-  if (USE_DUMMY_DATA) {
-    // Generate dummy applications
-    const now = new Date();
-    const statuses = ['Pending', 'Approved', 'Denied', 'Under Review'];
-    const appTypes = ['CTPO', 'PLTP', 'SPLT', 'Permit to Cut', 'Chainsaw Registration'];
-    
-    allApplications = [];
-    let ctpoCount = 0, pltpCount = 0, spltCount = 0, ptcCount = 0, chainsawCount = 0;
-    
-    // Generate 50 dummy applications
-    for (let i = 0; i < 50; i++) {
-      const type = appTypes[Math.floor(Math.random() * appTypes.length)];
-      const daysAgo = Math.floor(Math.random() * 60);
-      const createdAt = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-      
-      allApplications.push({
-        id: `app_${i + 1}`,
-        type: type,
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        createdAt: createdAt,
-        applicantName: `Applicant ${i + 1}`
-      });
-      
-      // Count by type
-      if (type === 'CTPO') ctpoCount++;
-      else if (type === 'PLTP') pltpCount++;
-      else if (type === 'SPLT') spltCount++;
-      else if (type === 'Permit to Cut') ptcCount++;
-      else if (type === 'Chainsaw Registration') chainsawCount++;
-    }
-    
-    // Update application type counts
-    ctpoCountEl.textContent = ctpoCount.toString();
-    pltpCountEl.textContent = pltpCount.toString();
-    spltCountEl.textContent = spltCount.toString();
-    ptcCountEl.textContent = ptcCount.toString();
-    chainsawCountEl.textContent = chainsawCount.toString();
-    
-    // Update total applications
-    totalApplicationsEl.textContent = allApplications.length.toString();
-    
-    // Update pending/approved counts
-    const pendingCount = allApplications.filter(app => app.status === 'Pending').length;
-    const approvedCount = allApplications.filter(app => app.status === 'Approved').length;
-    pendingApplicationsEl.textContent = pendingCount.toString();
-    approvedApplicationsEl.textContent = approvedCount.toString();
-    
-    return;
-  }
-  
-  // REAL FIREBASE DATA (original code)
   allApplications = [];
-  
-  // Application types to fetch
-  const appTypes = ['CTPO', 'PLTP', 'SPLT', 'Permit to Cut', 'Chainsaw Registration'];
-  let ctpoCount = 0, pltpCount = 0, spltCount = 0, ptcCount = 0, chainsawCount = 0;
-  
-  for (const type of appTypes) {
-    const typeRef = collection(db, 'applications', type, 'applicants');
-    const snapshot = await getDocs(typeRef);
-    
-    snapshot.docs.forEach(doc => {
-      const appData = { 
-        id: doc.id, 
-        type: type, 
-        ...doc.data() 
-      };
-      allApplications.push(appData);
-      
-      // Count by type
-      if (type === 'CTPO') ctpoCount++;
-      else if (type === 'PLTP') pltpCount++;
-      else if (type === 'SPLT') spltCount++;
-      else if (type === 'Permit to Cut') ptcCount++;
-      else if (type === 'Chainsaw Registration') chainsawCount++;
-    });
+
+  const counts = {
+    CTPO: 0,
+    PLTP: 0,
+    SPLT: 0,
+    "Permit to Cut": 0,
+    Chainsaw: 0,
+  };
+
+  const appDocsSnap = await getDocs(applicationsRef);
+
+  for (const appDoc of appDocsSnap.docs) {
+    const rawType = appDoc.id;
+    const normalizedType = normalizeApplicationType(rawType);
+
+    const applicantsRef = collection(
+      db,
+      `applications/${rawType}/applicants`
+    );
+    const applicantsSnap = await getDocs(applicantsRef);
+
+    for (const applicantDoc of applicantsSnap.docs) {
+      const data = applicantDoc.data();
+      const createdAt =
+        parseTimestamp(data.createdAt) ||
+        parseTimestamp(data.submittedAt) ||
+        parseTimestamp(data.submitted_at) ||
+        parseTimestamp(data.uploadedAt) ||
+        parseTimestamp(data.timestamp) ||
+        parseTimestamp(data.dateSubmitted) ||
+        parseTimestamp(data.appliedAt) ||
+        parseTimestamp(data.created_date) ||
+        null;
+
+      const applicantName =
+        data.applicantName ||
+        data.name ||
+        data.fullName ||
+        data.ownerName ||
+        "Unknown Applicant";
+
+      const status = formatStatus(
+        data.status ||
+          data.applicationStatus ||
+          data.reviewStatus ||
+          data.progressStatus ||
+          data.currentStatus ||
+          data.state
+      );
+
+      allApplications.push({
+        id: applicantDoc.id,
+        type: normalizedType,
+        rawType,
+        status,
+        createdAt: createdAt || new Date(),
+        applicantName,
+        data,
+      });
+
+      if (counts[normalizedType] !== undefined) {
+        counts[normalizedType] += 1;
+      }
+    }
   }
-  
-  // Update application type counts
-  ctpoCountEl.textContent = ctpoCount.toString();
-  pltpCountEl.textContent = pltpCount.toString();
-  spltCountEl.textContent = spltCount.toString();
-  ptcCountEl.textContent = ptcCount.toString();
-  chainsawCountEl.textContent = chainsawCount.toString();
-  
-  // Update total applications
-  totalApplicationsEl.textContent = allApplications.length.toString();
+
+  if (ctpoCountEl) ctpoCountEl.textContent = counts.CTPO.toString();
+  if (pltpCountEl) pltpCountEl.textContent = counts.PLTP.toString();
+  if (spltCountEl) spltCountEl.textContent = counts.SPLT.toString();
+  if (ptcCountEl) ptcCountEl.textContent = counts["Permit to Cut"].toString();
+  if (chainsawCountEl)
+    chainsawCountEl.textContent = counts.Chainsaw.toString();
+  if (totalApplicationsEl)
+    totalApplicationsEl.textContent = allApplications.length.toString();
+
+  const pendingCount = allApplications.filter((app) =>
+    app.status.toLowerCase().includes("pending")
+  ).length;
+  const approvedCount = allApplications.filter((app) =>
+    app.status.toLowerCase().includes("approved")
+  ).length;
+
+  if (pendingApplicationsEl)
+    pendingApplicationsEl.textContent = pendingCount.toString();
+  if (approvedApplicationsEl)
+    approvedApplicationsEl.textContent = approvedCount.toString();
 }
 
 // ---------- Load Appointments Data ----------
 async function loadAppointmentsData() {
-  // 🔹 DUMMY DATA MODE - Comment out to use real Firebase data
-  const USE_DUMMY_DATA = true;
-  
-  if (USE_DUMMY_DATA) {
-    // Generate dummy appointments
-    const appointmentTypes = ['Tree Inspection', 'Site Visit', 'Consultation', 'Permit Review', 'Field Assessment'];
-    const statuses = ['active', 'scheduled', 'completed', 'done'];
-    
-    allAppointments = [];
-    
-    // Generate 30 dummy appointments
-    for (let i = 0; i < 30; i++) {
-      const isActive = Math.random() > 0.5;
-      allAppointments.push({
-        id: `apt_${i + 1}`,
-        appointmentType: appointmentTypes[Math.floor(Math.random() * appointmentTypes.length)],
-        status: isActive ? statuses[Math.floor(Math.random() * 2)] : statuses[2 + Math.floor(Math.random() * 2)],
-        location: Object.keys(municipalityCoords)[Math.floor(Math.random() * Object.keys(municipalityCoords).length)],
-        date: new Date()
-      });
-    }
-    
-    return;
-  }
-  
-  // REAL FIREBASE DATA (original code)
-  allAppointments = [];
-  
   const snapshot = await getDocs(appointmentsRef);
-  allAppointments = snapshot.docs.map(doc => ({ 
-    id: doc.id, 
-    ...doc.data() 
-  }));
+  const appointmentDocs = snapshot.docs;
+
+  allAppointments = appointmentDocs.map((doc) => {
+    const data = doc.data();
+    const createdAt =
+      parseTimestamp(data.createdAt) ||
+      parseTimestamp(data.timestamp) ||
+      parseTimestamp(data.date) ||
+      null;
+    const scheduledAt =
+      parseTimestamp(data.scheduledAt) ||
+      parseTimestamp(data.schedule) ||
+      parseTimestamp(data.appointmentDate) ||
+      null;
+
+    return {
+      id: doc.id,
+      appointmentType: data.appointmentType || data.type || "General",
+      status: formatStatus(data.status || "Pending"),
+      location: data.location || data.municipality || "Unspecified",
+      createdAt,
+      scheduledAt,
+      applicantId: data.applicantId || null,
+      foresterIds: data.foresterIds || data.foresterId || null,
+      raw: data,
+    };
+  });
+
+  const treePromises = appointmentDocs.map(async (doc) => {
+    const appointmentData = doc.data();
+    const treeRef = collection(db, `appointments/${doc.id}/tree_inventory`);
+    const treeSnap = await getDocs(treeRef);
+
+    return treeSnap.docs
+      .map((treeDoc) =>
+        normalizeTreeFromAppointment(
+          treeDoc.data(),
+          treeDoc.id,
+          doc.id,
+          appointmentData
+        )
+      )
+      .filter(Boolean);
+  });
+
+  const appointmentTrees = await Promise.all(treePromises);
+  return appointmentTrees.flat();
 }
 
 // ---------- Update Top Performers ----------
@@ -363,302 +595,190 @@ function drawAppointmentTypeChart() {
 // ---------- Load Stats ----------
 
 async function loadTreeStats() {
-  // 🔹 DUMMY DATA MODE - Set to true for visualization
-  const USE_DUMMY_DATA = true;
-  
-  if (USE_DUMMY_DATA) {
-    // Generate dummy user counts
-    const totalForestersCount = 15;
-    const totalApplicantsCount = 45;
-    
-    // Generate dummy tree data
-    const species = ['Narra', 'Mahogany', 'Acacia', 'Pine', 'Mango', 'Teak', 'Bamboo', 'Eucalyptus'];
-    const foresters = ['Juan Dela Cruz', 'Maria Santos', 'Pedro Reyes', 'Ana Garcia', 'Jose Mendoza', 'Rosa Aquino'];
-    const municipalities = Object.keys(municipalityCoords);
-    
-    allTrees = [];
-    for (let i = 0; i < 120; i++) {
-      const mun = municipalities[Math.floor(Math.random() * municipalities.length)];
-      const coords = municipalityCoords[mun];
-      const randomOffset = () => (Math.random() - 0.5) * 0.1;
-      
-      const daysAgo = Math.floor(Math.random() * 90);
-      const taggedDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-      
-      allTrees.push({
-        id: `tree_${i + 1}`,
-        tree_no: `TRS-2025-${String(i + 1).padStart(4, '0')}`,
-        specie: species[Math.floor(Math.random() * species.length)],
-        foresterName: foresters[Math.floor(Math.random() * foresters.length)],
-        municipality: mun,
-        barangay: `Barangay ${Math.floor(Math.random() * 20) + 1}`,
-        latitude: coords[0] + randomOffset(),
-        longitude: coords[1] + randomOffset(),
-        date_tagged: taggedDate,
-        height: (5 + Math.random() * 20).toFixed(1),
-        diameter: (10 + Math.random() * 40).toFixed(1)
-      });
-    }
-    
-    // Update total counts
-    totalForester.textContent = totalForestersCount.toString();
-    totalApplicants.textContent = totalApplicantsCount.toString();
-    totalTaggedEl.textContent = allTrees.length.toString();
-    
-    // Load applications and appointments with dummy data
-    await loadApplicationsData();
-    await loadAppointmentsData();
-    
-    // Calculate monthly metrics
-    const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    
-    const appsThisMonth = allApplications.filter(app => {
-      const createdAt = app.createdAt instanceof Date ? app.createdAt : new Date(app.createdAt);
-      return createdAt >= thisMonth;
-    });
-    
-    const appsLastMonth = allApplications.filter(app => {
-      const createdAt = app.createdAt instanceof Date ? app.createdAt : new Date(app.createdAt);
-      return createdAt >= lastMonth && createdAt < thisMonth;
-    });
-    
-    applicationsThisMonthEl.textContent = appsThisMonth.length.toString();
-    if (applicationsLastMonthEl) {
-      applicationsLastMonthEl.textContent = appsLastMonth.length.toString();
-    }
-    
-    const growthPercent = appsLastMonth.length > 0
-      ? (((appsThisMonth.length - appsLastMonth.length) / appsLastMonth.length) * 100).toFixed(1)
-      : "0";
-    if (applicationGrowthEl) {
-      applicationGrowthEl.textContent = `${growthPercent}%`;
-    }
-    
-    // Filter appointments
-    const activeAppts = allAppointments.filter(apt => 
-      apt.status?.toLowerCase() === 'active' || apt.status?.toLowerCase() === 'scheduled'
-    );
-    const completedAppts = allAppointments.filter(apt => 
-      apt.status?.toLowerCase() === 'completed' || apt.status?.toLowerCase() === 'done'
-    );
-    
-    if (activeAppointmentsEl) activeAppointmentsEl.textContent = activeAppts.length.toString();
-    if (completedAppointmentsEl) completedAppointmentsEl.textContent = completedAppts.length.toString();
-    
-    // Calculate trees tagged this month
-    const treesThisMonth = allTrees.filter(tree => {
-      const taggedDate = tree.date_tagged instanceof Date ? tree.date_tagged : new Date(tree.date_tagged);
-      return taggedDate >= thisMonth;
-    });
-    if (treesTaggedThisMonthEl) treesTaggedThisMonthEl.textContent = treesThisMonth.length.toString();
-    
-    // Calculate monthly tree stats
-    const treesLastMonth = allTrees.filter(tree => {
-      const taggedDate = tree.date_tagged instanceof Date ? tree.date_tagged : new Date(tree.date_tagged);
-      return taggedDate >= lastMonth && taggedDate < thisMonth;
-    });
-    
-    const thisMonthEl = document.getElementById('thisMonthTrees');
-    const lastMonthEl = document.getElementById('lastMonthTrees');
-    const growthEl = document.getElementById('growthPercentage');
-    
-    if (thisMonthEl) thisMonthEl.textContent = treesThisMonth.length.toString();
-    if (lastMonthEl) lastMonthEl.textContent = treesLastMonth.length.toString();
-    
-    const treeGrowth = treesLastMonth.length > 0
-      ? (((treesThisMonth.length - treesLastMonth.length) / treesLastMonth.length) * 100).toFixed(1)
-      : "0";
-    if (growthEl) growthEl.textContent = `${treeGrowth}%`;
-    
-    // Average trees per forester
-    const avgTreesPerForester = totalForestersCount > 0 
-      ? (allTrees.length / totalForestersCount).toFixed(1) 
-      : "0";
-    if (avgTreesPerForesterEl) avgTreesPerForesterEl.textContent = avgTreesPerForester;
-    
-    // Compute stats
-    const speciesMap = {};
-    const foresterMap = {};
-    const locationMap = {};
-    const trendMap = {};
-    
-    allTrees.forEach((t) => {
-      const species = t.specie || t.species || "Unknown";
-      speciesMap[species] = (speciesMap[species] || 0) + 1;
-      
-      const f = t.foresterName || "Unknown Forester";
-      foresterMap[f] = (foresterMap[f] || 0) + 1;
-      
-      const loc = t.municipality || t.barangay || "Unspecified";
-      locationMap[loc] = (locationMap[loc] || 0) + 1;
-      
-      const taggedAt = t.date_tagged instanceof Date ? t.date_tagged : new Date(t.date_tagged);
-      const key = taggedAt.toISOString().split("T")[0];
-      trendMap[key] = (trendMap[key] || 0) + 1;
-    });
-    
-    // Display core numbers
-    speciesCountEl.textContent = Object.keys(speciesMap).length.toString();
-    const avg = totalForestersCount > 0 ? (allTrees.length / totalForestersCount).toFixed(1) : "0";
-    if (avgTreesEl) avgTreesEl.textContent = avg;
-    
-    // Update top performers
-    updateTopPerformers(foresterMap, speciesMap, locationMap);
-    
-    // Draw charts
-    drawSpeciesChart(Object.keys(speciesMap), Object.values(speciesMap));
-    drawForesterChart(Object.keys(foresterMap), Object.values(foresterMap));
-    drawStatusChart();
-    drawAppointmentTypeChart();
-    
-    console.log('Charts drawn successfully');
-    console.log('Species data:', Object.keys(speciesMap).length, 'species');
-    console.log('Forester data:', Object.keys(foresterMap).length, 'foresters');
-    console.log('Total applications:', allApplications.length);
-    console.log('Total appointments:', allAppointments.length);
-    
-    // Sort trend data chronologically
-    const sortedTrendKeys = Object.keys(trendMap).sort();
-    const sortedTrendValues = sortedTrendKeys.map(key => trendMap[key]);
-    drawTrendChart(sortedTrendKeys, sortedTrendValues);
-    
-    console.log('Trend chart drawn with', sortedTrendKeys.length, 'data points');
-    
-    // Populate filters and map
-    populateFilterDropdowns(Object.keys(speciesMap), Object.keys(foresterMap));
-    plotTreeLocations(allTrees);
-    renderLocationStats(locationMap);
-    
-    // Update recent activities
-    updateRecentActivities();
-    
-    console.log('Dashboard initialization complete!');
-    
-    return;
-  }
-  
-  // REAL FIREBASE DATA (original code)
-  let totalForestersCount = 0;
-  let totalApplicantsCount = 0;
+  userDirectory = new Map();
   allTrees = [];
 
+  let totalForestersCount = 0;
+  let totalApplicantsCount = 0;
+
   const userSnapshot = await getDocs(usersRef);
+  const treePromises = [];
 
   for (const userDoc of userSnapshot.docs) {
     const data = userDoc.data();
-    const role = data.role?.toLowerCase();
+    userDirectory.set(userDoc.id, data);
 
-    // Count totals
-    if (role === "forester") totalForestersCount++;
-    else if (role === "applicant") totalApplicantsCount++;
-
-    // Load trees from foresters only
+    const role = data.role ? data.role.toString().trim().toLowerCase() : "";
     if (role === "forester") {
-      const trees = await fetchUserTrees(userDoc.id);
-      if (trees.length > 0) {
-        const userTrees = trees.map((t) => ({
-          ...t,
-          foresterName: data.name || userDoc.id,
-        }));
-        allTrees.push(...userTrees);
-      }
+      totalForestersCount += 1;
+      treePromises.push(
+        fetchUserTrees(userDoc.id)
+          .then((trees) =>
+            trees
+              .map((tree) =>
+                normalizeTreeRecord(
+                  { id: tree.id, ...tree },
+                  data,
+                  userDoc.id
+                )
+              )
+              .filter(Boolean)
+          )
+          .catch((err) => {
+            console.warn(`⚠️ Failed to load trees for ${userDoc.id}`, err);
+            return [];
+          })
+      );
+    } else if (role === "applicant") {
+      totalApplicantsCount += 1;
     }
   }
 
-  // ✅ Update total counts
-  totalForester.textContent = totalForestersCount.toString();
-  totalApplicants.textContent = totalApplicantsCount.toString();
-  totalTaggedEl.textContent = allTrees.length.toString();
+  const foresterTrees = (await Promise.all(treePromises)).flat();
+  allTrees.push(...foresterTrees);
 
-  // ---------- Load Applications & Appointments ----------
+  const appointmentTrees = await loadAppointmentsData();
+  if (Array.isArray(appointmentTrees) && appointmentTrees.length) {
+    allTrees.push(...appointmentTrees);
+  }
+
   await loadApplicationsData();
-  await loadAppointmentsData();
 
-  // ---------- Calculate Monthly Metrics ----------
+  if (totalForester) totalForester.textContent = totalForestersCount.toString();
+  if (totalApplicants)
+    totalApplicants.textContent = totalApplicantsCount.toString();
+  if (totalTaggedEl) totalTaggedEl.textContent = allTrees.length.toString();
+
   const now = new Date();
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
-  // Filter applications by month
-  const appsThisMonth = allApplications.filter(app => {
-    const createdAt = app.createdAt ? new Date(app.createdAt.toDate ? app.createdAt.toDate() : app.createdAt) : null;
+  const treesThisMonth = allTrees.filter((tree) => {
+    const taggedAt = parseTimestamp(
+      tree.date_tagged || tree.taggedAt || tree.timestamp
+    );
+    return taggedAt && taggedAt >= thisMonth;
+  });
+
+  const treesLastMonth = allTrees.filter((tree) => {
+    const taggedAt = parseTimestamp(
+      tree.date_tagged || tree.taggedAt || tree.timestamp
+    );
+    return taggedAt && taggedAt >= lastMonth && taggedAt < thisMonth;
+  });
+
+  if (treesTaggedThisMonthEl)
+    treesTaggedThisMonthEl.textContent = treesThisMonth.length.toString();
+
+  const thisMonthTreesEl = document.getElementById("thisMonthTrees");
+  const lastMonthTreesEl = document.getElementById("lastMonthTrees");
+  const treeGrowthEl = document.getElementById("growthPercentage");
+
+  if (thisMonthTreesEl)
+    thisMonthTreesEl.textContent = treesThisMonth.length.toString();
+  if (lastMonthTreesEl)
+    lastMonthTreesEl.textContent = treesLastMonth.length.toString();
+  if (treeGrowthEl) {
+    const treeGrowth =
+      treesLastMonth.length > 0
+        ? (
+            ((treesThisMonth.length - treesLastMonth.length) /
+              treesLastMonth.length) *
+            100
+          ).toFixed(1)
+        : "0";
+    treeGrowthEl.textContent = `${treeGrowth}%`;
+  }
+
+  const appsThisMonth = allApplications.filter((app) => {
+    const createdAt = parseTimestamp(app.createdAt);
     return createdAt && createdAt >= thisMonth;
   });
 
-  const appsLastMonth = allApplications.filter(app => {
-    const createdAt = app.createdAt ? new Date(app.createdAt.toDate ? app.createdAt.toDate() : app.createdAt) : null;
+  const appsLastMonth = allApplications.filter((app) => {
+    const createdAt = parseTimestamp(app.createdAt);
     return createdAt && createdAt >= lastMonth && createdAt < thisMonth;
   });
 
-  applicationsThisMonthEl.textContent = appsThisMonth.length.toString();
-  applicationsLastMonthEl.textContent = appsLastMonth.length.toString();
+  if (applicationsThisMonthEl)
+    applicationsThisMonthEl.textContent = appsThisMonth.length.toString();
+  if (applicationsLastMonthEl)
+    applicationsLastMonthEl.textContent = appsLastMonth.length.toString();
+  if (applicationGrowthEl) {
+    const growthPercent =
+      appsLastMonth.length > 0
+        ? (
+            ((appsThisMonth.length - appsLastMonth.length) /
+              appsLastMonth.length) *
+            100
+          ).toFixed(1)
+        : "0";
+    applicationGrowthEl.textContent = `${growthPercent}%`;
+  }
 
-  // Calculate growth percentage
-  const growthPercent = appsLastMonth.length > 0
-    ? (((appsThisMonth.length - appsLastMonth.length) / appsLastMonth.length) * 100).toFixed(1)
-    : "0";
-  applicationGrowthEl.textContent = `${growthPercent}%`;
+  const activeAppts = allAppointments.filter((apt) => {
+    const status = apt.status ? apt.status.toLowerCase() : "";
+    return status === "active" || status === "scheduled";
+  });
+  const completedAppts = allAppointments.filter((apt) => {
+    const status = apt.status ? apt.status.toLowerCase() : "";
+    return status === "completed" || status === "done";
+  });
 
-  // Filter appointments by month
-  const activeAppts = allAppointments.filter(apt => apt.status?.toLowerCase() === 'active' || apt.status?.toLowerCase() === 'scheduled');
-  const completedAppts = allAppointments.filter(apt => apt.status?.toLowerCase() === 'completed' || apt.status?.toLowerCase() === 'done');
+  if (activeAppointmentsEl)
+    activeAppointmentsEl.textContent = activeAppts.length.toString();
+  if (completedAppointmentsEl)
+    completedAppointmentsEl.textContent = completedAppts.length.toString();
 
-  activeAppointmentsEl.textContent = activeAppts.length.toString();
-  completedAppointmentsEl.textContent = completedAppts.length.toString();
+  const avgTreesPerForester =
+    totalForestersCount > 0
+      ? (allTrees.length / totalForestersCount).toFixed(1)
+      : "0";
+  if (avgTreesPerForesterEl)
+    avgTreesPerForesterEl.textContent = avgTreesPerForester;
+  if (avgTreesEl) avgTreesEl.textContent = avgTreesPerForester;
 
-  // Average trees per forester
-  const avgTreesPerForester = totalForestersCount > 0 
-    ? (allTrees.length / totalForestersCount).toFixed(1) 
-    : "0";
-  avgTreesPerForesterEl.textContent = avgTreesPerForester;
-
-  // ---------- Compute Stats ----------
   const speciesMap = {};
   const foresterMap = {};
   const locationMap = {};
   const trendMap = {};
 
-  allTrees.forEach((t) => {
-    const species = t.specie || t.species || "Unknown";
+  allTrees.forEach((tree) => {
+    const species = tree.specie || tree.species || "Unknown";
     speciesMap[species] = (speciesMap[species] || 0) + 1;
 
-    const f = t.foresterName || "Unknown Forester";
-    foresterMap[f] = (foresterMap[f] || 0) + 1;
+    const foresterName = tree.foresterName || "Unknown Forester";
+    foresterMap[foresterName] = (foresterMap[foresterName] || 0) + 1;
 
-    const loc = t.municipality || t.barangay || "Unspecified";
-    locationMap[loc] = (locationMap[loc] || 0) + 1;
+    const location = tree.municipality || tree.barangay || "Unspecified";
+    locationMap[location] = (locationMap[location] || 0) + 1;
 
-    const taggedAt = t.date_tagged
-      ? new Date(t.date_tagged.toDate ? t.date_tagged.toDate() : t.date_tagged)
-      : null;
+    const taggedAt = parseTimestamp(
+      tree.date_tagged || tree.taggedAt || tree.timestamp
+    );
     if (taggedAt) {
       const key = taggedAt.toISOString().split("T")[0];
       trendMap[key] = (trendMap[key] || 0) + 1;
     }
   });
 
-  // ---------- Display Core Numbers ----------
-  speciesCountEl.textContent = Object.keys(speciesMap).length.toString();
-  const avg =
-    totalForestersCount > 0 ? (allTrees.length / totalForestersCount).toFixed(1) : "0";
-  avgTreesEl.textContent = avg;
+  if (speciesCountEl)
+    speciesCountEl.textContent = Object.keys(speciesMap).length.toString();
 
-  // ---------- Update Top Performers ----------
   updateTopPerformers(foresterMap, speciesMap, locationMap);
-
-  // ---------- Charts & Visuals ----------
   drawSpeciesChart(Object.keys(speciesMap), Object.values(speciesMap));
   drawForesterChart(Object.keys(foresterMap), Object.values(foresterMap));
   drawStatusChart();
   drawAppointmentTypeChart();
 
-  // ---------- Filters & Map ----------
+  const sortedTrendKeys = Object.keys(trendMap).sort();
+  const sortedTrendValues = sortedTrendKeys.map((key) => trendMap[key]);
+  drawTrendChart(sortedTrendKeys, sortedTrendValues);
+
   populateFilterDropdowns(Object.keys(speciesMap), Object.keys(foresterMap));
   plotTreeLocations(allTrees);
   renderLocationStats(locationMap);
+  updateRecentActivities();
 }
 
 // ---------- Populate Filters ----------

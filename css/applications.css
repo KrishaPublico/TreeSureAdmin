@@ -189,6 +189,7 @@
 }
 
 /* ===== MODAL CONTENT ===== */
+
 .modal-content {
   background-color: #f9f9f9;
   margin: 10% auto;
@@ -271,6 +272,17 @@
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-header h2 {
+  margin: 0;
+}
   transition: background 0.3s ease;
 }
 

@@ -5,38 +5,31 @@
   <title>User Management</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/users.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/topbar.css">
+  <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
 <body onload="checkLogin()">
+  <!-- Toast / Notification Container -->
+<div id="toast-container" ></div>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="logo-container">
-      <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo">
-      <span class="logo-text">TreeSure</span>
-    </div>
-<ul>
-  <li><a href="dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
-  <li><a href="trees.html"><i class="fa-solid fa-tree"></i> Trees</a></li>
-  <li><a href="users.html"><i class="fa-solid fa-users"></i> Users</a></li>
-  <li><a href="applications.html"><i class="fa-solid fa-file-lines"></i> Applications</a></li>
-  <li><a href="reports.html"><i class="fa-solid fa-chart-line"></i> Reports</a></li>
-  <li><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
-  <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
-</ul>
-  </div>
+
+ <!-- Sidebar (loaded dynamically) -->
+  <div id="sidebar-container"></div>
+
 
   <!-- Main Content -->
   <div class="main-content">
-    <h1>👥 User Management</h1>
+        <div class="top-horizontal-bar"> </div>
+    <h1><i class="fas fa-users"></i> User Management</h1>
+
 
     <!-- Add User Form -->
     <div class="user-form">
       <h2>Add / Update User</h2>
       <form id="addUserForm">
-        <input type="hidden" id="userId">
-
         <div class="form-row">
           <div class="form-group">
             <input type="text" id="name" placeholder="Full Name" required>
@@ -119,7 +112,159 @@
     </div>
   </div>
 
+  <!-- Edit User Modal -->
+  <div id="editUserModal" class="edit-modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+      <button type="button" class="close-modal" id="closeEditModal" aria-label="Close edit user dialog">&times;</button>
+      <h2 id="editUserTitle">Edit User</h2>
+      <form id="editUserForm">
+        <input type="hidden" id="editUserId">
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="editName" placeholder="Full Name" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="editUsername" placeholder="Username" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <input type="password" id="editPassword" placeholder="Password" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="editContact" placeholder="Contact Number" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="editAddress" placeholder="Address" required>
+          </div>
+          <div class="form-group">
+            <select id="editRole">
+              <option value="Admin">Admin</option>
+              <option value="Forester">Forester</option>
+              <option value="Applicant">Applicant</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <select id="editStatus">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-submit">
+            <i class="fa fa-save"></i> Update User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ✅ Use module to import JS -->
   <script type="module" src="js/users.js"></script>
+
+
+
+   <!-- Load Sidebar Dynamically -->
+   <!-- Load Sidebar Dynamically -->
+  <script>
+    fetch("sidebar.html")
+  .then(res => res.text())
+  .then(html => {
+    document.getElementById("sidebar-container").innerHTML = html;
+
+    // Highlight the active page link
+    const current = window.location.pathname.split("/").pop();
+    document.querySelectorAll(".sidebar a").forEach(link => {
+      if (link.getAttribute("href") === current) {
+        link.classList.add("active");
+      }
+    });
+
+    // Logout handler
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", e => {
+        e.preventDefault();
+        localStorage.clear();
+        window.location.href = "login.html";
+      });
+    }
+
+    // --------- ADD DROPDOWN FUNCTIONALITY ---------
+
+    // Main Applications dropdown
+    document.querySelectorAll(".dropdown-toggle").forEach(drop => {
+      drop.addEventListener("click", e => {
+        e.preventDefault(); // prevent link jump
+        e.stopPropagation(); // prevent event bubbling
+        
+        // Close other dropdowns first
+        document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
+          if (openDropdown !== drop.parentElement) {
+            openDropdown.classList.remove("open");
+          }
+        });
+        
+        drop.parentElement.classList.toggle("open");
+      });
+    });
+
+    // Sub-dropdown (Cutting Permit)
+    document.querySelectorAll(".sub-toggle").forEach(sub => {
+      sub.addEventListener("click", e => {
+        e.preventDefault();
+        e.stopPropagation(); // prevent event bubbling
+        const subMenu = sub.nextElementSibling;
+        subMenu.classList.toggle("open");
+      });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".dropdown")) {
+        document.querySelectorAll(".dropdown.open").forEach(dropdown => {
+          dropdown.classList.remove("open");
+        });
+      }
+    });
+
+    // ---------- APPLICATION TYPE BUTTONS ----------
+    // When clicking application type buttons, navigate to applications.html
+    const appButtons = [
+      { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
+      { id: "pltpBtn", type: "pltp", title: "PLTP Applications" },
+      { id: "spltpBtn", type: "spltp", title: "SPLTP Applications" },
+      { id: "permitCutBtn", type: "ptc", title: "Permit to Cut Applications" },
+      { id: "cttBtn", type: "ctt", title: "Transport Permit (CTT)" },
+      { id: "chainsawBtn", type: "chainsaw", title: "Chainsaw Registration" },
+    ];
+
+    appButtons.forEach(btn => {
+      const element = document.getElementById(btn.id);
+      if (element) {
+        element.addEventListener("click", () => {
+          localStorage.setItem("selectedApplicationType", btn.type);
+          localStorage.setItem("selectedApplicationTitle", btn.title);
+          window.location.href = "applications.html";
+        });
+      }
+    });
+
+    // ---------------------------------------------
+  });
+
+  </script>
+  
+  <script type="module" src="js/application-temp-fix.js"></script>
+
 </body>
 </html>

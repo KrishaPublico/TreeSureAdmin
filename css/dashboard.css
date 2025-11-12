@@ -9,84 +9,14 @@
   font-family: "Poppins", sans-serif;
 }
 
-body {
-  background: #f5f7f5;
-  color: #333;
-  display: flex;
-  min-height: 100vh;
-}
 
-/* ---------- SIDEBAR ---------- */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 230px;
-  height: 100%;
-  background: #2e7d32;
-  padding: 20px 0;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 1000;
-}
-
-.sidebar .logo-container {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.sidebar .logo {
-  width: 70px;
-  height: auto;
-}
-
-.sidebar .logo-text {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.sidebar ul {
-  list-style: none;
-  width: 100%;
-  padding: 0;
-}
-
-.sidebar ul li {
-  width: 100%;
-}
-
-.sidebar ul li a {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #fff;
-  text-decoration: none;
-  padding: 12px 25px;
-  border-radius: 8px;
-  transition: background 0.25s ease;
-}
-
-.sidebar ul li a:hover,
-.sidebar ul li a.active {
-  background: #1b5e20;
-}
-
-/* ---------- MAIN CONTENT ---------- */
-.main-content {
-  flex: 1;
-  margin-left: 230px;
-  padding: 25px;
-}
 
 header h1 {
   font-size: 24px;
   color: #2e7d32;
   margin-bottom: 25px;
+   font-weight: 600;
 }
-
 /* ---------- DASHBOARD CARDS ---------- */
 .cards {
   display: grid;
@@ -115,6 +45,7 @@ header h1 {
   font-size: 1.8rem;
   font-weight: 700;
 }
+
 
 /* ---------- CHARTS ---------- */
 .charts {
@@ -378,31 +309,3 @@ header h1 {
   }
 }
 
-/* Sidebar remains visible on website screens (≥769px) */
-@media (min-width: 769px) {
-  .sidebar {
-    position: fixed;
-    width: 230px;
-    display: flex !important;
-    flex-direction: column;
-  }
-  .main-content {
-    margin-left: 230px;
-  }
-}
-
-/* Mobile layout - sidebar adjusts on small screens (<769px) */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 180px;
-  }
-  .main-content {
-    margin-left: 180px;
-    padding: 15px;
-  }
-  .cards,
-  .charts,
-  .extra-cards {
-    grid-template-columns: 1fr;
-  }
-}

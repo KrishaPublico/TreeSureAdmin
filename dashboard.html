@@ -3,8 +3,15 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - Tree Inventory Admin</title>
+
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/topbar.css" />
+
+
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,33 +20,22 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
 </head>
 
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="logo-container">
-      <img src="assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo" />
-      <span class="logo-text">TreeSure</span>
-    </div>
-
-    <ul>
-      <li><a href="dashboard.html" class="active"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
-      <li><a href="trees.html"><i class="fa-solid fa-tree"></i> Trees</a></li>
-      <li><a href="users.html"><i class="fa-solid fa-users"></i> Users</a></li>
-      <li><a href="applications.html"><i class="fa-solid fa-file-lines"></i> Applications</a></li>
-      <li><a href="reports.html"><i class="fa-solid fa-chart-line"></i> Reports</a></li>
-      <li><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
-      <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
-    </ul>
-  </div>
+  <!-- Sidebar (loaded dynamically) -->
+  <div id="sidebar-container"></div>
 
   <!-- Main Content -->
   <div class="main-content">
+     <div class="top-horizontal-bar"> </div>
     <header>
-      <h1>Welcome, <span id="adminName"></span> 👤</h1>
+      <h1>Welcome, <span id="adminName"></h1>
     </header>
 
     <!-- Dashboard Summary Cards -->
@@ -197,6 +193,90 @@
       </ul>
     </div>
   </div>
+
+  <script>
+    fetch("sidebar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("sidebar-container").innerHTML = html;
+
+        // Highlight the active page
+        const current = window.location.pathname.split("/").pop();
+        document.querySelectorAll(".sidebar a").forEach(link => {
+          if (link.getAttribute("href") === current) link.classList.add("active");
+        });
+
+        // Logout button
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", e => {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = "login.html";
+          });
+        }
+
+        // Dropdown toggle
+        document.querySelectorAll(".dropdown-toggle").forEach(drop => {
+          drop.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
+            
+            // Close other dropdowns first
+            document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
+              if (openDropdown !== drop.parentElement) {
+                openDropdown.classList.remove("open");
+              }
+            });
+            
+            drop.parentElement.classList.toggle("open");
+          });
+        });
+        document.querySelectorAll(".sub-toggle").forEach(sub => {
+          sub.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
+            sub.nextElementSibling.classList.toggle("open");
+          });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener("click", e => {
+          if (!e.target.closest(".dropdown")) {
+            document.querySelectorAll(".dropdown.open").forEach(dropdown => {
+              dropdown.classList.remove("open");
+            });
+          }
+        });
+
+        // ---------- APPLICATION TYPE BUTTONS ----------
+        // When clicking application type buttons on dashboard, navigate to applications.html
+        // and store the selected type so applications.html can load it
+        const appButtons = [
+          { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
+          { id: "pltpBtn", type: "pltp", title: "PLTP Applications" },
+          { id: "spltpBtn", type: "spltp", title: "SPLTP Applications" },
+          { id: "permitCutBtn", type: "ptc", title: "Permit to Cut Applications" },
+          { id: "cttBtn", type: "ctt", title: "Transport Permit (CTT)" },
+          { id: "chainsawBtn", type: "chainsaw", title: "Chainsaw Registration" },
+        ];
+
+        appButtons.forEach(btn => {
+          const element = document.getElementById(btn.id);
+          if (element) {
+            element.addEventListener("click", () => {
+              // Store the selected application type
+              localStorage.setItem("selectedApplicationType", btn.type);
+              localStorage.setItem("selectedApplicationTitle", btn.title);
+              // Navigate to applications page
+              window.location.href = "applications.html";
+            });
+          }
+        });
+      });
+  </script>
+  
+  <script type="module" src="js/application-temp-fix.js"></script>
 
   <!-- Dashboard Logic -->
   <script type="module" src="./js/dashboard.js"></script>

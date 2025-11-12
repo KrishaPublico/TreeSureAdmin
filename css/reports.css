@@ -291,6 +291,20 @@ td img:hover {
   background: #1b5e20;
 }
 
+.export-buttons button:disabled {
+  background: #9e9e9e;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+#refreshData {
+  background: #2196f3;
+}
+
+#refreshData:hover {
+  background: #1976d2;
+}
+
 /* Activity Logs & Insights */
 .activity-section,
 .insight-section {

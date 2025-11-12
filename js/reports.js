@@ -34,13 +34,19 @@ let statusChartInstance = null;
 let speciesChartInstance = null;
 let activeTab = "trees"; // track which tab is selected, default to trees
 
+// Cache keys for sessionStorage
+const CACHE_KEYS = {
+  APPLICATIONS: 'treesure_reports_applications',
+  APPOINTMENTS: 'treesure_reports_appointments',
+  TIMESTAMP: 'treesure_reports_timestamp'
+};
+
 // --- Init ---
 checkLogin();
 document.getElementById("logoutBtn")?.addEventListener("click", logout);
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadApplications();
-  await loadAppointments();
+  await loadData();
   populateFilters();
   renderTreesTable(appointmentsData);
   updateCharts(appointmentsData);
@@ -50,7 +56,100 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("applyFilters")
     ?.addEventListener("click", applyFilters);
+  
+  // Refresh button handler
+  document.getElementById("refreshData")?.addEventListener("click", async () => {
+    await refreshData();
+  });
 });
+
+// --- Load Data (with caching) ---
+async function loadData(forceRefresh = false) {
+  if (loadingIndicator) loadingIndicator.style.display = "block";
+  
+  if (!forceRefresh) {
+    // Try to load from cache
+    const cachedApps = sessionStorage.getItem(CACHE_KEYS.APPLICATIONS);
+    const cachedAppts = sessionStorage.getItem(CACHE_KEYS.APPOINTMENTS);
+    
+    if (cachedApps && cachedAppts) {
+      console.log("📦 Loading data from cache...");
+      applicationsData = JSON.parse(cachedApps);
+      appointmentsData = JSON.parse(cachedAppts);
+      
+      // Parse date strings back to Date objects
+      applicationsData = applicationsData.map(app => ({
+        ...app,
+        date: app.date ? new Date(app.date) : null,
+        uploads: app.uploads.map(upload => ({
+          ...upload,
+          comments: upload.comments.map(comment => ({
+            ...comment,
+            createdAt: comment.createdAt ? new Date(comment.createdAt) : null
+          }))
+        }))
+      }));
+      
+      appointmentsData = appointmentsData.map(appt => ({
+        ...appt,
+        date: appt.date ? new Date(appt.date) : null,
+        completedAt: appt.completedAt ? new Date(appt.completedAt) : null
+      }));
+      
+      if (loadingIndicator) loadingIndicator.style.display = "none";
+      return;
+    }
+  }
+  
+  // Load from Firebase
+  console.log("🔄 Fetching data from Firebase...");
+  await loadApplications();
+  await loadAppointments();
+  
+  // Save to cache
+  sessionStorage.setItem(CACHE_KEYS.APPLICATIONS, JSON.stringify(applicationsData));
+  sessionStorage.setItem(CACHE_KEYS.APPOINTMENTS, JSON.stringify(appointmentsData));
+  sessionStorage.setItem(CACHE_KEYS.TIMESTAMP, new Date().toISOString());
+  
+  if (loadingIndicator) loadingIndicator.style.display = "none";
+}
+
+// --- Refresh Data ---
+async function refreshData() {
+  const refreshBtn = document.getElementById("refreshData");
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing...';
+  }
+  
+  // Clear cache
+  sessionStorage.removeItem(CACHE_KEYS.APPLICATIONS);
+  sessionStorage.removeItem(CACHE_KEYS.APPOINTMENTS);
+  sessionStorage.removeItem(CACHE_KEYS.TIMESTAMP);
+  
+  // Reload data
+  await loadData(true);
+  
+  // Re-render current view
+  populateFilters();
+  if (activeTab === "trees") {
+    renderTreesTable(appointmentsData);
+    updateCharts(appointmentsData);
+  } else {
+    const filteredApps = applicationsData.filter(
+      (a) => a.type.toLowerCase() === activeTab.toLowerCase()
+    );
+    renderApplicationsTable(filteredApps);
+    updateCharts(filteredApps);
+  }
+  
+  if (refreshBtn) {
+    refreshBtn.disabled = false;
+    refreshBtn.innerHTML = '<i class="fa-solid fa-refresh"></i> Refresh Data';
+  }
+  
+  alert("Data refreshed successfully!");
+}
 
 // --- Timestamp Parser ---
 function parseTimestampString(ts) {
@@ -454,18 +553,41 @@ function drawStatusChart(data) {
     return acc;
   }, {});
 
+  // Generate colors dynamically based on status
+  const statusColors = {
+    'pending': '#f4b400',
+    'approved': '#0f9d58',
+    'rejected': '#db4437',
+    'completed': '#4caf50',
+    'submitted': '#2196f3',
+  };
+  
+  const colors = Object.keys(statusCount).map(status => 
+    statusColors[status.toLowerCase()] || '#9e9e9e'
+  );
+
   statusChartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: Object.keys(statusCount),
+      labels: Object.keys(statusCount).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
       datasets: [
         {
           data: Object.values(statusCount),
-          backgroundColor: ["#f4b400", "#0f9d58", "#db4437"],
+          backgroundColor: colors,
         },
       ],
     },
-    options: { responsive: true, plugins: { legend: { position: "bottom" } } },
+    options: { 
+      responsive: true, 
+      plugins: { 
+        legend: { position: "bottom" },
+        title: {
+          display: true,
+          text: 'Status Distribution',
+          font: { size: 14, weight: 'bold' }
+        }
+      } 
+    },
   });
 }
 
@@ -475,25 +597,56 @@ function drawSpeciesChart(data) {
   const ctx = ctxEl.getContext("2d");
   if (speciesChartInstance) speciesChartInstance.destroy();
 
-  const speciesCount = data.reduce((acc, d) => {
-    const s = d.species || d.type || "Unknown";
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, {});
+  // Determine what to count based on active tab
+  let counts = {};
+  let chartTitle = '';
+  
+  if (activeTab === "trees") {
+    // For Trees tab: show species distribution
+    counts = data.reduce((acc, d) => {
+      const s = d.species || "Unknown";
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+    chartTitle = 'Species Distribution';
+  } else {
+    // For Application tabs: show application type distribution
+    counts = data.reduce((acc, d) => {
+      const type = d.type ? d.type.toUpperCase() : "Unknown";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+    chartTitle = 'Application Type Distribution';
+  }
 
   speciesChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: Object.keys(speciesCount),
+      labels: Object.keys(counts),
       datasets: [
-        { data: Object.values(speciesCount), backgroundColor: "#4caf50" },
+        { 
+          data: Object.values(counts), 
+          backgroundColor: "#4caf50",
+          label: activeTab === "trees" ? "Trees" : "Applications"
+        },
       ],
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: { 
+        legend: { display: false },
+        title: {
+          display: true,
+          text: chartTitle,
+          font: { size: 14, weight: 'bold' }
+        }
+      },
       scales: {
         x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } },
+        y: { 
+          beginAtZero: true,
+          ticks: { stepSize: 1 }
+        }
       },
     },
   });

@@ -3,13 +3,13 @@ import {
   collection,
   getDocs,
   doc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // --- Elements ---
 const foresterFilter = document.getElementById("foresterFilter");
 const applicantFilter = document.getElementById("applicantFilter");
 const speciesFilter = document.getElementById("speciesFilter");
-const locationFilter = document.getElementById("locationFilter");
 const appointmentTypeFilter = document.getElementById("appointmentTypeFilter");
 const startDateInput = document.getElementById("startDate");
 const endDateInput = document.getElementById("endDate");
@@ -155,6 +155,21 @@ async function loadAppointments() {
       const appointmentData = appointmentDoc.data();
       const appointmentId = appointmentDoc.id;
       
+      // Get applicant name from users collection
+      let applicantName = "Unknown";
+      const applicantId = appointmentData.applicantId;
+      if (applicantId) {
+        try {
+          const userDocRef = doc(db, "users", applicantId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            applicantName = userDocSnap.data().name || "Unknown";
+          }
+        } catch (err) {
+          console.warn("Could not fetch user name for ID:", applicantId, err);
+        }
+      }
+      
       // Get tree_inventory subcollection
       const treeInventoryRef = collection(db, `appointments/${appointmentId}/tree_inventory`);
       const treeInventorySnap = await getDocs(treeInventoryRef);
@@ -178,7 +193,8 @@ async function loadAppointments() {
           treeId: treeData.tree_id || treeData.tree_no || treeDoc.id,
           treeNo: treeData.tree_no || treeData.tree_id || treeDoc.id,
           appointmentType: appointmentData.appointmentType || "N/A",
-          applicantId: appointmentData.applicantId || "Unknown",
+          applicantId: applicantId || "Unknown",
+          applicantName: applicantName,
           species: treeData.specie || treeData.species || "Unknown",
           diameter: treeData.diameter || 0,
           height: treeData.height || 0,
@@ -262,7 +278,7 @@ function applyFilters() {
       activeTab === "trees"
         ? fForester === "all" || d.forester === fForester
         : true;
-    const matchApplicant = fApplicant === "all" || d.applicant === fApplicant || d.applicantId === fApplicant;
+    const matchApplicant = fApplicant === "all" || d.applicant === fApplicant || d.applicantName === fApplicant || d.applicantId === fApplicant;
     const matchSpecies =
       activeTab === "trees" ? fSpecies === "all" || d.species === fSpecies : true;
     const matchAppointmentType =
@@ -297,7 +313,7 @@ function applyFilters() {
 function renderApplicationsTable(data) {
   reportTable.innerHTML = "";
   if (!data || data.length === 0) {
-    reportTable.innerHTML = `<tr><td colspan="7">No applications found</td></tr>`;
+    reportTable.innerHTML = `<tr><td colspan="6">No applications found</td></tr>`;
     return;
   }
 
@@ -310,7 +326,6 @@ function renderApplicationsTable(data) {
         <td>${dateStr}</td>
         <td>${escapeHtml(d.applicant)}</td>
         <td>${escapeHtml(d.type)}</td>
-        <td>${escapeHtml(d.permitType)}</td>
         <td>${escapeHtml(d.status)}</td>
         <td>${uploadCount}</td>
         <td><button class="view-details-btn" data-index="${index}">View Details</button></td>
@@ -331,7 +346,7 @@ function renderApplicationsTable(data) {
 function renderTreesTable(data) {
   reportTable.innerHTML = "";
   if (!data || data.length === 0) {
-    reportTable.innerHTML = `<tr><td colspan="11">No trees found</td></tr>`;
+    reportTable.innerHTML = `<tr><td colspan="14">No trees found</td></tr>`;
     return;
   }
 
@@ -339,21 +354,28 @@ function renderTreesTable(data) {
     const dateStr = d.date ? d.date.toLocaleDateString() : "N/A";
     const lat = d.latitude != null ? formatCoord(d.latitude) : "N/A";
     const lng = d.longitude != null ? formatCoord(d.longitude) : "N/A";
-    const coords = (lat !== "N/A" && lng !== "N/A") ? `${lat}, ${lng}` : "N/A";
+    
+    // QR Code display
+    const qrCodeHtml = d.qrUrl 
+      ? `<img src="${escapeHtml(d.qrUrl)}" alt="QR Code" style="width: 50px; height: 50px; cursor: pointer;" onclick="window.open('${escapeHtml(d.qrUrl)}', '_blank')" />`
+      : "N/A";
     
     const row = `
       <tr>
         <td>${escapeHtml(d.treeNo)}</td>
         <td>${escapeHtml(d.appointmentType)}</td>
-        <td>${escapeHtml(d.applicantId)}</td>
+        <td>${escapeHtml(d.applicantName || d.applicantId)}</td>
         <td>${escapeHtml(d.species)}</td>
         <td>${d.diameter}</td>
         <td>${d.height}</td>
         <td>${d.volume.toFixed(2)}</td>
         <td>${escapeHtml(d.location)}</td>
+        <td>${lat}</td>
+        <td>${lng}</td>
         <td>${escapeHtml(d.forester)}</td>
         <td>${escapeHtml(d.status)}</td>
         <td>${dateStr}</td>
+        <td>${qrCodeHtml}</td>
       </tr>`;
     reportTable.insertAdjacentHTML("beforeend", row);
   });
@@ -370,7 +392,7 @@ function populateFilters() {
   // Add data from appointments
   appointmentsData.forEach((t) => {
     if (t.forester && t.forester !== "Unknown Forester") foresters.add(t.forester);
-    if (t.applicantId && t.applicantId !== "Unknown") applicants.add(t.applicantId);
+    if (t.applicantName && t.applicantName !== "Unknown") applicants.add(t.applicantName);
     if (t.species && t.species !== "Unknown") species.add(t.species);
     if (t.appointmentType && t.appointmentType !== "N/A") appointmentTypes.add(t.appointmentType);
   });
@@ -380,14 +402,12 @@ function populateFilters() {
   populateSelect(speciesFilter, [...species], "All Species");
   populateSelect(appointmentTypeFilter, [...appointmentTypes], "All Appointment Types");
 
-  locationFilter.innerHTML = `<option value="all">All Municipalities</option>`;
 
   [
     foresterFilter,
     applicantFilter,
     speciesFilter,
     appointmentTypeFilter,
-    locationFilter,
     startDateInput,
     endDateInput,
   ].forEach((el) => el?.addEventListener("change", applyFilters));
@@ -509,17 +529,23 @@ function getVisibleColumnsAndData() {
     th.textContent.trim()
   );
   
-  // 🚫 Find the index of "Actions" column to exclude it
-  const actionsIndex = allHeaders.findIndex(h => h.toLowerCase() === "actions");
+  // 🚫 Find the indices of columns to exclude (Actions and QR Code)
+  const excludeColumns = [];
+  allHeaders.forEach((header, index) => {
+    const lowerHeader = header.toLowerCase();
+    if (lowerHeader === "actions" || lowerHeader === "qr code") {
+      excludeColumns.push(index);
+    }
+  });
   
-  // Filter out "Actions" column from headers
-  const headers = allHeaders.filter((h, index) => index !== actionsIndex);
+  // Filter out excluded columns from headers
+  const headers = allHeaders.filter((h, index) => !excludeColumns.includes(index));
 
-  // 🧩 Get all visible row data from the table body, excluding Actions column
+  // 🧩 Get all visible row data from the table body, excluding specified columns
   const rows = Array.from(tableBody.querySelectorAll("tr")).map((tr) =>
     Array.from(tr.querySelectorAll("td"))
       .map((td) => td.textContent.trim())
-      .filter((_, index) => index !== actionsIndex)
+      .filter((_, index) => !excludeColumns.includes(index))
   );
 
   return { headers, rows, currentTab };

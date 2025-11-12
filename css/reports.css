@@ -92,14 +92,32 @@ body {
 /* Filters Section */
 .filters {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 15px;
-  align-items: center;
   background: #fff;
   padding: 15px;
   border-radius: 12px;
   margin-bottom: 25px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.date-range-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-range-filter label {
+  font-weight: 500;
+  color: #2e7d32;
+  white-space: nowrap;
 }
 
 .filters select,
@@ -159,6 +177,20 @@ tbody tr:hover {
   background-color: #f1f8e9;
 }
 
+/* QR Code Images in Table */
+td img {
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  transition: transform 0.2s ease;
+}
+
+td img:hover {
+  transform: scale(2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  position: relative;
+}
+
 /* ================================
    📊 Responsive & Animated Charts
    ================================ */
@@ -193,10 +225,6 @@ tbody tr:hover {
   text-align: center;
 }
 
-.chart-box:last-child {
-  grid-column: span 2;
-}
-
 /* Chart Canvas Responsiveness */
 .chart-box canvas {
   width: 100% !important;
@@ -214,9 +242,6 @@ tbody tr:hover {
 @media (max-width: 1024px) {
   .charts-grid {
     grid-template-columns: 1fr;
-  }
-  .chart-box:last-child {
-    grid-column: auto;
   }
 }
 

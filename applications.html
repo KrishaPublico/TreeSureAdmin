@@ -53,20 +53,19 @@
       <div class="modal-content">
         <span class="close" id="closeModal">&times;</span>
         <h2>📅 Schedule Walk-in Appointment</h2>
-        
+
         <label>Purpose:</label>
         <input type="text" id="walkInPurpose" placeholder="e.g., Document Submission" />
-        
+
         <label>Appointment Date:</label>
         <input type="date" id="walkInDate" required />
-        
+
         <label>Appointment Time:</label>
         <input type="time" id="walkInTime" required />
-        
+
         <label>Remarks (optional):</label>
-        <textarea id="walkInAppointmentRemarks" rows="3"
-          placeholder="Additional notes..."></textarea>
-        
+        <textarea id="walkInAppointmentRemarks" rows="3" placeholder="Additional notes..."></textarea>
+
         <button id="saveAppointmentBtn" class="action-btn-main">Save Appointment</button>
       </div>
     </div>
@@ -131,8 +130,7 @@
         </select>
 
         <label>Your Comment:</label>
-        <textarea id="commentMessage" rows="4"
-          placeholder="Explain what needs to be corrected..."></textarea>
+        <textarea id="commentMessage" rows="4" placeholder="Explain what needs to be corrected..."></textarea>
 
         <button id="sendCommentBtn" class="action-btn-main">Send Comment</button>
       </div>
@@ -181,18 +179,19 @@
       </div>
     </div>
 
+
     <!-- ========== FILE PREVIEW MODAL ========== -->
     <div id="filePreviewModal" class="modal" style="display:none;">
-      <div class="modal-content" style="max-width:95%; max-height:95vh; width:1200px; overflow:auto;">
+      <div class="modal-content" style="max-width:90%; max-height:90vh;">
         <span class="close" id="closeFilePreview">&times;</span>
+        <h2 id="previewTitle">File Preview</h2>
         <div class="preview-header">
           <h2 id="previewTitle">File Preview</h2>
-          <a id="downloadFileBtn" class="action-btn-secondary" href="#" target="_blank" rel="noopener" download>
+          <a id="downloadFileBtn" class="action-btn-secondary" href="#" target="_blank" rel="noopener">
             <i class="fa fa-download"></i> Download
           </a>
         </div>
-        <div id="previewContainer" style="display:none;"></div>
-        <iframe id="previewFrame" style="width:100%; height:70vh; display:none;"></iframe>
+        <iframe id="previewFrame" style="width:100%; height:70vh; border:1px solid #ccc;"></iframe>
       </div>
     </div>
 
@@ -209,12 +208,11 @@
         <p id="claimCertificateType" style="font-weight:bold; margin:5px 0;"></p>
 
         <label>Message to Applicant:</label>
-        <textarea id="claimMessage" rows="4" 
+        <textarea id="claimMessage" rows="4"
           placeholder="Your certificate is now ready for pickup at the DENR office...">Your certificate is now ready for pickup at the DENR Municipal Office in Aparri. Please bring a valid ID and your application reference number.</textarea>
 
         <label>Additional Remarks (optional):</label>
-        <textarea id="claimRemarks" rows="3" 
-          placeholder="Office hours, special instructions, etc."></textarea>
+        <textarea id="claimRemarks" rows="3" placeholder="Office hours, special instructions, etc."></textarea>
 
         <button id="sendClaimNotificationBtn" class="action-btn-main">Send Notification</button>
       </div>
@@ -240,7 +238,7 @@
         <!-- Upload New Template -->
         <div id="uploadNewTemplateSection">
           <h3 style="border-bottom:2px solid #2d5016; padding-bottom:10px;">➕ Add New Template</h3>
-          
+
           <label>Document Type/Label:</label>
           <input type="text" id="templateDocumentType" placeholder="e.g., Land Title, Tax Declaration, etc." />
           <p style="color:#888; font-size:0.85em; margin-top:5px;">
@@ -251,7 +249,7 @@
           <input type="text" id="templateTitle" placeholder="e.g., Sample Land Title Format" />
 
           <label>Description (optional):</label>
-          <textarea id="templateDescription" rows="3" 
+          <textarea id="templateDescription" rows="3"
             placeholder="Brief description to help applicants understand what this template is for..."></textarea>
 
           <label>Upload Template File:</label>
@@ -300,14 +298,14 @@
           drop.addEventListener("click", e => {
             e.preventDefault(); // prevent link jump
             e.stopPropagation(); // prevent event bubbling
-            
+
             // Close other dropdowns first
             document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
               if (openDropdown !== drop.parentElement) {
                 openDropdown.classList.remove("open");
               }
             });
-            
+
             drop.parentElement.classList.toggle("open");
           });
         });
@@ -321,7 +319,7 @@
             subMenu.classList.toggle("open");
           });
         });
-        
+
         // Close dropdown when clicking outside
         document.addEventListener("click", e => {
           if (!e.target.closest(".dropdown")) {
@@ -344,16 +342,16 @@
         (function tryAttach(retries = 0) {
           if (window.attachSidebarListeners) {
             window.attachSidebarListeners();
-            
+
             // Check if we navigated here from dashboard with a selected app type
             const selectedType = localStorage.getItem("selectedApplicationType");
             const selectedTitle = localStorage.getItem("selectedApplicationTitle");
-            
+
             if (selectedType && selectedTitle) {
               // Clear the stored values
               localStorage.removeItem("selectedApplicationType");
               localStorage.removeItem("selectedApplicationTitle");
-              
+
               // Load the selected application type
               setTimeout(() => {
                 const appTypeTitle = document.getElementById("applicationTypeTitle");

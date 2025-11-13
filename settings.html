@@ -1,138 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Settings | TreeSure</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/sidebar.css">
-  <link rel="stylesheet" href="css/topbar.css">
-  <!-- Font Awesome Icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings</title>
+  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/topbar.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
+  <!-- Firebase SDKs FIRST -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+
+  <!-- Initialize Firebase AFTER SDK -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBca-tYDQIXxSzOAz2jph3Mse6rJ3Ag9is",
+      authDomain: "treesure-6496c.firebaseapp.com",
+      databaseURL: "https://treesure-6496c-default-rtdb.firebaseio.com",
+      projectId: "treesure-6496c",
+      storageBucket: "treesure-6496c.firebasestorage.app",
+      messagingSenderId: "324875915553",
+      appId: "1:324875915553:web:9c8b1136a2d04594bcae60",
+      measurementId: "G-G9V6QMHX1E"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
 </head>
-<body onload="checkLogin()">
+<body>
+  <!-- Sidebar and Topbar -->
+  <div id="sidebar-container"></div>
+  <div class="top-horizontal-bar"></div>
 
-    <div id="sidebar-container"></div>
-
-
-  <!-- Main Content -->
-  <div class="main-content">
-   
-        <div class="top-horizontal-bar"> </div>
-    <h1>⚙ Settings</h1>
+  <!-- Main Settings Container -->
+  <div class="settings-container">
+    <h2>Settings Options</h2>
     <ul class="settings-list">
-      <li>🔑 Change Password</li>
-      <li>👨‍💻 Manage Admin Accounts</li>
-      <li>⚡ System Preferences</li>
+      <li class="settings-item" id="changePasswordBtn">
+        <i class="fa fa-key"></i> Change Password
+      </li>
+      <li class="settings-item" id="manageAdminsBtn">
+        <i class="fa fa-user-shield"></i> Manage Admin Accounts
+      </li>
+      <li class="settings-item" id="profilePreferencesBtn">
+        <i class="fa fa-cogs"></i> Profile 
+      </li>
     </ul>
   </div>
 
+  <!-- Change Password Modal -->
+  <div class="modal" id="changePasswordModal">
+    <div class="modal-content">
+      <span class="close" data-close="changePasswordModal">&times;</span>
+      <h2>Change Password</h2>
+      <div class="form-row">
+        <label for="currentPassword">Current Password:</label>
+        <input type="password" id="currentPassword" placeholder="Enter current password" />
+      </div>
+      <div class="form-row">
+        <label for="newPassword">New Password:</label>
+        <input type="password" id="newPassword" placeholder="Enter new password" />
+      </div>
+      <div class="form-row">
+        <label for="confirmPassword">Confirm Password:</label>
+        <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+      </div>
+      <div id="passwordMessage" style="color:red; margin-top:10px;"></div>
+      <button id="savePasswordBtn" type="button">Save</button>
+    </div>
+  </div>
+
+  <!-- Message Modal -->
+  <div class="message-modal" id="messageModal">
+    <div class="message-content">
+      <span class="message-icon" id="messageIcon"></span>
+      <p id="messageText"></p>
+    </div>
+  </div>
+
+  <!-- Manage Admin Accounts Modal -->
+  <div class="modal" id="manageAdminsModal">
+    <div class="modal-content">
+      <span class="close" data-close="manageAdminsModal">&times;</span>
+      <h2>Manage Admin Accounts</h2>
+      <!-- Add Admin Form inside Manage Admins Modal -->
+      <div class="form-row">
+        <label for="newAdminEmail">Email:</label>
+        <input type="email" id="newAdminEmail" placeholder="Enter admin email" />
+      </div>
+      <div class="form-row">
+        <label for="newAdminPassword">Password:</label>
+        <input type="password" id="newAdminPassword" placeholder="Enter password" />
+      </div>
+      <button id="addAdminBtn">Add Admin</button>
+
+      <!-- List of admins -->
+      <ul id="adminList">
+        <!-- Admin accounts will be dynamically added here -->
+      </ul>
+    </div>
+  </div>
+
+<div class="modal" id="profilePreferencesModal">
+  <div class="modal-content">
+    <span class="close" data-close="profilePreferencesModal">&times;</span>
+    <div style="text-align:center; margin-bottom:1rem;">
+      <i class="fa fa-user-circle" style="font-size:5rem; color:#28a745;"></i>
+    </div>
+    <h2 style="text-align:center; margin-bottom:1rem;">Admin Profile</h2>
+    <div class="form-row">
+      <label>Email:</label>
+      <input type="email" id="adminEmail" disabled />
+    </div>
+    <div class="form-row">
+      <label>Password:</label>
+      <input type="password" value="********" disabled />
+    </div>
+  </div>
+</div>
 
 
-   <!-- Load Sidebar Dynamically -->
   <!-- Load Sidebar Dynamically -->
   <script>
     fetch("sidebar.html")
-  .then(res => res.text())
-  .then(html => {
-    document.getElementById("sidebar-container").innerHTML = html;
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("sidebar-container").innerHTML = html;
 
-    // Highlight the active page link
-    const current = window.location.pathname.split("/").pop();
-    document.querySelectorAll(".sidebar a").forEach(link => {
-      if (link.getAttribute("href") === current) {
-        link.classList.add("active");
-      }
-    });
+        // Highlight the active page
+        const current = window.location.pathname.split("/").pop();
+        document.querySelectorAll(".sidebar a").forEach(link => {
+          if (link.getAttribute("href") === current) link.classList.add("active");
+        });
 
-    // Logout handler
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", e => {
-        e.preventDefault();
-        localStorage.clear();
-        window.location.href = "login.html";
-      });
-    }
+        // Logout button
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", e => {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = "login.html";
+          });
+        }
 
-    // --------- ADD DROPDOWN FUNCTIONALITY ---------
-
-    // Main Applications dropdown
-    document.querySelectorAll(".dropdown-toggle").forEach(drop => {
-      drop.addEventListener("click", e => {
-        e.preventDefault(); // prevent link jump
-        e.stopPropagation(); // prevent event bubbling
+        // Dropdown toggle
+        document.querySelectorAll(".dropdown-toggle").forEach(drop => {
+          drop.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
+            
+            // Close other dropdowns first
+            document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
+              if (openDropdown !== drop.parentElement) {
+                openDropdown.classList.remove("open");
+              }
+            });
+            
+            drop.parentElement.classList.toggle("open");
+          });
+        });
+        document.querySelectorAll(".sub-toggle").forEach(sub => {
+          sub.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent event bubbling
+            sub.nextElementSibling.classList.toggle("open");
+          });
+        });
         
-        // Close other dropdowns first
-        document.querySelectorAll(".dropdown.open").forEach(openDropdown => {
-          if (openDropdown !== drop.parentElement) {
-            openDropdown.classList.remove("open");
+        // Close dropdown when clicking outside
+        document.addEventListener("click", e => {
+          if (!e.target.closest(".dropdown")) {
+            document.querySelectorAll(".dropdown.open").forEach(dropdown => {
+              dropdown.classList.remove("open");
+            });
           }
         });
-        
-        drop.parentElement.classList.toggle("open");
-      });
-    });
 
-    // Sub-dropdown (Cutting Permit)
-    document.querySelectorAll(".sub-toggle").forEach(sub => {
-      sub.addEventListener("click", e => {
-        e.preventDefault();
-        e.stopPropagation(); // prevent event bubbling
-        const subMenu = sub.nextElementSibling;
-        subMenu.classList.toggle("open");
-      });
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener("click", e => {
-      if (!e.target.closest(".dropdown")) {
-        document.querySelectorAll(".dropdown.open").forEach(dropdown => {
-          dropdown.classList.remove("open");
+        // ---------- APPLICATION TYPE BUTTONS ----------
+        const appButtons = [
+          { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
+          { id: "pltpBtn", type: "pltp", title: "PLTP Applications" },
+          { id: "spltpBtn", type: "spltp", title: "SPLTP Applications" },
+          { id: "permitCutBtn", type: "ptc", title: "Permit to Cut Applications" },
+          { id: "cttBtn", type: "ctt", title: "Transport Permit (CTT)" },
+          { id: "chainsawBtn", type: "chainsaw", title: "Chainsaw Registration" },
+        ];
+
+        appButtons.forEach(btn => {
+          const element = document.getElementById(btn.id);
+          if (element) {
+            element.addEventListener("click", () => {
+              localStorage.setItem("selectedApplicationType", btn.type);
+              localStorage.setItem("selectedApplicationTitle", btn.title);
+              window.location.href = "applications.html";
+            });
+          }
         });
-      }
-    });
-
-    // ---------- APPLICATION TYPE BUTTONS ----------
-    // When clicking application type buttons, navigate to applications.html
-    const appButtons = [
-      { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
-      { id: "pltpBtn", type: "pltp", title: "PLTP Applications" },
-      { id: "spltpBtn", type: "spltp", title: "SPLTP Applications" },
-      { id: "permitCutBtn", type: "ptc", title: "Permit to Cut Applications" },
-      { id: "cttBtn", type: "ctt", title: "Transport Permit (CTT)" },
-      { id: "chainsawBtn", type: "chainsaw", title: "Chainsaw Registration" },
-    ];
-
-    appButtons.forEach(btn => {
-      const element = document.getElementById(btn.id);
-      if (element) {
-        element.addEventListener("click", () => {
-          localStorage.setItem("selectedApplicationType", btn.type);
-          localStorage.setItem("selectedApplicationTitle", btn.title);
-          window.location.href = "applications.html";
-        });
-      }
-    });
-
-    // ---------------------------------------------
-  });
-
+      });
   </script>
-<!-- Load your Firebase script as a module -->
-  <script type="module">
-  import { checkLogin, logout } from "./js/script.js";
 
-    // Run login check on load
-    checkLogin();
-
-    // Hook up logout button
-    document.getElementById("logoutBtn").addEventListener("click", (e) => {
-      e.preventDefault();
-      logout();
-    });
-  </script>
-  
-  <script type="module" src="js/application-temp-fix.js"></script>
+  <!-- Your Settings JS -->
+  <script src="js/settings.js"></script>
 </body>
 </html>

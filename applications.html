@@ -40,6 +40,7 @@
         <button id="proceedBtn" class="action-btn-main" style="display:none;">Proceed to Tree Inventory</button>
         <button id="assignCuttingForesterBtn" class="action-btn-main" style="display:none;">Assign Forester for
           Cutting</button>
+        <button id="claimCertificateBtn" class="action-btn-main">Claim Certificate</button>
         <button id="commentBtn" class="action-btn-secondary">Comment</button>
       </div>
     </div>
@@ -49,11 +50,20 @@
       <div class="modal-content">
         <span class="close" id="closeModal">&times;</span>
         <h2>📅 Schedule Walk-in Appointment</h2>
+        
         <label>Purpose:</label>
         <input type="text" id="walkInPurpose" placeholder="e.g., Document Submission" />
+        
+        <label>Appointment Date:</label>
+        <input type="date" id="walkInDate" required />
+        
+        <label>Appointment Time:</label>
+        <input type="time" id="walkInTime" required />
+        
         <label>Remarks (optional):</label>
         <textarea id="walkInAppointmentRemarks" rows="3"
           placeholder="Additional notes..."></textarea>
+        
         <button id="saveAppointmentBtn" class="action-btn-main">Save Appointment</button>
       </div>
     </div>
@@ -170,15 +180,40 @@
 
     <!-- ========== FILE PREVIEW MODAL ========== -->
     <div id="filePreviewModal" class="modal" style="display:none;">
-      <div class="modal-content" style="max-width:90%; max-height:90vh;">
+      <div class="modal-content" style="max-width:95%; max-height:95vh; width:1200px; overflow:auto;">
         <span class="close" id="closeFilePreview">&times;</span>
         <div class="preview-header">
           <h2 id="previewTitle">File Preview</h2>
-          <a id="downloadFileBtn" class="action-btn-secondary" href="#" target="_blank" rel="noopener">
+          <a id="downloadFileBtn" class="action-btn-secondary" href="#" target="_blank" rel="noopener" download>
             <i class="fa fa-download"></i> Download
           </a>
         </div>
-        <iframe id="previewFrame" style="width:100%; height:70vh; border:1px solid #ccc;"></iframe>
+        <div id="previewContainer" style="display:none;"></div>
+        <iframe id="previewFrame" style="width:100%; height:70vh; display:none;"></iframe>
+      </div>
+    </div>
+
+    <!-- ========== CLAIM CERTIFICATE MODAL ========== -->
+    <div id="claimCertificateModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeClaimCertificateModal">&times;</span>
+        <h2>📜 Notify Certificate Ready for Claim</h2>
+
+        <label>Applicant Name:</label>
+        <input type="text" id="claimApplicantName" readonly />
+
+        <label>Certificate Type:</label>
+        <p id="claimCertificateType" style="font-weight:bold; margin:5px 0;"></p>
+
+        <label>Message to Applicant:</label>
+        <textarea id="claimMessage" rows="4" 
+          placeholder="Your certificate is now ready for pickup at the DENR office...">Your certificate is now ready for pickup at the DENR Municipal Office in Aparri. Please bring a valid ID and your application reference number.</textarea>
+
+        <label>Additional Remarks (optional):</label>
+        <textarea id="claimRemarks" rows="3" 
+          placeholder="Office hours, special instructions, etc."></textarea>
+
+        <button id="sendClaimNotificationBtn" class="action-btn-main">Send Notification</button>
       </div>
     </div>
 

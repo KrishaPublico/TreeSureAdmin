@@ -25,6 +25,8 @@ let cuttingApplicantName, cuttingPermitType, cuttingLocation, cuttingRemarks;
 let cuttingForesterMultiSelect, reviewCuttingBtn, cuttingBackToEditBtn, confirmCuttingBtn;
 let cuttingReviewApplicant, cuttingReviewPermitType, cuttingReviewLocation, cuttingReviewRemarks, cuttingReviewForesters;
 let commentBtn, commentModal, closeCommentModal, sendCommentBtn, commentDocumentSelect;
+let claimCertificateBtn, claimCertificateModal, closeClaimCertificateModal, sendClaimNotificationBtn;
+let claimApplicantName, claimCertificateType, claimMessage, claimRemarks;
 
 let currentOpenUserId = null;
 let currentApplicationType = null;
@@ -429,24 +431,113 @@ async function showApplicantFiles(
         const downloadBtn = document.getElementById("downloadFileBtn");
 
         if (!modal || !iframe || !titleEl || !downloadBtn) {
+          console.warn("Preview modal elements not found, opening in new tab");
           window.open(fileUrl, "_blank");
           return;
         }
 
         titleEl.textContent = `File Preview - ${docTitle}`;
         downloadBtn.href = fileUrl;
+        downloadBtn.download = fileName || "document";
 
+        // Determine file type from URL
         const fileExt = fileUrl.split("?")[0].split(".").pop()?.toLowerCase();
-        const isImage = ["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(fileExt);
+        const isImage = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"].includes(fileExt);
         const isPdf = fileExt === "pdf";
-        let viewerUrl = fileUrl;
+        const isDoc = ["doc", "docx"].includes(fileExt);
+        const isSpreadsheet = ["xls", "xlsx"].includes(fileExt);
+        const isPresentation = ["ppt", "pptx"].includes(fileExt);
 
-        if (!isImage && !isPdf) {
-          const encodedUrl = encodeURIComponent(fileUrl);
-          viewerUrl = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+        // Clear previous content
+        iframe.style.display = "none";
+        
+        // Create preview container if it doesn't exist
+        let previewContainer = document.getElementById("previewContainer");
+        if (!previewContainer) {
+          previewContainer = document.createElement("div");
+          previewContainer.id = "previewContainer";
+          previewContainer.style.cssText = "width:100%; height:70vh; overflow:auto; border:1px solid #ccc; background:#f5f5f5; display:flex; align-items:center; justify-content:center;";
+          iframe.parentNode.insertBefore(previewContainer, iframe);
+        }
+        previewContainer.innerHTML = "";
+        previewContainer.style.display = "flex";
+
+        try {
+          if (isImage) {
+            // Display image directly
+            const img = document.createElement("img");
+            img.src = fileUrl;
+            img.style.cssText = "max-width:100%; max-height:100%; object-fit:contain;";
+            img.onerror = () => {
+              previewContainer.innerHTML = `
+                <div style="text-align:center; padding:20px;">
+                  <p>❌ Unable to load image preview</p>
+                  <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open in New Tab</button>
+                </div>
+              `;
+            };
+            previewContainer.appendChild(img);
+          } else if (isPdf) {
+            // Use iframe for PDF with fallback
+            iframe.style.display = "block";
+            previewContainer.style.display = "none";
+            iframe.src = fileUrl;
+            
+            // Fallback if iframe fails
+            iframe.onerror = () => {
+              iframe.style.display = "none";
+              previewContainer.style.display = "flex";
+              previewContainer.innerHTML = `
+                <div style="text-align:center; padding:20px;">
+                  <p>⚠️ PDF preview not available in this browser</p>
+                  <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open PDF in New Tab</button>
+                </div>
+              `;
+            };
+          } else if (isDoc || isSpreadsheet || isPresentation) {
+            // Use Google Docs Viewer for Office documents
+            const encodedUrl = encodeURIComponent(fileUrl);
+            iframe.style.display = "block";
+            previewContainer.style.display = "none";
+            iframe.src = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+            
+            // Fallback if Google Viewer fails
+            setTimeout(() => {
+              iframe.onerror = () => {
+                iframe.style.display = "none";
+                previewContainer.style.display = "flex";
+                previewContainer.innerHTML = `
+                  <div style="text-align:center; padding:20px;">
+                    <p>⚠️ Document preview not available</p>
+                    <p>File type: ${fileExt.toUpperCase()}</p>
+                    <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open in New Tab</button>
+                    <button onclick="window.location.href='${fileUrl}'" class="action-btn-secondary" style="margin-left:10px;">Download File</button>
+                  </div>
+                `;
+              };
+            }, 100);
+          } else {
+            // Unsupported file type - show download option
+            previewContainer.innerHTML = `
+              <div style="text-align:center; padding:20px;">
+                <i class="fa fa-file" style="font-size:48px; color:#666; margin-bottom:15px;"></i>
+                <p>Preview not available for this file type</p>
+                <p style="color:#666;">File type: ${fileExt ? fileExt.toUpperCase() : "Unknown"}</p>
+                <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn" style="margin-top:15px;">Open in New Tab</button>
+                <button onclick="window.location.href='${fileUrl}'" class="action-btn-secondary" style="margin-left:10px;">Download File</button>
+              </div>
+            `;
+          }
+        } catch (error) {
+          console.error("Error loading preview:", error);
+          previewContainer.innerHTML = `
+            <div style="text-align:center; padding:20px;">
+              <p>❌ Error loading preview</p>
+              <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open in New Tab</button>
+            </div>
+          `;
         }
 
-        iframe.src = viewerUrl;
         modal.style.display = "flex";
       });
 
@@ -464,22 +555,28 @@ async function showApplicantFiles(
     const closeFilePreview = document.getElementById("closeFilePreview");
 
     if (closeFilePreview && !closeFilePreview.dataset.listenerAttached) {
-      closeFilePreview.addEventListener("click", () => {
+      const closePreviewModal = () => {
         filePreviewModal.style.display = "none";
         const iframe = document.getElementById("previewFrame");
-        if (iframe) iframe.src = "";
+        if (iframe) {
+          iframe.src = "";
+          iframe.style.display = "none";
+        }
+        const previewContainer = document.getElementById("previewContainer");
+        if (previewContainer) {
+          previewContainer.innerHTML = "";
+          previewContainer.style.display = "none";
+        }
         const downloadBtn = document.getElementById("downloadFileBtn");
         if (downloadBtn) downloadBtn.href = "#";
-      });
+      };
+
+      closeFilePreview.addEventListener("click", closePreviewModal);
       closeFilePreview.dataset.listenerAttached = "true";
 
       window.addEventListener("click", (e) => {
         if (e.target === filePreviewModal) {
-          filePreviewModal.style.display = "none";
-          const iframe = document.getElementById("previewFrame");
-          if (iframe) iframe.src = "";
-          const downloadBtn = document.getElementById("downloadFileBtn");
-          if (downloadBtn) downloadBtn.href = "#";
+          closePreviewModal();
         }
       });
     }
@@ -926,6 +1023,146 @@ window.addEventListener("click", (e) => {
 });
 }
 
+// ==================== CLAIM CERTIFICATE MODAL ====================
+function initClaimCertificateModal() {
+  claimCertificateBtn = document.getElementById("claimCertificateBtn");
+  claimCertificateModal = document.getElementById("claimCertificateModal");
+  closeClaimCertificateModal = document.getElementById("closeClaimCertificateModal");
+  sendClaimNotificationBtn = document.getElementById("sendClaimNotificationBtn");
+  claimApplicantName = document.getElementById("claimApplicantName");
+  claimCertificateType = document.getElementById("claimCertificateType");
+  claimMessage = document.getElementById("claimMessage");
+  claimRemarks = document.getElementById("claimRemarks");
+
+  if (!claimCertificateModal) return; // Elements not ready yet
+
+  // Close modal
+  if (closeClaimCertificateModal) {
+    closeClaimCertificateModal.addEventListener("click", () => {
+      claimCertificateModal.style.display = "none";
+    });
+  }
+
+  window.addEventListener("click", (e) => {
+    if (e.target === claimCertificateModal)
+      claimCertificateModal.style.display = "none";
+  });
+
+  // Open claim certificate modal
+  if (claimCertificateBtn) {
+    claimCertificateBtn.addEventListener("click", async () => {
+      if (!currentOpenUserId) return alert("⚠️ Select an applicant first.");
+      if (!currentApplicationType) return alert("⚠️ No application type selected.");
+
+      // Get applicant info
+      claimApplicantName.value = currentApplicantData?.applicantName || 
+                                  currentApplicantData?.name || 
+                                  "Unnamed Applicant";
+
+      // Set certificate type based on application type
+      const certificateTypeMap = {
+        ctpo: "Certificate of Tree Plantation Ownership (CTPO)",
+        pltp: "Private Land Timber Permit (PLTP)",
+        splt: "Special Land Timber Permit (SPLTP)",
+        ptc: "Permit to Cut",
+        ctt: "Certificate to Travel (CTT)",
+        chainsaw: "Chainsaw Registration Certificate",
+      };
+      
+      claimCertificateType.textContent =
+        certificateTypeMap[currentApplicationType] ||
+        currentApplicationType.toUpperCase() + " Certificate";
+
+      // Reset form
+      claimMessage.value = "Your certificate is now ready for pickup at the DENR Municipal Office in Aparri. Please bring a valid ID and your application reference number.";
+      claimRemarks.value = "";
+
+      claimCertificateModal.style.display = "block";
+    });
+  }
+
+  // Send claim notification
+  if (sendClaimNotificationBtn) {
+    sendClaimNotificationBtn.addEventListener("click", async () => {
+      const message = claimMessage.value.trim();
+      const remarks = claimRemarks.value.trim();
+
+      if (!message) {
+        alert("⚠️ Please enter a message for the applicant.");
+        return;
+      }
+
+      if (!currentOpenUserId || !currentApplicationType) {
+        alert("⚠️ No applicant or application type selected.");
+        return;
+      }
+
+      try {
+        // Get admin identity
+        const auth = getAuth();
+        const adminEmail = auth.currentUser?.email || "Admin";
+
+        console.log(
+          `📜 Sending claim notification for ${currentApplicationType.toUpperCase()} certificate`
+        );
+
+        // Create notification with certificateType as document ID
+        const notificationId = `${currentApplicationType}_${currentOpenUserId}`;
+        
+        await setDoc(doc(db, "notifications", notificationId), {
+          recipientId: currentOpenUserId,
+          recipientName: claimApplicantName.value,
+          applicationType: currentApplicationType,
+          certificateType: claimCertificateType.textContent,
+          notificationType: "certificate_ready",
+          title: "Certificate Ready for Claim",
+          message: message,
+          remarks: remarks || "",
+          sentBy: adminEmail,
+          status: "unread",
+          createdAt: serverTimestamp(),
+        });
+
+        // Update the applicant's document to mark certificate as ready
+        const applicantRef = doc(
+          db,
+          "applications",
+          currentApplicationType,
+          "applicants",
+          currentOpenUserId
+        );
+
+        await setDoc(
+          applicantRef,
+          {
+            certificateStatus: "ready_for_claim",
+            certificateReadyAt: serverTimestamp(),
+            notifiedBy: adminEmail,
+          },
+          { merge: true }
+        );
+
+        console.log(
+          `✅ Claim notification sent to applicant ${currentOpenUserId}`
+        );
+
+        alert(
+          `✅ Certificate claim notification sent successfully!\n\nApplicant: ${claimApplicantName.value}\nCertificate: ${claimCertificateType.textContent}`
+        );
+
+        claimCertificateModal.style.display = "none";
+
+        // Reset form
+        claimMessage.value = "Your certificate is now ready for pickup at the DENR Municipal Office in Aparri. Please bring a valid ID and your application reference number.";
+        claimRemarks.value = "";
+      } catch (err) {
+        console.error("❌ Error sending claim notification:", err);
+        alert("Failed to send notification: " + err.message);
+      }
+    });
+  }
+}
+
 // ------------------ INITIALIZE SCHEDULE MODAL ------------------
 function initScheduleModal() {
   scheduleContainer = document.getElementById("scheduleContainer");
@@ -938,6 +1175,24 @@ function initScheduleModal() {
 
   scheduleBtn?.addEventListener("click", () => {
     if (!currentOpenUserId) return alert("Select an applicant first.");
+    
+    // Set default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    
+    const walkInDateInput = document.getElementById("walkInDate");
+    const walkInTimeInput = document.getElementById("walkInTime");
+    
+    if (walkInDateInput) {
+      walkInDateInput.value = tomorrowStr;
+      walkInDateInput.min = today; // Prevent selecting past dates
+    }
+    if (walkInTimeInput) walkInTimeInput.value = "09:00"; // Default to 9:00 AM
+    
     scheduleModal.style.display = "block";
   });
   closeModal?.addEventListener(
@@ -964,11 +1219,35 @@ function initScheduleModal() {
 
       const walkInPurpose =
         document.getElementById("walkInPurpose")?.value.trim() || "";
+      const walkInDate =
+        document.getElementById("walkInDate")?.value || "";
+      const walkInTime =
+        document.getElementById("walkInTime")?.value || "";
       const walkInRemarks =
         document.getElementById("walkInAppointmentRemarks")?.value.trim() || "";
 
       if (!walkInPurpose) {
         alert("Please enter a purpose for the appointment.");
+        return;
+      }
+
+      if (!walkInDate) {
+        alert("Please select an appointment date.");
+        return;
+      }
+
+      if (!walkInTime) {
+        alert("Please select an appointment time.");
+        return;
+      }
+
+      // Combine date and time into a single timestamp
+      const appointmentDateTime = new Date(`${walkInDate}T${walkInTime}`);
+      
+      // Validate that the appointment is not in the past
+      const now = new Date();
+      if (appointmentDateTime < now) {
+        alert("⚠️ Appointment date and time cannot be in the past.");
         return;
       }
 
@@ -997,22 +1276,31 @@ function initScheduleModal() {
         adminId,
         applicantId: currentOpenUserId,
         applicantName,
-        appointmentType: "Walk-in Submission",
+        appointmentType: "Walk-in Appointment",
         purpose: walkInPurpose,
-        location: "Municipal DENR Office",
+        scheduledDate: appointmentDateTime.toISOString().split('T')[0], // Store date separately
+        scheduledTime: walkInTime, // Store time separately
+        scheduledAt: appointmentDateTime, // Store complete timestamp
+        location: "Aparri Municipal DENR Office",
         remarks: walkInRemarks,
-        status: "Pending",
-        foresterId: null,
+        status: "Scheduled",
         treeIds: [],
         createdAt: serverTimestamp(),
-        completedAt: null,
       });
 
-      alert(`✅ Walk-in appointment "${newDocId}" for ${applicantName} recorded successfully!`);
+      alert(
+        `✅ Walk-in appointment "${newDocId}" scheduled successfully!\n\n` +
+        `Applicant: ${applicantName}\n` +
+        `Date: ${appointmentDateTime.toLocaleDateString()}\n` +
+        `Time: ${appointmentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n` +
+        `Purpose: ${walkInPurpose}`
+      );
       scheduleModal.style.display = "none";
 
       // Clear modal inputs
       document.getElementById("walkInPurpose").value = "";
+      document.getElementById("walkInDate").value = "";
+      document.getElementById("walkInTime").value = "";
       document.getElementById("walkInAppointmentRemarks").value = "";
     } catch (err) {
       console.error("❌ Error saving walk-in appointment:", err);
@@ -1034,6 +1322,7 @@ function initElements() {
   initScheduleModal();
   initCommentModal();
   initCuttingForesterModal();
+  initClaimCertificateModal();
 
   // logoutBtn lives inside the dynamically-inserted sidebar
   const _logoutBtn = document.getElementById("logoutBtn");

@@ -9,14 +9,56 @@
   font-family: "Poppins", sans-serif;
 }
 
-
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
 
 header h1 {
   font-size: 24px;
   color: #2e7d32;
-  margin-bottom: 25px;
-   font-weight: 600;
+  margin-bottom: 0;
+  font-weight: 600;
 }
+
+/* Refresh Button */
+.refresh-btn {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-btn:hover {
+  background-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.refresh-btn:active {
+  transform: translateY(0);
+}
+
+.refresh-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-btn i {
+  font-size: 14px;
+}
+
 /* ---------- DASHBOARD CARDS ---------- */
 .cards {
   display: grid;

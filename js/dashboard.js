@@ -55,6 +55,15 @@ let map, markersLayer;
 let statusChartInstance, appointmentTypeChartInstance;
 let speciesChartInstance, foresterChartInstance, trendChartInstance;
 
+// Cache keys for sessionStorage
+const CACHE_KEYS = {
+  TREES: 'treesure_dashboard_trees',
+  APPLICATIONS: 'treesure_dashboard_applications',
+  APPOINTMENTS: 'treesure_dashboard_appointments',
+  USER_DIRECTORY: 'treesure_dashboard_users',
+  TIMESTAMP: 'treesure_dashboard_timestamp'
+};
+
 // 🔹 Approximate coordinates for municipalities in Cagayan
 const municipalityCoords = {
   aparri: [18.36, 121.64],
@@ -592,6 +601,231 @@ function drawAppointmentTypeChart() {
   });
 }
 
+// ---------- Load Data with Caching ----------
+async function loadData(forceRefresh = false) {
+  console.log('🔄 Loading dashboard data...');
+  
+  if (!forceRefresh) {
+    // Try to load from cache
+    const cachedTrees = sessionStorage.getItem(CACHE_KEYS.TREES);
+    const cachedApps = sessionStorage.getItem(CACHE_KEYS.APPLICATIONS);
+    const cachedAppts = sessionStorage.getItem(CACHE_KEYS.APPOINTMENTS);
+    const cachedUsers = sessionStorage.getItem(CACHE_KEYS.USER_DIRECTORY);
+    
+    if (cachedTrees && cachedApps && cachedAppts && cachedUsers) {
+      console.log("📦 Loading dashboard data from cache...");
+      
+      // Parse cached data
+      allTrees = JSON.parse(cachedTrees);
+      allApplications = JSON.parse(cachedApps);
+      allAppointments = JSON.parse(cachedAppts);
+      
+      // Restore userDirectory Map
+      const userArray = JSON.parse(cachedUsers);
+      userDirectory = new Map(userArray);
+      
+      // Parse date strings back to Date objects for trees
+      allTrees = allTrees.map(tree => ({
+        ...tree,
+        date_tagged: tree.date_tagged ? new Date(tree.date_tagged) : null
+      }));
+      
+      // Parse date strings back to Date objects for applications
+      allApplications = allApplications.map(app => ({
+        ...app,
+        createdAt: app.createdAt ? new Date(app.createdAt) : null
+      }));
+      
+      // Parse date strings back to Date objects for appointments
+      allAppointments = allAppointments.map(appt => ({
+        ...appt,
+        createdAt: appt.createdAt ? new Date(appt.createdAt) : null,
+        scheduledAt: appt.scheduledAt ? new Date(appt.scheduledAt) : null
+      }));
+      
+      // Render UI with cached data
+      renderDashboard();
+      return;
+    }
+  }
+  
+  // Load from Firebase
+  console.log("🔄 Fetching dashboard data from Firebase...");
+  await loadTreeStats();
+  
+  // Save to cache
+  sessionStorage.setItem(CACHE_KEYS.TREES, JSON.stringify(allTrees));
+  sessionStorage.setItem(CACHE_KEYS.APPLICATIONS, JSON.stringify(allApplications));
+  sessionStorage.setItem(CACHE_KEYS.APPOINTMENTS, JSON.stringify(allAppointments));
+  sessionStorage.setItem(CACHE_KEYS.USER_DIRECTORY, JSON.stringify([...userDirectory]));
+  sessionStorage.setItem(CACHE_KEYS.TIMESTAMP, new Date().toISOString());
+  
+  console.log("✅ Dashboard data cached successfully");
+}
+
+// ---------- Refresh Data ----------
+async function refreshData() {
+  console.log("🔄 Refreshing dashboard data...");
+  
+  // Clear cache
+  sessionStorage.removeItem(CACHE_KEYS.TREES);
+  sessionStorage.removeItem(CACHE_KEYS.APPLICATIONS);
+  sessionStorage.removeItem(CACHE_KEYS.APPOINTMENTS);
+  sessionStorage.removeItem(CACHE_KEYS.USER_DIRECTORY);
+  sessionStorage.removeItem(CACHE_KEYS.TIMESTAMP);
+  
+  // Reload data
+  await loadData(true);
+  
+  alert("Dashboard data refreshed successfully!");
+}
+
+// ---------- Render Dashboard (used when loading from cache) ----------
+function renderDashboard() {
+  // Calculate stats
+  let totalForestersCount = 0;
+  let totalApplicantsCount = 0;
+  
+  userDirectory.forEach((data) => {
+    const role = data.role ? data.role.toString().trim().toLowerCase() : "";
+    if (role === "forester") {
+      totalForestersCount += 1;
+    } else if (role === "applicant") {
+      totalApplicantsCount += 1;
+    }
+  });
+  
+  if (totalForester) totalForester.textContent = totalForestersCount.toString();
+  if (totalApplicants) totalApplicants.textContent = totalApplicantsCount.toString();
+  if (totalTaggedEl) totalTaggedEl.textContent = allTrees.length.toString();
+  
+  const now = new Date();
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const treesThisMonth = allTrees.filter((tree) => {
+    const taggedAt = parseTimestamp(tree.date_tagged || tree.taggedAt || tree.timestamp);
+    return taggedAt && taggedAt >= thisMonth;
+  });
+
+  const treesLastMonth = allTrees.filter((tree) => {
+    const taggedAt = parseTimestamp(tree.date_tagged || tree.taggedAt || tree.timestamp);
+    return taggedAt && taggedAt >= lastMonth && taggedAt < thisMonth;
+  });
+
+  if (treesTaggedThisMonthEl) treesTaggedThisMonthEl.textContent = treesThisMonth.length.toString();
+
+  const thisMonthTreesEl = document.getElementById("thisMonthTrees");
+  const lastMonthTreesEl = document.getElementById("lastMonthTrees");
+  const treeGrowthEl = document.getElementById("growthPercentage");
+
+  if (thisMonthTreesEl) thisMonthTreesEl.textContent = treesThisMonth.length.toString();
+  if (lastMonthTreesEl) lastMonthTreesEl.textContent = treesLastMonth.length.toString();
+  if (treeGrowthEl) {
+    const treeGrowth = treesLastMonth.length > 0
+      ? (((treesThisMonth.length - treesLastMonth.length) / treesLastMonth.length) * 100).toFixed(1)
+      : "0";
+    treeGrowthEl.textContent = `${treeGrowth}%`;
+  }
+
+  const appsThisMonth = allApplications.filter((app) => {
+    const createdAt = parseTimestamp(app.createdAt);
+    return createdAt && createdAt >= thisMonth;
+  });
+
+  const appsLastMonth = allApplications.filter((app) => {
+    const createdAt = parseTimestamp(app.createdAt);
+    return createdAt && createdAt >= lastMonth && createdAt < thisMonth;
+  });
+
+  if (applicationsThisMonthEl) applicationsThisMonthEl.textContent = appsThisMonth.length.toString();
+  if (applicationsLastMonthEl) applicationsLastMonthEl.textContent = appsLastMonth.length.toString();
+  if (applicationGrowthEl) {
+    const growthPercent = appsLastMonth.length > 0
+      ? (((appsThisMonth.length - appsLastMonth.length) / appsLastMonth.length) * 100).toFixed(1)
+      : "0";
+    applicationGrowthEl.textContent = `${growthPercent}%`;
+  }
+  
+  // Application type counts
+  const counts = { CTPO: 0, PLTP: 0, SPLT: 0, "Permit to Cut": 0, Chainsaw: 0 };
+  allApplications.forEach(app => {
+    if (counts[app.type] !== undefined) {
+      counts[app.type] += 1;
+    }
+  });
+  
+  if (ctpoCountEl) ctpoCountEl.textContent = counts.CTPO.toString();
+  if (pltpCountEl) pltpCountEl.textContent = counts.PLTP.toString();
+  if (spltCountEl) spltCountEl.textContent = counts.SPLT.toString();
+  if (ptcCountEl) ptcCountEl.textContent = counts["Permit to Cut"].toString();
+  if (chainsawCountEl) chainsawCountEl.textContent = counts.Chainsaw.toString();
+  if (totalApplicationsEl) totalApplicationsEl.textContent = allApplications.length.toString();
+
+  const pendingCount = allApplications.filter((app) => app.status.toLowerCase().includes("pending")).length;
+  const approvedCount = allApplications.filter((app) => app.status.toLowerCase().includes("approved")).length;
+
+  if (pendingApplicationsEl) pendingApplicationsEl.textContent = pendingCount.toString();
+  if (approvedApplicationsEl) approvedApplicationsEl.textContent = approvedCount.toString();
+
+  const activeAppts = allAppointments.filter((apt) => {
+    const status = apt.status ? apt.status.toLowerCase() : "";
+    return status === "active" || status === "scheduled";
+  });
+  const completedAppts = allAppointments.filter((apt) => {
+    const status = apt.status ? apt.status.toLowerCase() : "";
+    return status === "completed" || status === "done";
+  });
+
+  if (activeAppointmentsEl) activeAppointmentsEl.textContent = activeAppts.length.toString();
+  if (completedAppointmentsEl) completedAppointmentsEl.textContent = completedAppts.length.toString();
+
+  const avgTreesPerForester = totalForestersCount > 0
+    ? (allTrees.length / totalForestersCount).toFixed(1)
+    : "0";
+  if (avgTreesPerForesterEl) avgTreesPerForesterEl.textContent = avgTreesPerForester;
+  if (avgTreesEl) avgTreesEl.textContent = avgTreesPerForester;
+
+  const speciesMap = {};
+  const foresterMap = {};
+  const locationMap = {};
+  const trendMap = {};
+
+  allTrees.forEach((tree) => {
+    const species = tree.specie || tree.species || "Unknown";
+    speciesMap[species] = (speciesMap[species] || 0) + 1;
+
+    const foresterName = tree.foresterName || "Unknown Forester";
+    foresterMap[foresterName] = (foresterMap[foresterName] || 0) + 1;
+
+    const location = tree.municipality || tree.barangay || "Unspecified";
+    locationMap[location] = (locationMap[location] || 0) + 1;
+
+    const taggedAt = parseTimestamp(tree.date_tagged || tree.taggedAt || tree.timestamp);
+    if (taggedAt) {
+      const key = taggedAt.toISOString().split("T")[0];
+      trendMap[key] = (trendMap[key] || 0) + 1;
+    }
+  });
+
+  if (speciesCountEl) speciesCountEl.textContent = Object.keys(speciesMap).length.toString();
+
+  updateTopPerformers(foresterMap, speciesMap, locationMap);
+  drawSpeciesChart(Object.keys(speciesMap), Object.values(speciesMap));
+  drawForesterChart(Object.keys(foresterMap), Object.values(foresterMap));
+  drawStatusChart();
+  drawAppointmentTypeChart();
+
+  const sortedTrendKeys = Object.keys(trendMap).sort();
+  const sortedTrendValues = sortedTrendKeys.map((key) => trendMap[key]);
+  drawTrendChart(sortedTrendKeys, sortedTrendValues);
+
+  populateFilterDropdowns(Object.keys(speciesMap), Object.keys(foresterMap));
+  plotTreeLocations(allTrees);
+  renderLocationStats(locationMap);
+  updateRecentActivities();
+}
+
 // ---------- Load Stats ----------
 
 async function loadTreeStats() {
@@ -783,6 +1017,11 @@ async function loadTreeStats() {
 
 // ---------- Populate Filters ----------
 function populateFilterDropdowns(speciesList, foresterList) {
+  // Clear existing options (keep only "All" option)
+  speciesFilter.innerHTML = '<option value="all">All Species</option>';
+  foresterFilter.innerHTML = '<option value="all">All Foresters</option>';
+  locationFilter.innerHTML = '<option value="all">All Locations</option>';
+  
   speciesList.sort().forEach((sp) => {
     const opt = document.createElement("option");
     opt.value = sp;
@@ -804,9 +1043,24 @@ function populateFilterDropdowns(speciesList, foresterList) {
     locationFilter.appendChild(opt);
   });
 
-  speciesFilter.addEventListener("change", applyMapFilters);
-  foresterFilter.addEventListener("change", applyMapFilters);
-  locationFilter.addEventListener("change", applyMapFilters);
+  // Remove old event listeners by cloning and replacing
+  const newSpeciesFilter = speciesFilter.cloneNode(true);
+  const newForesterFilter = foresterFilter.cloneNode(true);
+  const newLocationFilter = locationFilter.cloneNode(true);
+  
+  speciesFilter.parentNode.replaceChild(newSpeciesFilter, speciesFilter);
+  foresterFilter.parentNode.replaceChild(newForesterFilter, foresterFilter);
+  locationFilter.parentNode.replaceChild(newLocationFilter, locationFilter);
+  
+  // Update references
+  const updatedSpeciesFilter = document.getElementById("speciesFilter");
+  const updatedForesterFilter = document.getElementById("foresterFilter");
+  const updatedLocationFilter = document.getElementById("locationFilter");
+  
+  // Add event listeners
+  updatedSpeciesFilter.addEventListener("change", applyMapFilters);
+  updatedForesterFilter.addEventListener("change", applyMapFilters);
+  updatedLocationFilter.addEventListener("change", applyMapFilters);
 }
 
 // ---------- Apply Map Filters ----------
@@ -1115,5 +1369,17 @@ function getTimeAgo(date) {
 // ---------- Initialize ----------
 document.addEventListener("DOMContentLoaded", async () => {
   initMap();
-  await loadTreeStats();
+  await loadData();
+  
+  // Add refresh button handler if it exists
+  const refreshBtn = document.getElementById("refreshDashboard");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing...';
+      await refreshData();
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = '<i class="fa-solid fa-refresh"></i> Refresh Data';
+    });
+  }
 });

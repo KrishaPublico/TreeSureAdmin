@@ -45,6 +45,34 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
+let pdfJsLoadingPromise = null;
+async function ensurePdfJs() {
+  if (window.pdfjsLib) return window.pdfjsLib;
+  if (!pdfJsLoadingPromise) {
+    pdfJsLoadingPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      script.async = true;
+      script.onload = () => {
+        try {
+          const workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+          resolve(window.pdfjsLib);
+        } catch (err) {
+          pdfJsLoadingPromise = null;
+          reject(err);
+        }
+      };
+      script.onerror = (err) => {
+        pdfJsLoadingPromise = null;
+        reject(err);
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return pdfJsLoadingPromise;
+}
+
 // Display application-level templates at the top of the files table
 async function displayApplicationTemplates(appType) {
   try {
@@ -526,114 +554,37 @@ async function showApplicantFiles(
         const titleEl = document.getElementById("previewTitle");
         const downloadBtn = document.getElementById("downloadFileBtn");
 
-        if (!modal || !iframe || !titleEl || !downloadBtn) {
-          console.warn("Preview modal elements not found, opening in new tab");
+        if (!modal || !iframe || !titleEl) {
           window.open(fileUrl, "_blank");
           return;
         }
 
         titleEl.textContent = `File Preview - ${docTitle}`;
-        downloadBtn.href = fileUrl;
-        downloadBtn.download = fileName || "document";
+        
+        // Hide download button to prevent downloads
+        if (downloadBtn) {
+          downloadBtn.style.display = "none";
+        }
 
-        // Determine file type from URL
         const fileExt = fileUrl.split("?")[0].split(".").pop()?.toLowerCase();
         const isImage = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"].includes(fileExt);
         const isPdf = fileExt === "pdf";
-        const isDoc = ["doc", "docx"].includes(fileExt);
-        const isSpreadsheet = ["xls", "xlsx"].includes(fileExt);
-        const isPresentation = ["ppt", "pptx"].includes(fileExt);
+        let viewerUrl = fileUrl;
 
-        // Clear previous content
-        iframe.style.display = "none";
-        
-        // Create preview container if it doesn't exist
-        let previewContainer = document.getElementById("previewContainer");
-        if (!previewContainer) {
-          previewContainer = document.createElement("div");
-          previewContainer.id = "previewContainer";
-          previewContainer.style.cssText = "width:100%; height:70vh; overflow:auto; border:1px solid #ccc; background:#f5f5f5; display:flex; align-items:center; justify-content:center;";
-          iframe.parentNode.insertBefore(previewContainer, iframe);
-        }
-        previewContainer.innerHTML = "";
-        previewContainer.style.display = "flex";
-
-        try {
-          if (isImage) {
-            // Display image directly
-            const img = document.createElement("img");
-            img.src = fileUrl;
-            img.style.cssText = "max-width:100%; max-height:100%; object-fit:contain;";
-            img.onerror = () => {
-              previewContainer.innerHTML = `
-                <div style="text-align:center; padding:20px;">
-                  <p>❌ Unable to load image preview</p>
-                  <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open in New Tab</button>
-                </div>
-              `;
-            };
-            previewContainer.appendChild(img);
-          } else if (isPdf) {
-            // Use iframe for PDF with fallback
-            iframe.style.display = "block";
-            previewContainer.style.display = "none";
-            iframe.src = fileUrl;
-            
-            // Fallback if iframe fails
-            iframe.onerror = () => {
-              iframe.style.display = "none";
-              previewContainer.style.display = "flex";
-              previewContainer.innerHTML = `
-                <div style="text-align:center; padding:20px;">
-                  <p>⚠️ PDF preview not available in this browser</p>
-                  <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open PDF in New Tab</button>
-                </div>
-              `;
-            };
-          } else if (isDoc || isSpreadsheet || isPresentation) {
-            // Use Google Docs Viewer for Office documents
-            const encodedUrl = encodeURIComponent(fileUrl);
-            iframe.style.display = "block";
-            previewContainer.style.display = "none";
-            iframe.src = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
-            
-            // Fallback if Google Viewer fails
-            setTimeout(() => {
-              iframe.onerror = () => {
-                iframe.style.display = "none";
-                previewContainer.style.display = "flex";
-                previewContainer.innerHTML = `
-                  <div style="text-align:center; padding:20px;">
-                    <p>⚠️ Document preview not available</p>
-                    <p>File type: ${fileExt.toUpperCase()}</p>
-                    <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open in New Tab</button>
-                    <button onclick="window.location.href='${fileUrl}'" class="action-btn-secondary" style="margin-left:10px;">Download File</button>
-                  </div>
-                `;
-              };
-            }, 100);
-          } else {
-            // Unsupported file type - show download option
-            previewContainer.innerHTML = `
-              <div style="text-align:center; padding:20px;">
-                <i class="fa fa-file" style="font-size:48px; color:#666; margin-bottom:15px;"></i>
-                <p>Preview not available for this file type</p>
-                <p style="color:#666;">File type: ${fileExt ? fileExt.toUpperCase() : "Unknown"}</p>
-                <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn" style="margin-top:15px;">Open in New Tab</button>
-                <button onclick="window.location.href='${fileUrl}'" class="action-btn-secondary" style="margin-left:10px;">Download File</button>
-              </div>
-            `;
-          }
-        } catch (error) {
-          console.error("Error loading preview:", error);
-          previewContainer.innerHTML = `
-            <div style="text-align:center; padding:20px;">
-              <p>❌ Error loading preview</p>
-              <button onclick="window.open('${fileUrl}', '_blank')" class="action-btn">Open in New Tab</button>
-            </div>
-          `;
+        if (isImage) {
+          // Images can be displayed directly
+          viewerUrl = fileUrl;
+        } else if (isPdf) {
+          // Use Google Docs Viewer for PDFs to avoid download
+          const encodedUrl = encodeURIComponent(fileUrl);
+          viewerUrl = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+        } else {
+          // Use Google Docs Viewer for all other document types
+          const encodedUrl = encodeURIComponent(fileUrl);
+          viewerUrl = `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
         }
 
+        iframe.src = viewerUrl;
         modal.style.display = "flex";
       });
 
@@ -654,17 +605,12 @@ async function showApplicantFiles(
       const closePreviewModal = () => {
         filePreviewModal.style.display = "none";
         const iframe = document.getElementById("previewFrame");
-        if (iframe) {
-          iframe.src = "";
-          iframe.style.display = "none";
-        }
-        const previewContainer = document.getElementById("previewContainer");
-        if (previewContainer) {
-          previewContainer.innerHTML = "";
-          previewContainer.style.display = "none";
-        }
+        if (iframe) iframe.src = "";
         const downloadBtn = document.getElementById("downloadFileBtn");
-        if (downloadBtn) downloadBtn.href = "#";
+        if (downloadBtn) {
+          downloadBtn.href = "#";
+          downloadBtn.style.display = "none";
+        }
       };
 
       closeFilePreview.addEventListener("click", closePreviewModal);
@@ -672,7 +618,14 @@ async function showApplicantFiles(
 
       window.addEventListener("click", (e) => {
         if (e.target === filePreviewModal) {
-          closePreviewModal();
+          filePreviewModal.style.display = "none";
+          const iframe = document.getElementById("previewFrame");
+          if (iframe) iframe.src = "";
+          const downloadBtn = document.getElementById("downloadFileBtn");
+          if (downloadBtn) {
+            downloadBtn.href = "#";
+            downloadBtn.style.display = "none";
+          }
         }
       });
     }

@@ -18,7 +18,10 @@
     <div class="top-horizontal-bar"> </div>
     <h1>🗂 Applications</h1>
 
-    <h2 id="applicationTypeTitle" style="text-align:center; display:none;"></h2>
+    <div id="applicationTypeHeader" style="display:none; text-align:center; margin-bottom:20px;">
+      <h2 id="applicationTypeTitle" style="display:inline-block; margin-right:20px;"></h2>
+      <button id="manageTemplatesBtn" class="action-btn-secondary">📋 Manage Templates</button>
+    </div>
     <div id="applicantsContainer" class="applicant-list" style="display:none;"></div>
 
     <div id="filesSection" style="display:none;">
@@ -214,6 +217,51 @@
           placeholder="Office hours, special instructions, etc."></textarea>
 
         <button id="sendClaimNotificationBtn" class="action-btn-main">Send Notification</button>
+      </div>
+    </div>
+
+    <!-- ========== TEMPLATE UPLOAD MODAL ========== -->
+    <div id="templateModal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:800px;">
+        <span class="close" id="closeTemplateModal">&times;</span>
+        <h2>� Manage Document Templates</h2>
+        <p style="color:#666; font-size:0.9em; margin-bottom:20px;">
+          Upload templates that all applicants can download before submitting their documents.
+        </p>
+
+        <!-- Existing Templates List -->
+        <div id="existingTemplatesSection" style="margin-bottom:30px;">
+          <h3 style="border-bottom:2px solid #2d5016; padding-bottom:10px;">📄 Current Templates</h3>
+          <div id="existingTemplatesList" style="max-height:300px; overflow-y:auto;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Upload New Template -->
+        <div id="uploadNewTemplateSection">
+          <h3 style="border-bottom:2px solid #2d5016; padding-bottom:10px;">➕ Add New Template</h3>
+          
+          <label>Document Type/Label:</label>
+          <input type="text" id="templateDocumentType" placeholder="e.g., Land Title, Tax Declaration, etc." />
+          <p style="color:#888; font-size:0.85em; margin-top:5px;">
+            This will be the name applicants see for this required document.
+          </p>
+
+          <label>Template Title:</label>
+          <input type="text" id="templateTitle" placeholder="e.g., Sample Land Title Format" />
+
+          <label>Description (optional):</label>
+          <textarea id="templateDescription" rows="3" 
+            placeholder="Brief description to help applicants understand what this template is for..."></textarea>
+
+          <label>Upload Template File:</label>
+          <input type="file" id="templateFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+          <p style="color:#888; font-size:0.85em; margin-top:5px;">
+            Supported formats: PDF, Word, Excel, Images (JPG, PNG)
+          </p>
+
+          <button id="uploadTemplateFileBtn" class="action-btn-main">Upload Template</button>
+        </div>
       </div>
     </div>
 

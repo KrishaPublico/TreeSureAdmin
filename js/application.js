@@ -6,6 +6,7 @@ import {
   addDoc,
   doc,
   setDoc,
+  deleteDoc,
   serverTimestamp,
   query,
   where,
@@ -17,7 +18,7 @@ import { setCurrentApplicant } from "./treeInventory.js";
 checkLogin();
 
 // ------------------ DOM ELEMENTS (Lazy-loaded) ------------------
-let applicantsContainer, filesSection, filesBody, applicantTitle, applicationTypeTitle;
+let applicantsContainer, filesSection, filesBody, applicantTitle, applicationTypeTitle, applicationTypeHeader;
 let scheduleContainer, scheduleBtn, scheduleModal, closeModal, saveAppointmentBtn;
 let assignCuttingForesterBtn, proceedBtn;
 let cuttingForesterModal, closeCuttingForesterModal, cuttingFormStep, cuttingReviewStep;
@@ -27,6 +28,8 @@ let cuttingReviewApplicant, cuttingReviewPermitType, cuttingReviewLocation, cutt
 let commentBtn, commentModal, closeCommentModal, sendCommentBtn, commentDocumentSelect;
 let claimCertificateBtn, claimCertificateModal, closeClaimCertificateModal, sendClaimNotificationBtn;
 let claimApplicantName, claimCertificateType, claimMessage, claimRemarks;
+let manageTemplatesBtn, templateModal, closeTemplateModal, uploadTemplateFileBtn, templateFileInput;
+let templateDocumentType, templateTitle, templateDescription, existingTemplatesList;
 
 let currentOpenUserId = null;
 let currentApplicationType = null;
@@ -40,6 +43,91 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+// Display application-level templates at the top of the files table
+async function displayApplicationTemplates(appType) {
+  try {
+    console.log("🔍 Fetching templates for application type:", appType);
+    
+    const templatesRef = collection(db, "applications", appType, "templates");
+    const templatesSnap = await getDocs(templatesRef);
+    
+    if (templatesSnap.empty) {
+      console.log("No templates found for", appType);
+      return;
+    }
+
+    console.log(`📋 Found ${templatesSnap.size} template(s) for ${appType}`);
+
+    // Add a header row for templates
+    const headerRow = document.createElement("tr");
+    headerRow.style.backgroundColor = "#f0f8e8";
+    headerRow.innerHTML = `
+      <td colspan="4" style="font-weight:bold; color:#2d5016; padding:10px; text-align:center;">
+        📋 Available Templates (Download before uploading)
+      </td>
+    `;
+    filesBody.appendChild(headerRow);
+
+    // Display each template
+    for (const templateDoc of templatesSnap.docs) {
+      const templateData = templateDoc.data();
+      const templateId = templateDoc.id;
+      
+      const documentType = templateData.documentType || templateId;
+      const title = templateData.title || "Template";
+      const description = templateData.description || "";
+      const fileName = templateData.fileName || "Unknown";
+      const url = templateData.url || "";
+      
+      if (!url || url.trim() === "") {
+        console.log(`⏭️ Skipping template "${templateId}" - no URL`);
+        continue;
+      }
+
+      const tr = document.createElement("tr");
+      tr.style.backgroundColor = "#fafff5";
+      tr.innerHTML = `
+        <td>
+          <strong>📄 ${escapeHtml(documentType)}</strong><br/>
+          <small style="color:#666;">${escapeHtml(title)}</small>
+          ${description ? `<br/><small style="color:#888; font-style:italic;">${escapeHtml(description)}</small>` : ''}
+        </td>
+        <td><span style="color:#2d5016;">📥 ${escapeHtml(fileName)}</span></td>
+        <td><span style="color:#666;">Template</span></td>
+        <td>
+          <button class="action-btn-secondary template-download-btn" data-url="${escapeHtml(url)}" style="background:#2d5016; color:white;">
+            📥 Download Template
+          </button>
+        </td>
+      `;
+
+      // Add download handler
+      tr.querySelector(".template-download-btn").addEventListener("click", () => {
+        const templateUrl = url;
+        if (templateUrl && templateUrl.trim() !== "") {
+          window.open(templateUrl, "_blank");
+        } else {
+          alert("Template URL not available.");
+        }
+      });
+
+      filesBody.appendChild(tr);
+    }
+
+    // Add a separator row
+    const separatorRow = document.createElement("tr");
+    separatorRow.innerHTML = `
+      <td colspan="4" style="border-top:2px solid #2d5016; padding:10px; text-align:center; font-weight:bold; color:#2d5016;">
+        📤 Uploaded Documents
+      </td>
+    `;
+    filesBody.appendChild(separatorRow);
+
+  } catch (err) {
+    console.error("❌ Error loading application templates:", err);
+  }
 }
 
 // Load foresters for assignment
@@ -252,7 +340,8 @@ function renderDashboardStats(stats) {
 
 // ------------------ LOAD APPLICANTS ------------------
 async function loadApplicants(type = "ctpo") {
-  applicationTypeTitle.style.display = "block";
+  applicationTypeHeader.style.display = "block";
+  applicationTypeTitle.style.display = "inline-block";
   applicantsContainer.style.display = "flex";
   applicantsContainer.style.flexWrap = "wrap";
   applicantsContainer.style.justifyContent = "flex-start";
@@ -362,23 +451,27 @@ async function showApplicantFiles(
       `applications/${type}/applicants/${userId}`
     );
     
-    // Fetch uploads from the subcollection (matching reports.js approach)
+    filesBody.innerHTML = "";
+
+    // First, display available templates for this application type
+    await displayApplicationTemplates(type);
+    
+    // Then fetch and display uploaded files from the subcollection
     const uploadsRef = collection(db, `applications/${type}/applicants/${userId}/uploads`);
     const uploadsSnap = await getDocs(uploadsRef);
     
-    filesBody.innerHTML = "";
-
     if (uploadsSnap.empty) {
       console.warn("⚠️ No uploads found in subcollection");
-      filesBody.innerHTML =
-        "<tr><td colspan='5' style='text-align:center'>No files have been uploaded yet.</td></tr>";
+      const noFilesRow = document.createElement("tr");
+      noFilesRow.innerHTML = "<td colspan='4' style='text-align:center; color:#888;'>No files have been uploaded yet.</td>";
+      filesBody.appendChild(noFilesRow);
       return;
     }
 
     console.log(`📤 Found ${uploadsSnap.size} upload document(s) in subcollection`);
 
     // Display each uploaded file as a table row
-    uploadsSnap.forEach((uploadDoc) => {
+    for (const uploadDoc of uploadsSnap.docs) {
       const docData = uploadDoc.data();
       const docId = uploadDoc.id;
       
@@ -391,7 +484,7 @@ async function showApplicantFiles(
       // Skip if no URL (placeholder)
       if (!url || url.trim() === "") {
         console.log(`⏭️ Skipping "${docId}" - no URL`);
-        return;
+        continue;
       }
       
       // Handle both Firestore Timestamp and string dates
@@ -412,9 +505,12 @@ async function showApplicantFiles(
         <td>${escapeHtml(title)} ${hasComment ? '💬' : ''} ${reuploadAllowed ? '🔄' : ''}</td>
         <td>${escapeHtml(fileName)}</td>
         <td>${escapeHtml(uploadedAt)}</td>
-        <td><button class="action-btn view-btn" data-url="${escapeHtml(url)}" data-docid="${escapeHtml(docId)}" data-title="${escapeHtml(title)}">View</button></td>
+        <td>
+          <button class="action-btn view-btn" data-url="${escapeHtml(url)}" data-docid="${escapeHtml(docId)}" data-title="${escapeHtml(title)}">View</button>
+        </td>
       `;
 
+      // View button handler
       tr.querySelector(".view-btn").addEventListener("click", async () => {
         const btn = tr.querySelector(".view-btn");
         const fileUrl = btn.dataset.url;
@@ -542,7 +638,7 @@ async function showApplicantFiles(
       });
 
       filesBody.appendChild(tr);
-    });
+    }
 
     // Check if we actually added any rows
     if (filesBody.children.length === 0) {
@@ -1163,6 +1259,240 @@ function initClaimCertificateModal() {
   }
 }
 
+// ==================== TEMPLATE UPLOAD MODAL ====================
+function initTemplateModal() {
+  manageTemplatesBtn = document.getElementById("manageTemplatesBtn");
+  templateModal = document.getElementById("templateModal");
+  closeTemplateModal = document.getElementById("closeTemplateModal");
+  uploadTemplateFileBtn = document.getElementById("uploadTemplateFileBtn");
+  templateFileInput = document.getElementById("templateFileInput");
+  templateDocumentType = document.getElementById("templateDocumentType");
+  templateTitle = document.getElementById("templateTitle");
+  templateDescription = document.getElementById("templateDescription");
+  existingTemplatesList = document.getElementById("existingTemplatesList");
+
+  if (!templateModal) return; // Elements not ready yet
+
+  // Close modal
+  if (closeTemplateModal) {
+    closeTemplateModal.addEventListener("click", () => {
+      templateModal.style.display = "none";
+    });
+  }
+
+  window.addEventListener("click", (e) => {
+    if (e.target === templateModal)
+      templateModal.style.display = "none";
+  });
+
+  // Open manage templates modal
+  if (manageTemplatesBtn) {
+    manageTemplatesBtn.addEventListener("click", async () => {
+      if (!currentApplicationType) return alert("⚠️ No application type selected.");
+
+      // Load existing templates
+      await loadExistingTemplates(currentApplicationType);
+
+      // Reset upload form
+      templateDocumentType.value = "";
+      templateTitle.value = "";
+      templateDescription.value = "";
+      templateFileInput.value = "";
+
+      templateModal.style.display = "block";
+    });
+  }
+
+  // Upload template file
+  if (uploadTemplateFileBtn) {
+    uploadTemplateFileBtn.addEventListener("click", async () => {
+      const documentType = templateDocumentType.value.trim();
+      const title = templateTitle.value.trim();
+      const description = templateDescription.value.trim();
+      const file = templateFileInput.files[0];
+
+      if (!documentType) {
+        alert("⚠️ Please enter a document type/label.");
+        return;
+      }
+
+      if (!file) {
+        alert("⚠️ Please select a template file to upload.");
+        return;
+      }
+
+      if (!title) {
+        alert("⚠️ Please enter a title for the template.");
+        return;
+      }
+
+      try {
+        // Import Firebase Storage functions
+        const { getStorage, ref: storageRef, uploadBytes, getDownloadURL } = await import(
+          "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"
+        );
+
+        const storage = getStorage();
+        
+        // Create a reference for the template file
+        const templatePath = `applications/${currentApplicationType}/templates/${documentType}/${file.name}`;
+        const fileRef = storageRef(storage, templatePath);
+
+        console.log(`📤 Uploading template to: ${templatePath}`);
+
+        // Upload the file
+        const uploadResult = await uploadBytes(fileRef, file);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
+
+        console.log(`✅ Template uploaded successfully: ${downloadURL}`);
+
+        // Save template metadata to Firestore
+        // Use documentType as the document ID for easy management
+        const templateDocRef = doc(
+          db,
+          "applications",
+          currentApplicationType,
+          "templates",
+          documentType
+        );
+
+        await setDoc(templateDocRef, {
+          documentType: documentType,
+          title: title,
+          description: description,
+          fileName: file.name,
+          url: downloadURL,
+          uploadedAt: serverTimestamp(),
+          uploadedBy: getAuth().currentUser?.email || "Admin",
+        });
+
+        console.log(`✅ Template metadata saved to Firestore`);
+
+        alert(
+          `✅ Template uploaded successfully!\n\nDocument Type: ${documentType}\nFile: ${file.name}\n\nAll applicants can now download this template.`
+        );
+
+        // Reload existing templates
+        await loadExistingTemplates(currentApplicationType);
+
+        // Reset form
+        templateDocumentType.value = "";
+        templateTitle.value = "";
+        templateDescription.value = "";
+        templateFileInput.value = "";
+      } catch (err) {
+        console.error("❌ Error uploading template:", err);
+        alert("Failed to upload template: " + err.message);
+      }
+    });
+  }
+}
+
+// Load and display existing templates for the current application type
+async function loadExistingTemplates(appType) {
+  existingTemplatesList.innerHTML = "<p style='text-align:center; color:#888;'>Loading templates...</p>";
+
+  try {
+    const templatesRef = collection(db, "applications", appType, "templates");
+    const templatesSnap = await getDocs(templatesRef);
+
+    if (templatesSnap.empty) {
+      existingTemplatesList.innerHTML = `
+        <p style='text-align:center; color:#888; padding:20px;'>
+          No templates uploaded yet for ${appType.toUpperCase()} applications.
+        </p>
+      `;
+      return;
+    }
+
+    existingTemplatesList.innerHTML = "";
+
+    for (const templateDoc of templatesSnap.docs) {
+      const templateData = templateDoc.data();
+      const templateId = templateDoc.id;
+
+      const documentType = templateData.documentType || templateId;
+      const title = templateData.title || "Template";
+      const description = templateData.description || "";
+      const fileName = templateData.fileName || "Unknown";
+      const url = templateData.url || "";
+      const uploadedBy = templateData.uploadedBy || "Unknown";
+      
+      let uploadedAt = "Unknown";
+      if (templateData.uploadedAt?.toDate) {
+        uploadedAt = templateData.uploadedAt.toDate().toLocaleString();
+      }
+
+      const templateCard = document.createElement("div");
+      templateCard.style.cssText = "border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:5px; background:#f9f9f9;";
+      templateCard.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:start;">
+          <div style="flex:1;">
+            <h4 style="margin:0 0 5px 0; color:#2d5016;">📄 ${escapeHtml(documentType)}</h4>
+            <p style="margin:5px 0; font-weight:bold;">${escapeHtml(title)}</p>
+            ${description ? `<p style="margin:5px 0; color:#666; font-size:0.9em;">${escapeHtml(description)}</p>` : ''}
+            <p style="margin:5px 0; font-size:0.85em; color:#888;">
+              File: ${escapeHtml(fileName)}<br/>
+              Uploaded: ${escapeHtml(uploadedAt)}<br/>
+              By: ${escapeHtml(uploadedBy)}
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-direction:column;">
+            <button class="action-btn-secondary view-template-btn" data-url="${escapeHtml(url)}" style="white-space:nowrap;">
+              👁️ View
+            </button>
+            <button class="action-btn-secondary delete-template-btn" data-id="${escapeHtml(templateId)}" style="white-space:nowrap; background:#d32f2f; color:white;">
+              🗑️ Delete
+            </button>
+          </div>
+        </div>
+      `;
+
+      // View template button
+      templateCard.querySelector(".view-template-btn").addEventListener("click", () => {
+        if (url && url.trim() !== "") {
+          window.open(url, "_blank");
+        } else {
+          alert("Template URL not available.");
+        }
+      });
+
+      // Delete template button
+      templateCard.querySelector(".delete-template-btn").addEventListener("click", async () => {
+        if (!confirm(`Are you sure you want to delete the template for "${documentType}"?\n\nThis action cannot be undone.`)) {
+          return;
+        }
+
+        try {
+          // Delete from Firestore
+          const templateDocRef = doc(db, "applications", appType, "templates", templateId);
+          await deleteDoc(templateDocRef);
+
+          // Note: We're not deleting from Storage to avoid breaking links
+          // Storage files can be cleaned up manually if needed
+
+          alert(`✅ Template "${documentType}" deleted successfully.`);
+
+          // Reload templates list
+          await loadExistingTemplates(appType);
+        } catch (err) {
+          console.error("❌ Error deleting template:", err);
+          alert("Failed to delete template: " + err.message);
+        }
+      });
+
+      existingTemplatesList.appendChild(templateCard);
+    }
+  } catch (err) {
+    console.error("❌ Error loading existing templates:", err);
+    existingTemplatesList.innerHTML = `
+      <p style='text-align:center; color:#d32f2f; padding:20px;'>
+        Error loading templates: ${err.message}
+      </p>
+    `;
+  }
+}
+
 // ------------------ INITIALIZE SCHEDULE MODAL ------------------
 function initScheduleModal() {
   scheduleContainer = document.getElementById("scheduleContainer");
@@ -1317,12 +1647,14 @@ function initElements() {
   filesBody = document.getElementById("filesBody");
   applicantTitle = document.getElementById("applicantTitle");
   applicationTypeTitle = document.getElementById("applicationTypeTitle");
+  applicationTypeHeader = document.getElementById("applicationTypeHeader");
 
   // Initialize modal systems
   initScheduleModal();
   initCommentModal();
   initCuttingForesterModal();
   initClaimCertificateModal();
+  initTemplateModal();
 
   // logoutBtn lives inside the dynamically-inserted sidebar
   const _logoutBtn = document.getElementById("logoutBtn");

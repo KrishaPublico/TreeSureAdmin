@@ -10,15 +10,17 @@ import {
   serverTimestamp,
   query,
   where,
+  orderBy,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { setCurrentApplicant } from "./treeInventory.js";
+import { setCurrentApplicant, setCurrentApplication, setAppointmentMode } from "./treeInventory.js";
 
 // ------------------ INITIALIZATION ------------------
 checkLogin();
 
 // ------------------ DOM ELEMENTS (Lazy-loaded) ------------------
 let applicantsContainer, filesSection, filesBody, applicantTitle, applicationTypeTitle, applicationTypeHeader;
+let submissionSelector, submissionDropdown;
 let scheduleContainer, scheduleBtn, scheduleModal, closeModal, saveAppointmentBtn;
 let assignCuttingForesterBtn, proceedBtn;
 let cuttingForesterModal, closeCuttingForesterModal, cuttingFormStep, cuttingReviewStep;
@@ -34,6 +36,8 @@ let templateDocumentType, templateTitle, templateDescription, existingTemplatesL
 let currentOpenUserId = null;
 let currentApplicationType = null;
 let currentApplicantData = null;
+let currentSubmissionId = null;
+let availableSubmissions = [];
 
 // ------------------ HELPER ------------------
 function escapeHtml(str) {
@@ -73,7 +77,130 @@ async function ensurePdfJs() {
   return pdfJsLoadingPromise;
 }
 
-// Display application-level templates at the top of the files table
+// Display templates at application type level (before applicants list)
+async function displayApplicationTypeTemplates(appType) {
+  try {
+    console.log("🔍 Fetching templates for application type:", appType);
+    
+    // Remove existing template section if any
+    let templateSection = document.getElementById("applicationTemplatesSection");
+    if (templateSection) {
+      templateSection.remove();
+    }
+    
+    const templatesRef = collection(db, "applications", appType, "templates");
+    const templatesSnap = await getDocs(templatesRef);
+    
+    if (templatesSnap.empty) {
+      console.log("No templates found for", appType);
+      return;
+    }
+
+    console.log(`📋 Found ${templatesSnap.size} template(s) for ${appType}`);
+
+    // Create template section before applicants container
+    templateSection = document.createElement("div");
+    templateSection.id = "applicationTemplatesSection";
+    templateSection.style.cssText = `
+      background: #f0f8e8;
+      border: 2px solid #2d5016;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    `;
+    
+    let templatesHtml = `
+      <h3 style="margin: 0 0 15px 0; color: #2d5016; display: flex; align-items: center; gap: 10px;">
+        <span>📋 Available Document Templates</span>
+      </h3>
+      <p style="margin: 0 0 15px 0; color: #666; font-size: 0.9em;">
+        Download these templates before applicants submit their documents:
+      </p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+    `;
+
+    // Display each template as a card
+    templatesSnap.forEach((templateDoc) => {
+      const templateData = templateDoc.data();
+      const templateId = templateDoc.id;
+      
+      const documentType = templateData.documentType || templateId;
+      const title = templateData.title || "Template";
+      const description = templateData.description || "";
+      const fileName = templateData.fileName || "Unknown";
+      const url = templateData.url || "";
+      
+      if (!url || url.trim() === "") return;
+
+      templatesHtml += `
+        <div style="background: white; border: 1px solid #ddd; border-radius: 6px; padding: 15px; transition: all 0.3s;" class="template-card">
+          <div style="font-weight: bold; color: #2d5016; margin-bottom: 8px; font-size: 1em;">
+            📄 ${escapeHtml(documentType)}
+          </div>
+          <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">
+            ${escapeHtml(title)}
+          </div>
+          ${description ? `<div style="font-size: 0.85em; color: #888; font-style: italic; margin-bottom: 10px;">${escapeHtml(description)}</div>` : ''}
+          <div style="font-size: 0.85em; color: #999; margin-bottom: 10px;">
+            📁 ${escapeHtml(fileName)}
+          </div>
+          <button class="action-btn-secondary template-download-btn" data-url="${escapeHtml(url)}" style="
+            background: #2d5016;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            width: 100%;
+          ">
+            📥 Download Template
+          </button>
+        </div>
+      `;
+    });
+
+    templatesHtml += `
+      </div>
+    `;
+    
+    templateSection.innerHTML = templatesHtml;
+    
+    // Insert before applicants container
+    const container = document.getElementById("applicantsContainer");
+    if (container && container.parentNode) {
+      container.parentNode.insertBefore(templateSection, container);
+    }
+    
+    // Add download handlers
+    templateSection.querySelectorAll(".template-download-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const url = btn.dataset.url;
+        if (url) {
+          window.open(url, "_blank");
+        }
+      });
+    });
+    
+    // Add hover effect
+    const style = document.createElement('style');
+    style.textContent = `
+      .template-card:hover {
+        box-shadow: 0 2px 8px rgba(45,80,22,0.2);
+        transform: translateY(-2px);
+      }
+    `;
+    if (!document.getElementById('template-card-styles')) {
+      style.id = 'template-card-styles';
+      document.head.appendChild(style);
+    }
+
+  } catch (err) {
+    console.error("❌ Error loading application templates:", err);
+  }
+}
+
+// Display application-level templates at the top of the files table (DEPRECATED - keeping for backward compatibility)
 async function displayApplicationTemplates(appType) {
   try {
     console.log("🔍 Fetching templates for application type:", appType);
@@ -382,6 +509,9 @@ async function loadApplicants(type = "ctpo") {
 
   applicantsContainer.innerHTML = `<div style="width:100%; text-align:center;"><span class="spinner"></span> Loading ${type.toUpperCase()} applicants...</div>`;
 
+  // Display available templates for this application type
+  await displayApplicationTypeTemplates(type);
+
   try {
     const appDoc = doc(db, "applications", type);
     const applicantsSnap = await getDocs(collection(appDoc, "applicants"));
@@ -395,6 +525,7 @@ async function loadApplicants(type = "ctpo") {
 
     applicantsSnap.forEach((applicantDoc) => {
       const applicantData = applicantDoc.data();
+      const submissionsCount = applicantData.submissionsCount || 0;
 
       const folderDiv = document.createElement("div");
       folderDiv.className = "applicant-folder";
@@ -403,6 +534,7 @@ async function loadApplicants(type = "ctpo") {
         <div class="applicant-name">${escapeHtml(
           applicantData.applicantName || "Unnamed Applicant"
         )}</div>
+        <div style="font-size:0.85em; color:#666; margin-top:4px;">${submissionsCount} submission${submissionsCount !== 1 ? 's' : ''}</div>
       `;
 
       folderDiv.addEventListener("click", () => {
@@ -443,10 +575,10 @@ async function showApplicantFiles(
 ) {
   if (currentOpenUserId && currentOpenUserId !== userId) hideFiles();
 
-  filesBody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><span class="spinner"></span> Loading files...</td></tr>`;
+  filesBody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><span class="spinner"></span> Loading submissions...</td></tr>`;
   filesSection.style.display = "block";
   scheduleContainer.style.display = "flex";
-  applicantTitle.textContent = `📂 Files of ${userName || "Applicant"}`;
+  applicantTitle.textContent = `📂 Submissions of ${userName || "Applicant"}`;
   currentOpenUserId = userId;
   currentApplicationType = type;
   currentApplicantData = userData;
@@ -455,6 +587,7 @@ async function showApplicantFiles(
   if (type === "ctpo") {
     // CTPO: Show tree tagging/inventory button
     proceedBtn.style.display = "block";
+    proceedBtn.textContent = "Assign for Tree Tagging"; // Default text
     assignCuttingForesterBtn.style.display = "none";
   } else if (
     type === "pltp" ||
@@ -474,36 +607,438 @@ async function showApplicantFiles(
   setCurrentApplicant(userId, userData);
 
   try {
+    // Load all submissions for this applicant
+    await loadSubmissionsForApplicant(userId, userName, type);
+  } catch (err) {
+    console.error("❌ Error in showApplicantFiles:", err);
+    filesBody.innerHTML = `<tr><td colspan="5" style="color:red;text-align:center">Error loading applicant data: ${err.message}</td></tr>`;
+  }
+}
+
+// ------------------ LOAD SUBMISSIONS FOR APPLICANT ------------------
+async function loadSubmissionsForApplicant(userId, userName, type) {
+  try {
     console.log(
-      "🔍 Fetching applicant from:",
-      `applications/${type}/applicants/${userId}`
+      "🔍 Fetching submissions from:",
+      `applications/${type}/applicants/${userId}/submissions`
+    );
+    
+    const submissionsRef = collection(db, `applications/${type}/applicants/${userId}/submissions`);
+    console.log("📡 Querying submissions...");
+    
+    const submissionsSnap = await getDocs(query(submissionsRef, orderBy("createdAt", "desc")));
+    
+    console.log(`✅ Query complete. Found ${submissionsSnap.size} submission(s)`);
+    
+    availableSubmissions = [];
+    
+    if (submissionsSnap.empty) {
+      console.warn("⚠️ No submissions found");
+      filesBody.innerHTML = "";
+      
+      // Display templates
+      await displayApplicationTemplates(type);
+      
+      const noSubmissionsRow = document.createElement("tr");
+      noSubmissionsRow.innerHTML = "<td colspan='4' style='text-align:center; color:#888;'>No submissions have been made yet.</td>";
+      filesBody.appendChild(noSubmissionsRow);
+      
+      // Hide submission selector
+      const selector = document.getElementById("submissionSelectorContainer");
+      if (selector) selector.style.display = "none";
+      return;
+    }
+
+    console.log(`📤 Found ${submissionsSnap.size} submission(s). Loading upload counts...`);
+
+    // Build submissions list - count uploads and appointments in parallel for better performance
+    const submissionPromises = submissionsSnap.docs.map(async (submissionDoc) => {
+      const submissionData = submissionDoc.data();
+      
+      try {
+        // Count uploads in subcollection
+        const uploadsRef = collection(db, `applications/${type}/applicants/${userId}/submissions/${submissionDoc.id}/uploads`);
+        const uploadsSnap = await getDocs(uploadsRef);
+        const uploadCount = uploadsSnap.size;
+        
+        // Query appointments for this submission
+        const appointmentsRef = collection(db, "appointments");
+        const appointmentsQuery = query(appointmentsRef, where("applicationID", "==", submissionDoc.id));
+        const appointmentsSnap = await getDocs(appointmentsQuery);
+        
+        const appointments = appointmentsSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        return {
+          id: submissionDoc.id,
+          status: submissionData.status || "draft",
+          createdAt: submissionData.createdAt,
+          submittedAt: submissionData.submittedAt,
+          applicantName: submissionData.applicantName || userName,
+          uploadCount: uploadCount,
+          appointmentCount: appointments.length,
+          appointments: appointments
+        };
+      } catch (err) {
+        console.error(`Error loading data for ${submissionDoc.id}:`, err);
+        // Return submission data without upload/appointment count if there's an error
+        return {
+          id: submissionDoc.id,
+          status: submissionData.status || "draft",
+          createdAt: submissionData.createdAt,
+          submittedAt: submissionData.submittedAt,
+          applicantName: submissionData.applicantName || userName,
+          uploadCount: 0,
+          appointmentCount: 0,
+          appointments: []
+        };
+      }
+    });
+
+    // Wait for all submissions to be processed
+    availableSubmissions = await Promise.all(submissionPromises);
+    
+    console.log("✅ Submissions loaded:", availableSubmissions);
+    console.log("📊 Number of submissions:", availableSubmissions.length);
+    console.log("🔍 First submission:", availableSubmissions[0]);
+
+    // Display submissions as cards (don't auto-load files)
+    console.log("🎨 Calling displaySubmissionsList...");
+    displaySubmissionsList(userId, type);
+    console.log("✅ displaySubmissionsList completed");
+    
+    // Hide the files table initially
+    const filesTable = document.getElementById("filesTable");
+    if (filesTable) filesTable.style.display = "none";
+
+  } catch (err) {
+    console.error("❌ Error loading submissions:", err);
+    filesBody.innerHTML =
+      "<tr><td colspan='4' style='color:red;text-align:center'>Error loading submissions: " + err.message + "</td></tr>";
+  }
+}
+
+// ------------------ DISPLAY SUBMISSIONS LIST ------------------
+function displaySubmissionsList(userId, type) {
+  console.log("📝 displaySubmissionsList called with:", { userId, type, submissionsCount: availableSubmissions.length });
+  
+  let listContainer = document.getElementById("submissionSelectorContainer");
+  console.log("🔍 Looking for submissionSelectorContainer:", listContainer);
+  
+  // Create list container if it doesn't exist
+  if (!listContainer) {
+    console.log("🆕 Creating new submissionSelectorContainer");
+    listContainer = document.createElement("div");
+    listContainer.id = "submissionSelectorContainer";
+    listContainer.style.cssText = `
+      margin-bottom: 20px;
+    `;
+    
+    // Insert before the files table
+    const filesSection = document.getElementById("filesSection");
+    const filesTable = document.getElementById("filesTable");
+    console.log("🔍 Found filesSection:", !!filesSection, "filesTable:", !!filesTable);
+    if (filesSection && filesTable) {
+      filesSection.insertBefore(listContainer, filesTable);
+      console.log("✅ Container inserted before files table");
+    } else {
+      console.error("❌ Could not find filesSection or filesTable!");
+      if (filesSection) {
+        filesSection.appendChild(listContainer);
+        console.log("⚠️ Appended to filesSection instead");
+      }
+    }
+  }
+  
+  listContainer.style.display = "block";
+  console.log("📦 Container display set to block");
+  
+  // Build submission cards
+  console.log("🎨 Building submission cards HTML for", availableSubmissions.length, "submissions");
+  const cardsHtml = availableSubmissions.map((submission) => {
+    const statusBadge = submission.status === "submitted" 
+      ? '<span style="background:#4caf50; color:white; padding:4px 8px; border-radius:4px; font-size:0.85em;">✓ Submitted</span>'
+      : '<span style="background:#ff9800; color:white; padding:4px 8px; border-radius:4px; font-size:0.85em;">📝 Draft</span>';
+    
+    const createdDate = submission.createdAt?.toDate 
+      ? submission.createdAt.toDate().toLocaleString()
+      : "N/A";
+    
+    const submittedDate = submission.submittedAt?.toDate 
+      ? submission.submittedAt.toDate().toLocaleString()
+      : "-";
+    
+    const isSelected = submission.id === currentSubmissionId;
+    const selectedStyle = isSelected ? 'border: 3px solid #2d5016; box-shadow: 0 4px 8px rgba(45,80,22,0.3);' : '';
+    
+    return `
+      <div class="submission-card" data-submission-id="${submission.id}" style="
+        background: ${isSelected ? '#f0f8e8' : 'white'};
+        border: 2px solid #ddd;
+        ${selectedStyle}
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+          <div>
+            <h3 style="margin: 0 0 8px 0; color: #2d5016; font-size: 1.1em;">📋 ${escapeHtml(submission.id)}</h3>
+            <div style="margin: 5px 0;">${statusBadge}</div>
+          </div>
+          <button class="view-submission-btn" data-submission-id="${submission.id}" style="
+            background: #2d5016;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+          ">
+            ${isSelected ? '✓ Viewing' : '👁️ View Files'}
+          </button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9em; color: #666;">
+          <div>
+            <strong>📅 Created:</strong><br/>${createdDate}
+          </div>
+          <div>
+            <strong>✅ Submitted:</strong><br/>${submittedDate}
+          </div>
+          <div>
+            <strong>📎 Files:</strong><br/>${submission.uploadCount} uploaded
+          </div>
+        </div>
+        ${submission.appointmentCount > 0 ? `
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+            <h4 style="margin: 0 0 10px 0; color: #2d5016; font-size: 0.95em;">🗓️ Appointments (${submission.appointmentCount})</h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${submission.appointments.map(apt => {
+                const aptStatus = apt.status || 'Pending';
+                const statusLower = aptStatus.toLowerCase();
+                
+                // Determine status badge and color
+                let statusBadge = '⏳';
+                let statusColor = '#ff9800';
+                
+                if (statusLower === 'completed') {
+                  statusBadge = '✅';
+                  statusColor = '#4caf50';
+                } else if (statusLower === 'scheduled') {
+                  statusBadge = '📅';
+                  statusColor = '#2196f3';
+                } else if (statusLower === 'pending') {
+                  statusBadge = '⏳';
+                  statusColor = '#ff9800';
+                }
+                
+                return `
+                  <div style="background: #f9f9f9; padding: 8px 12px; border-radius: 4px; border-left: 3px solid ${statusColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-weight: 500;">${statusBadge} ${apt.appointmentType || 'Tree Inventory'}</span>
+                      <span style="font-size: 0.85em; color: white; background: ${statusColor}; padding: 2px 8px; border-radius: 3px;">${aptStatus}</span>
+                    </div>
+                    ${apt.foresterName ? `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">👤 ${apt.foresterName}</div>` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join("");
+  
+  console.log("✅ Cards HTML built, length:", cardsHtml.length);
+  console.log("📝 Setting innerHTML...");
+  
+  listContainer.innerHTML = `
+    <div style="background: #f0f8e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #2d5016;">
+      <h3 style="margin: 0 0 10px 0; color: #2d5016;">📁 Submissions (${availableSubmissions.length})</h3>
+      <p style="margin: 0; font-size: 0.9em; color: #666;">Click on a submission to view its uploaded files</p>
+    </div>
+    <div id="submissionsCardsContainer">
+      ${cardsHtml}
+    </div>
+  `;
+  
+  console.log("✅ innerHTML set, attaching event handlers...");
+  
+  // Attach click handlers to cards and buttons
+  document.querySelectorAll(".submission-card").forEach((card) => {
+    card.addEventListener("click", async (e) => {
+      // Don't trigger if clicking the button
+      if (e.target.classList.contains("view-submission-btn")) return;
+      
+      const submissionId = card.dataset.submissionId;
+      await selectAndViewSubmission(userId, type, submissionId);
+    });
+  });
+  
+  document.querySelectorAll(".view-submission-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const submissionId = btn.dataset.submissionId;
+      await selectAndViewSubmission(userId, type, submissionId);
+    });
+  });
+  
+  // Add hover effect
+  const style = document.createElement('style');
+  style.textContent = `
+    .submission-card:hover {
+      border-color: #2d5016 !important;
+      box-shadow: 0 2px 8px rgba(45,80,22,0.2);
+      transform: translateY(-2px);
+    }
+    .view-submission-btn:hover {
+      background: #1a4d0a;
+    }
+  `;
+  if (!document.getElementById('submission-card-styles')) {
+    style.id = 'submission-card-styles';
+    document.head.appendChild(style);
+  }
+  
+  console.log("✅ displaySubmissionsList completed successfully");
+}
+
+// ------------------ SELECT AND VIEW SUBMISSION ------------------
+async function selectAndViewSubmission(userId, type, submissionId) {
+  currentSubmissionId = submissionId;
+  console.log(`🔄 Viewing submission: ${currentSubmissionId}`);
+  
+  // Update tree inventory module with current submission
+  setCurrentApplication(type, submissionId);
+  
+  // Show the files table
+  const filesTable = document.getElementById("filesTable");
+  if (filesTable) filesTable.style.display = "table";
+  
+  // Load submission files
+  await loadSubmissionFiles(userId, type, currentSubmissionId);
+  
+  // Update the submission cards to show selected state
+  displaySubmissionsList(userId, type);
+  
+  // Update button text based on appointment status
+  await updateProceedButtonState(submissionId);
+  
+  // Scroll to files table
+  filesTable?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ------------------ UPDATE PROCEED BUTTON STATE ------------------
+async function updateProceedButtonState(submissionId) {
+  if (!proceedBtn || currentApplicationType !== "ctpo") return;
+  
+  try {
+    // Find the submission in availableSubmissions
+    const submission = availableSubmissions.find(s => s.id === submissionId);
+    
+    if (!submission || !submission.appointments || submission.appointments.length === 0) {
+      // No appointments - show "Assign for Tree Tagging"
+      proceedBtn.textContent = "Assign for Tree Tagging";
+      proceedBtn.disabled = false;
+      
+      // Set mode to 'new' when button will be clicked
+      proceedBtn.onclick = () => {
+        setAppointmentMode('new', null, null);
+      };
+      return;
+    }
+    
+    // Check if any appointment has "Completed" status
+    const hasCompletedAppointment = submission.appointments.some(
+      apt => apt.status && apt.status.toLowerCase() === 'completed'
+    );
+    
+    if (hasCompletedAppointment) {
+      // Has completed appointment - show "Assign for Revisit"
+      proceedBtn.textContent = "Assign for Revisit";
+      proceedBtn.disabled = false;
+      
+      // Set mode to 'revisit' when button will be clicked
+      proceedBtn.onclick = () => {
+        setAppointmentMode('revisit', null, null);
+      };
+    } else {
+      // Has pending/scheduled appointment - show "Modify Assignment"
+      proceedBtn.textContent = "Modify Tree Tagging Assignment";
+      proceedBtn.disabled = false;
+      
+      // Find the first pending/scheduled appointment
+      const pendingAppointment = submission.appointments.find(
+        apt => apt.status && (apt.status.toLowerCase() === 'pending' || apt.status.toLowerCase() === 'scheduled')
+      );
+      
+      // Set mode to 'modify' with existing appointment data when button will be clicked
+      proceedBtn.onclick = () => {
+        if (pendingAppointment) {
+          setAppointmentMode('modify', pendingAppointment.id, pendingAppointment);
+        }
+      };
+    }
+  } catch (err) {
+    console.error("Error updating proceed button state:", err);
+    proceedBtn.textContent = "Assign for Tree Tagging";
+    proceedBtn.disabled = false;
+    proceedBtn.onclick = () => {
+      setAppointmentMode('new', null, null);
+    };
+  }
+}
+
+// ------------------ LOAD SUBMISSION FILES ------------------
+async function loadSubmissionFiles(userId, type, submissionId) {
+  try {
+    filesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;"><span class="spinner"></span> Loading files...</td></tr>`;
+    
+    console.log(
+      "🔍 Fetching submission document:",
+      `applications/${type}/applicants/${userId}/submissions/${submissionId}`
     );
     
     filesBody.innerHTML = "";
-
-    // First, display available templates for this application type
-    await displayApplicationTemplates(type);
     
-    // Then fetch and display uploaded files from the subcollection
-    const uploadsRef = collection(db, `applications/${type}/applicants/${userId}/uploads`);
-    const uploadsSnap = await getDocs(uploadsRef);
+    // Fetch the submission document to get the uploads map (for reuploadAllowed flags)
+    const submissionRef = doc(db, `applications/${type}/applicants/${userId}/submissions/${submissionId}`);
+    const submissionSnap = await getDoc(submissionRef);
     
-    if (uploadsSnap.empty) {
-      console.warn("⚠️ No uploads found in subcollection");
+    if (!submissionSnap.exists()) {
+      console.warn("⚠️ Submission document not found");
       const noFilesRow = document.createElement("tr");
-      noFilesRow.innerHTML = "<td colspan='4' style='text-align:center; color:#888;'>No files have been uploaded yet.</td>";
+      noFilesRow.innerHTML = "<td colspan='4' style='text-align:center; color:#888;'>Submission not found.</td>";
       filesBody.appendChild(noFilesRow);
       return;
     }
 
-    console.log(`📤 Found ${uploadsSnap.size} upload document(s) in subcollection`);
+    const submissionData = submissionSnap.data();
+    const uploadsMapMetadata = submissionData.uploads || {}; // For reuploadAllowed flags
+    
+    // Fetch the uploads SUBCOLLECTION for full upload data (URLs, filenames, etc.)
+    const uploadsCollectionRef = collection(db, `applications/${type}/applicants/${userId}/submissions/${submissionId}/uploads`);
+    const uploadsSnap = await getDocs(uploadsCollectionRef);
+    
+    if (uploadsSnap.empty) {
+      console.warn("⚠️ No uploads found in this submission");
+      const noFilesRow = document.createElement("tr");
+      noFilesRow.innerHTML = "<td colspan='4' style='text-align:center; color:#888;'>No files have been uploaded in this submission yet.</td>";
+      filesBody.appendChild(noFilesRow);
+      return;
+    }
+
+    console.log(`📤 Found ${uploadsSnap.size} upload(s) in submission`);
 
     // Display each uploaded file as a table row
     for (const uploadDoc of uploadsSnap.docs) {
-      const docData = uploadDoc.data();
       const docId = uploadDoc.id;
+      const docData = uploadDoc.data();
       
-      console.log(`📄 Upload document "${docId}":`, docData);
+      console.log(`📄 Upload "${docId}":`, docData);
       
       const title = docData.title || docId;
       const fileName = docData.fileName || "Unknown";
@@ -523,10 +1058,13 @@ async function showApplicantFiles(
         uploadedAt = docData.uploadedAt;
       }
 
-      const reuploadAllowed = docData.reuploadAllowed || false;
+      // Get reuploadAllowed from the uploads MAP in the submission document
+      const reuploadAllowed = uploadsMapMetadata[docId]?.reuploadAllowed || false;
       
-      // Check if there are comments in subcollection
-      const hasComment = false; // We'll update this if needed
+      // Check if there are comments in the uploads subcollection
+      const commentsRef = collection(db, `applications/${type}/applicants/${userId}/submissions/${submissionId}/uploads/${docId}/comments`);
+      const commentsSnap = await getDocs(commentsRef);
+      const hasComment = !commentsSnap.empty;
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -591,50 +1129,38 @@ async function showApplicantFiles(
       filesBody.appendChild(tr);
     }
 
-    // Check if we actually added any rows
-    if (filesBody.children.length === 0) {
-      filesBody.innerHTML =
-        "<tr><td colspan='5' style='text-align:center'>No files have been uploaded yet.</td></tr>";
-    }
-
-    // Set up file preview modal close handlers (only once)
-    const filePreviewModal = document.getElementById("filePreviewModal");
-    const closeFilePreview = document.getElementById("closeFilePreview");
-
-    if (closeFilePreview && !closeFilePreview.dataset.listenerAttached) {
-      const closePreviewModal = () => {
-        filePreviewModal.style.display = "none";
-        const iframe = document.getElementById("previewFrame");
-        if (iframe) iframe.src = "";
-        const downloadBtn = document.getElementById("downloadFileBtn");
-        if (downloadBtn) {
-          downloadBtn.href = "#";
-          downloadBtn.style.display = "none";
-        }
-      };
-
-      closeFilePreview.addEventListener("click", closePreviewModal);
-      closeFilePreview.dataset.listenerAttached = "true";
-
-      window.addEventListener("click", (e) => {
-        if (e.target === filePreviewModal) {
-          filePreviewModal.style.display = "none";
-          const iframe = document.getElementById("previewFrame");
-          if (iframe) iframe.src = "";
-          const downloadBtn = document.getElementById("downloadFileBtn");
-          if (downloadBtn) {
-            downloadBtn.href = "#";
-            downloadBtn.style.display = "none";
-          }
-        }
-      });
-    }
-
   } catch (err) {
-    console.error("❌ Error loading applicant files:", err);
+    console.error("❌ Error loading submission files:", err);
     filesBody.innerHTML =
-      "<tr><td colspan='5' style='color:red;text-align:center'>Error loading files: " + err.message + "</td></tr>";
+      "<tr><td colspan='4' style='color:red;text-align:center'>Error loading files: " + err.message + "</td></tr>";
   }
+}
+
+// Set up file preview modal close handlers (only once)
+const filePreviewModal = document.getElementById("filePreviewModal");
+const closeFilePreview = document.getElementById("closeFilePreview");
+
+if (closeFilePreview && !closeFilePreview.dataset.listenerAttached) {
+  const closePreviewModal = () => {
+    filePreviewModal.style.display = "none";
+    const iframe = document.getElementById("previewFrame");
+    if (iframe) iframe.src = "";
+    const downloadBtn = document.getElementById("downloadFileBtn");
+    if (downloadBtn) downloadBtn.href = "#";
+  };
+
+  closeFilePreview.addEventListener("click", closePreviewModal);
+  closeFilePreview.dataset.listenerAttached = "true";
+
+  window.addEventListener("click", (e) => {
+    if (e.target === filePreviewModal) {
+      filePreviewModal.style.display = "none";
+      const iframe = document.getElementById("previewFrame");
+      if (iframe) iframe.src = "";
+      const downloadBtn = document.getElementById("downloadFileBtn");
+      if (downloadBtn) downloadBtn.href = "#";
+    }
+  });
 }
 
 // ------------------ APPLICATION TYPE BUTTONS (wait for sidebar) ------------------
@@ -646,6 +1172,7 @@ function attachSidebarListeners() {
   const spltpBtn = document.getElementById("spltpBtn");
   const permitCutBtn = document.getElementById("permitCutBtn");
   const cttBtn = document.getElementById("cttBtn");
+  const covBtn = document.getElementById("covBtn");
   const chainsawBtn = document.getElementById("chainsawBtn");
 
   function handleAppButtonClick(type, title) {
@@ -673,13 +1200,17 @@ function attachSidebarListeners() {
     console.log("CTT button clicked");
     handleAppButtonClick("ctt", "Certificate to Travel Applications");
   });
+  covBtn?.addEventListener("click", () => {
+    console.log("COV button clicked");
+    handleAppButtonClick("cov", "Certificate of Verification Applications");
+  });
   chainsawBtn?.addEventListener("click", () => {
     console.log("Chainsaw button clicked");
-    handleAppButtonClick("chainsaw", "Chainsaw Permit Applications");
+    handleAppButtonClick("chainsaw", "Chainsaw Registration Applications");
   });
 
   console.log("✅ Sidebar event listeners attached successfully!");
-  console.log("Found buttons:", { ctpoBtn, pltpBtn, spltpBtn, permitCutBtn, cttBtn, chainsawBtn });
+  console.log("Found buttons:", { ctpoBtn, pltpBtn, spltpBtn, permitCutBtn, cttBtn, covBtn, chainsawBtn });
 }
 
 // Wait for sidebar to be loaded dynamically in applications.html
@@ -721,17 +1252,26 @@ async function populateCommentDocuments() {
   commentDocumentSelect.innerHTML = "";
 
   try {
-    // Fetch uploads from subcollection (matching reports.js approach)
+    if (!currentSubmissionId) {
+      console.warn("⚠️ No submission selected");
+      const opt = document.createElement("option");
+      opt.textContent = "No submission selected";
+      opt.disabled = true;
+      commentDocumentSelect.appendChild(opt);
+      return;
+    }
+
+    // Fetch uploads from the SUBCOLLECTION (contains full upload data)
     console.log(
       "🔍 Fetching documents for comments from:",
-      `applications/${currentApplicationType}/applicants/${currentOpenUserId}/uploads`
+      `applications/${currentApplicationType}/applicants/${currentOpenUserId}/submissions/${currentSubmissionId}/uploads`
     );
     
-    const uploadsRef = collection(db, `applications/${currentApplicationType}/applicants/${currentOpenUserId}/uploads`);
-    const uploadsSnap = await getDocs(uploadsRef);
+    const uploadsCollectionRef = collection(db, `applications/${currentApplicationType}/applicants/${currentOpenUserId}/submissions/${currentSubmissionId}/uploads`);
+    const uploadsSnap = await getDocs(uploadsCollectionRef);
     
     if (uploadsSnap.empty) {
-      console.warn("⚠️ No uploads found in subcollection");
+      console.warn("⚠️ No uploads found in submission");
       const opt = document.createElement("option");
       opt.textContent = "No documents uploaded";
       opt.disabled = true;
@@ -745,8 +1285,8 @@ async function populateCommentDocuments() {
     let hasValidUploads = false;
     
     uploadsSnap.forEach((uploadDoc) => {
-      const docData = uploadDoc.data();
       const docId = uploadDoc.id;
+      const docData = uploadDoc.data();
       const url = docData.url || docData.URL || "";
       
       // Skip placeholders without URLs
@@ -813,51 +1353,63 @@ sendCommentBtn.addEventListener("click", async () => {
     const adminEmail = auth.currentUser?.email || "Admin";
 
     console.log(
-      `💬 Saving comments for ${currentApplicationType.toUpperCase()} application`
+      `💬 Saving comments for ${currentApplicationType.toUpperCase()} submission ${currentSubmissionId}`
     );
 
-    // For each selected document, save comment to the comments subcollection
-    for (const docId of selectedDocs) {
-      // Update the upload document to set reuploadAllowed flag
-      const uploadDocRef = doc(
-        db,
-        "applications",
-        currentApplicationType,
-        "applicants",
-        currentOpenUserId,
-        "uploads",
-        docId
-      );
+    if (!currentSubmissionId) {
+      alert("⚠️ No submission selected.");
+      return;
+    }
 
+    // Get the submission document reference
+    const submissionRef = doc(
+      db,
+      "applications",
+      currentApplicationType,
+      "applicants",
+      currentOpenUserId,
+      "submissions",
+      currentSubmissionId
+    );
+
+    // For each selected document, save comment and update reupload flag
+    for (const docId of selectedDocs) {
+      // Update the reuploadAllowed flag in the uploads map
+      const updatePath = `uploads.${docId}.reuploadAllowed`;
+      const lastCommentPath = `uploads.${docId}.lastCommentAt`;
+      
       await setDoc(
-        uploadDocRef,
+        submissionRef,
         {
-          reuploadAllowed: true,
-          lastCommentAt: serverTimestamp(),
+          [updatePath]: true,
+          [lastCommentPath]: serverTimestamp(),
         },
         { merge: true }
       );
 
-      // Add comment to comments subcollection
+      // Add comment to the uploads/{docId}/comments subcollection
       const commentsRef = collection(
         db,
         "applications",
         currentApplicationType,
         "applicants",
         currentOpenUserId,
+        "submissions",
+        currentSubmissionId,
         "uploads",
         docId,
         "comments"
       );
 
       await addDoc(commentsRef, {
-        message,
+        comment: message,
+        commenterId: auth.currentUser?.uid || "admin",
         from: adminEmail,
-        createdAt: serverTimestamp(),
+        commentedAt: serverTimestamp(),
       });
 
       console.log(
-        `✅ Comment saved to ${currentApplicationType}/applicants/${currentOpenUserId}/uploads/${docId}/comments`
+        `✅ Comment saved to ${currentApplicationType}/applicants/${currentOpenUserId}/submissions/${currentSubmissionId}/uploads/${docId}/comments`
       );
     }
 
@@ -865,7 +1417,7 @@ sendCommentBtn.addEventListener("click", async () => {
     alert(
       `✅ Comment sent to ${docCount} document${
         docCount > 1 ? "s" : ""
-      } in ${currentApplicationType.toUpperCase()}!\n\nThe applicant can now re-upload the selected document${
+      } in submission ${currentSubmissionId}!\n\nThe applicant can now re-upload the selected document${
         docCount > 1 ? "s" : ""
       }.`
     );
@@ -874,12 +1426,11 @@ sendCommentBtn.addEventListener("click", async () => {
     commentDocumentSelect.selectedIndex = -1;
     commentModal.style.display = "none";
 
-    // Refresh the files table to show updated state
-    await showApplicantFiles(
+    // Refresh the submission files to show updated state
+    await loadSubmissionFiles(
       currentOpenUserId,
-      currentApplicantData.applicantName,
-      currentApplicantData,
-      currentApplicationType
+      currentApplicationType,
+      currentSubmissionId
     );
   } catch (err) {
     console.error("❌ Error sending comment:", err);

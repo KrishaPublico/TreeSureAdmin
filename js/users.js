@@ -8,6 +8,48 @@ import {
   updateDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// Cache keys
+const CACHE_KEYS = {
+  USERS: 'treesure_users_cache',
+  TIMESTAMP: 'treesure_users_timestamp'
+};
+
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
+
+function getCachedUsers() {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEYS.USERS);
+    const timestamp = sessionStorage.getItem(CACHE_KEYS.TIMESTAMP);
+    
+    if (cached && timestamp) {
+      const age = Date.now() - parseInt(timestamp);
+      if (age < CACHE_DURATION) {
+        console.log('📦 Loading users from cache');
+        return JSON.parse(cached);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load cache:', err);
+  }
+  return null;
+}
+
+function setCachedUsers(users) {
+  try {
+    sessionStorage.setItem(CACHE_KEYS.USERS, JSON.stringify(users));
+    sessionStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString());
+    console.log('✅ Users cached successfully');
+  } catch (err) {
+    console.warn('Failed to cache users:', err);
+  }
+}
+
+function clearUsersCache() {
+  sessionStorage.removeItem(CACHE_KEYS.USERS);
+  sessionStorage.removeItem(CACHE_KEYS.TIMESTAMP);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   checkLogin();
 
@@ -131,24 +173,43 @@ function showSuccessToast(message) {
 
 
   // ---------------- LOAD USERS ----------------
-  async function loadUsers() {
+  async function loadUsers(forceRefresh = false) {
     if (!tbody) return;
     tbody.innerHTML = "";
 
     try {
-      const snapshot = await getDocs(usersRef);
-
-      if (snapshot.empty) {
-        tbody.innerHTML = `<tr><td colspan="9">No users found.</td></tr>`;
-        return;
+      let usersData = null;
+      
+      // Try to load from cache first
+      if (!forceRefresh) {
+        usersData = getCachedUsers();
+      }
+      
+      // If no cache or force refresh, fetch from Firestore
+      if (!usersData) {
+        console.log('🔄 Fetching users from Firestore...');
+        const snapshot = await getDocs(usersRef);
+        
+        if (snapshot.empty) {
+          tbody.innerHTML = `<tr><td colspan="9">No users found.</td></tr>`;
+          return;
+        }
+        
+        usersData = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        }));
+        
+        // Cache the data
+        setCachedUsers(usersData);
       }
 
-      snapshot.forEach((docSnap) => {
-        const user = docSnap.data();
+      // Render users
+      usersData.forEach((user) => {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-          <td>${user.id || docSnap.id}</td>
+          <td>${user.id}</td>
           <td>${user.name || "N/A"}</td>
           <td>${user.username || "N/A"}</td>
           <td>••••••</td>
@@ -157,7 +218,7 @@ function showSuccessToast(message) {
           <td>${user.role || "N/A"}</td>
           <td>${user.active ? "Active" : "Inactive"}</td>
           <td>
-            <button data-id="${docSnap.id}" class="edit-btn">
+            <button data-id="${user.id}" class="edit-btn">
               <i class="fas fa-edit"></i> Edit
             </button>
           </td>
@@ -256,8 +317,9 @@ addUserForm.addEventListener("submit", async (e) => {
       addUserSubmitBtn.innerHTML = `<i class="fa fa-user-plus"></i> Add User`;
     }
 
-    // Reload table
-    loadUsers();
+    // Clear cache and reload table
+    clearUsersCache();
+    loadUsers(true);
   } catch (err) {
     console.log("Action cancelled or error:", err);
   }
@@ -291,7 +353,8 @@ addUserForm.addEventListener("submit", async (e) => {
       await updateDoc(doc(db, "users", userId), updatedData);
       showSuccessToast("User updated successfully!");
       closeEditModal();
-      loadUsers();
+      clearUsersCache();
+      loadUsers(true);
     } catch (err) {
       if (err === "Cancelled by user") {
         openEditModal(userId, updatedData);

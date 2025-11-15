@@ -39,7 +39,7 @@ const topLocationCountEl = document.getElementById("topLocationCount");
 
 const speciesFilter = document.getElementById("speciesFilter");
 const foresterFilter = document.getElementById("foresterFilter");
-const locationFilter = document.getElementById("locationFilter");
+const applicantFilter = document.getElementById("applicantFilter");
 
 checkLogin();
 document.getElementById("logoutBtn")?.addEventListener("click", logout);
@@ -1020,7 +1020,7 @@ function populateFilterDropdowns(speciesList, foresterList) {
   // Clear existing options (keep only "All" option)
   speciesFilter.innerHTML = '<option value="all">All Species</option>';
   foresterFilter.innerHTML = '<option value="all">All Foresters</option>';
-  locationFilter.innerHTML = '<option value="all">All Locations</option>';
+  applicantFilter.innerHTML = '<option value="all">All Applicants</option>';
   
   speciesList.sort().forEach((sp) => {
     const opt = document.createElement("option");
@@ -1036,38 +1036,46 @@ function populateFilterDropdowns(speciesList, foresterList) {
     foresterFilter.appendChild(opt);
   });
 
-  Object.keys(municipalityCoords).forEach((mun) => {
+  // Populate applicant filter
+  const applicantSet = new Set();
+  allTrees.forEach(tree => {
+    if (tree.ownerName && tree.ownerName !== 'Unknown Owner') {
+      applicantSet.add(tree.ownerName);
+    }
+  });
+  
+  Array.from(applicantSet).sort().forEach((applicant) => {
     const opt = document.createElement("option");
-    opt.value = mun;
-    opt.textContent = mun.toUpperCase();
-    locationFilter.appendChild(opt);
+    opt.value = applicant;
+    opt.textContent = applicant;
+    applicantFilter.appendChild(opt);
   });
 
   // Remove old event listeners by cloning and replacing
   const newSpeciesFilter = speciesFilter.cloneNode(true);
   const newForesterFilter = foresterFilter.cloneNode(true);
-  const newLocationFilter = locationFilter.cloneNode(true);
+  const newApplicantFilter = applicantFilter.cloneNode(true);
   
   speciesFilter.parentNode.replaceChild(newSpeciesFilter, speciesFilter);
   foresterFilter.parentNode.replaceChild(newForesterFilter, foresterFilter);
-  locationFilter.parentNode.replaceChild(newLocationFilter, locationFilter);
+  applicantFilter.parentNode.replaceChild(newApplicantFilter, applicantFilter);
   
   // Update references
   const updatedSpeciesFilter = document.getElementById("speciesFilter");
   const updatedForesterFilter = document.getElementById("foresterFilter");
-  const updatedLocationFilter = document.getElementById("locationFilter");
+  const updatedApplicantFilter = document.getElementById("applicantFilter");
   
   // Add event listeners
   updatedSpeciesFilter.addEventListener("change", applyMapFilters);
   updatedForesterFilter.addEventListener("change", applyMapFilters);
-  updatedLocationFilter.addEventListener("change", applyMapFilters);
+  updatedApplicantFilter.addEventListener("change", applyMapFilters);
 }
 
 // ---------- Apply Map Filters ----------
 function applyMapFilters() {
   const selectedSpecies = speciesFilter.value;
   const selectedForester = foresterFilter.value;
-  const selectedMunicipality = locationFilter.value.toLowerCase();
+  const selectedApplicant = applicantFilter.value;
 
   let filtered = allTrees.filter((tree) => {
     const speciesMatch =
@@ -1075,33 +1083,20 @@ function applyMapFilters() {
       (tree.specie || tree.species) === selectedSpecies;
     const foresterMatch =
       selectedForester === "all" || tree.foresterName === selectedForester;
-    return speciesMatch && foresterMatch;
+    const applicantMatch =
+      selectedApplicant === "all" || tree.ownerName === selectedApplicant;
+    return speciesMatch && foresterMatch && applicantMatch;
   });
 
-  if (
-    selectedMunicipality !== "all" &&
-    municipalityCoords[selectedMunicipality]
-  ) {
-    const [centerLat, centerLng] = municipalityCoords[selectedMunicipality];
-    const radiusKm = 10;
-
-    filtered = filtered.filter((tree) => {
-      const lat = parseFloat(tree.latitude);
-      const lng = parseFloat(tree.longitude);
-      if (isNaN(lat) || isNaN(lng)) return false;
-      const distance = getDistanceFromLatLonInKm(
-        centerLat,
-        centerLng,
-        lat,
-        lng
-      );
-      return distance <= radiusKm;
-    });
-
-    plotTreeLocations(filtered);
-    map.setView([centerLat, centerLng], 12);
+  plotTreeLocations(filtered);
+  
+  // If filtering by applicant, zoom to their trees
+  if (selectedApplicant !== "all" && filtered.length > 0) {
+    const bounds = L.latLngBounds(filtered.map(tree => [tree.latitude, tree.longitude]).filter(coord => !isNaN(coord[0]) && !isNaN(coord[1])));
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
   } else {
-    plotTreeLocations(filtered);
     map.setView([18.3, 121.7], 9);
   }
 }

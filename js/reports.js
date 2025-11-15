@@ -81,6 +81,8 @@ async function loadData(forceRefresh = false) {
       applicationsData = applicationsData.map(app => ({
         ...app,
         date: app.date ? new Date(app.date) : null,
+        createdAt: app.createdAt ? new Date(app.createdAt) : null,
+        submittedAt: app.submittedAt ? new Date(app.submittedAt) : null,
         uploads: app.uploads.map(upload => ({
           ...upload,
           comments: upload.comments.map(comment => ({
@@ -176,70 +178,152 @@ function formatCoord(val) {
 // --- Load all applications ---
 async function loadApplications() {
   applicationsData = [];
+  console.log("📥 Loading applications with submissions...");
 
-  const appDocsSnap = await getDocs(applicationsRef);
-  for (const appDoc of appDocsSnap.docs) {
-    const appType = appDoc.id;
-    const applicantsRef = collection(db, `applications/${appType}/applicants`);
-    const applicantsSnap = await getDocs(applicantsRef);
-
-    for (const applicantDoc of applicantsSnap.docs) {
-      const data = applicantDoc.data();
-      const tsField = data.uploadedAt ?? null;
-      const dateObj =
-        typeof tsField === "string"
-          ? parseTimestampString(tsField)
-          : tsField?.toDate
-          ? tsField.toDate()
-          : tsField instanceof Date
-          ? tsField
-          : null;
-
-      // Fetch uploads subcollection for each applicant
-      const uploadsRef = collection(db, `applications/${appType}/applicants/${applicantDoc.id}/uploads`);
-      const uploadsSnap = await getDocs(uploadsRef);
+  try {
+    // Define all application types explicitly
+    const applicationTypes = ['ctpo', 'chainsaw', 'cov', 'pltp', 'splt', 'ptc'];
+    console.log(`📦 Processing ${applicationTypes.length} application types: ${applicationTypes.join(', ')}`);
+    
+    for (const appType of applicationTypes) {
+      console.log(`📂 Processing ${appType} applications...`);
       
-      const uploads = [];
-      for (const uploadDoc of uploadsSnap.docs) {
-        const uploadData = uploadDoc.data();
-        
-        // Fetch comments subcollection for each upload
-        const commentsRef = collection(db, `applications/${appType}/applicants/${applicantDoc.id}/uploads/${uploadDoc.id}/comments`);
-        const commentsSnap = await getDocs(commentsRef);
-        
-        const comments = [];
-        commentsSnap.forEach((commentDoc) => {
-          const commentData = commentDoc.data();
-          const commentDate = commentData.createdAt?.toDate ? commentData.createdAt.toDate() : null;
-          
-          comments.push({
-            from: commentData.from || "Unknown",
-            message: commentData.message || "",
-            createdAt: commentDate,
-          });
-        });
-        
-        uploads.push({
-          id: uploadDoc.id,
-          title: uploadData.title || "Untitled",
-          fileName: uploadData.fileName || "Unknown File",
-          reuploadAllowed: uploadData.reuploadAllowed || false,
-          comments: comments,
-        });
-      }
+      try {
+        const applicantsRef = collection(db, `applications/${appType}/applicants`);
+        const applicantsSnap = await getDocs(applicantsRef);
+        console.log(`  👥 Found ${applicantsSnap.docs.length} applicants for ${appType}`);
 
-      applicationsData.push({
-        id: applicantDoc.id,
-        applicant: data.applicantName || "Unknown Applicant",
-        type: appType,
-        permitType: (appType === "pltp" || appType === "splt") ? (data.permitType || data.category || "N/A") : "N/A",
-        status: data.status || "submitted",
-        date: dateObj,
-        uploads: uploads,
-        uploadCount: uploads.length,
-        commentCount: uploads.reduce((sum, u) => sum + u.comments.length, 0),
-      });
+        if (applicantsSnap.empty) {
+          console.log(`  ⚠️ No applicants found for ${appType}, skipping...`);
+          continue;
+        }
+
+        for (const applicantDoc of applicantsSnap.docs) {
+          const applicantData = applicantDoc.data();
+          const applicantId = applicantDoc.id;
+          
+          // Extract applicant-level metadata
+          const applicantName = applicantData.applicantName || "Unknown Applicant";
+          const submissionsCount = applicantData.submissionsCount || 0;
+          const lastUpdated = applicantData.lastUpdated?.toDate ? applicantData.lastUpdated.toDate() : null;
+          
+          console.log(`    📝 Applicant ${applicantId}: ${applicantName} (${submissionsCount} submission(s))`);
+          
+          // Fetch submissions subcollection for each applicant
+          const submissionsRef = collection(db, `applications/${appType}/applicants/${applicantId}/submissions`);
+          const submissionsSnap = await getDocs(submissionsRef);
+          
+          if (submissionsSnap.empty) {
+            console.log(`      ⚠️ No submissions found for applicant ${applicantId}`);
+            continue;
+          }
+          
+          // Process each submission for this applicant
+          for (const submissionDoc of submissionsSnap.docs) {
+            const submissionData = submissionDoc.data();
+            const submissionId = submissionDoc.id;
+            
+            console.log(`      🔖 Processing submission: ${submissionId}`);
+            
+            // Get submission date fields
+            const submittedAtField = submissionData.submittedAt ?? submissionData.createdAt ?? null;
+            const createdAtField = submissionData.createdAt ?? null;
+            
+            const dateObj =
+              typeof submittedAtField === "string"
+                ? parseTimestampString(submittedAtField)
+                : submittedAtField?.toDate
+                ? submittedAtField.toDate()
+                : submittedAtField instanceof Date
+                ? submittedAtField
+                : null;
+            
+            const createdAtObj =
+              typeof createdAtField === "string"
+                ? parseTimestampString(createdAtField)
+                : createdAtField?.toDate
+                ? createdAtField.toDate()
+                : createdAtField instanceof Date
+                ? createdAtField
+                : null;
+            
+            const submittedAtObj = submissionData.submittedAt?.toDate 
+              ? submissionData.submittedAt.toDate() 
+              : null;
+            
+            // Fetch uploads subcollection for each submission
+            const uploadsRef = collection(db, `applications/${appType}/applicants/${applicantId}/submissions/${submissionId}/uploads`);
+            const uploadsSnap = await getDocs(uploadsRef);
+            
+            const uploads = [];
+            for (const uploadDoc of uploadsSnap.docs) {
+              const uploadData = uploadDoc.data();
+              
+              // Fetch comments subcollection for each upload
+              const commentsRef = collection(db, `applications/${appType}/applicants/${applicantId}/submissions/${submissionId}/uploads/${uploadDoc.id}/comments`);
+              const commentsSnap = await getDocs(commentsRef);
+              
+              const comments = [];
+              commentsSnap.forEach((commentDoc) => {
+                const commentData = commentDoc.data();
+                const commentDate = commentData.createdAt?.toDate 
+                  ? commentData.createdAt.toDate() 
+                  : commentData.createdAt instanceof Date
+                  ? commentData.createdAt
+                  : null;
+                
+                comments.push({
+                  id: commentDoc.id,
+                  from: commentData.from || "Unknown",
+                  message: commentData.message || "",
+                  createdAt: commentDate,
+                });
+              });
+              
+              uploads.push({
+                id: uploadDoc.id,
+                title: uploadData.title || uploadData.documentTitle || "Untitled",
+                fileName: uploadData.fileName || "Unknown File",
+                fileUrl: uploadData.fileUrl || uploadData.url || null,
+                uploadedAt: uploadData.uploadedAt?.toDate ? uploadData.uploadedAt.toDate() : null,
+                reuploadAllowed: uploadData.reuploadAllowed || false,
+                comments: comments,
+              });
+            }
+            
+            console.log(`        📎 ${uploads.length} upload(s) found`);
+
+            applicationsData.push({
+              id: applicantId,
+              submissionId: submissionId,
+              applicant: applicantName,
+              type: appType,
+              permitType: (appType === "pltp" || appType === "splt") 
+                ? (applicantData.permitType || applicantData.category || submissionData.permitType || "N/A") 
+                : "N/A",
+              status: submissionData.status || "submitted",
+              date: dateObj,
+              createdAt: createdAtObj,
+              submittedAt: submittedAtObj,
+              lastUpdated: lastUpdated,
+              uploads: uploads,
+              uploadCount: uploads.length,
+              commentCount: uploads.reduce((sum, u) => sum + u.comments.length, 0),
+              submissionsCount: submissionsCount,
+            });
+          }
+        }
+      } catch (typeError) {
+        console.error(`❌ Error processing ${appType}:`, typeError.message);
+        // Continue with other application types
+      }
     }
+    
+    console.log(`✅ Loaded ${applicationsData.length} total submissions across all application types`);
+  } catch (error) {
+    console.error("❌ Error loading applications:", error);
+    console.error("Error details:", error.message);
+    throw error;
   }
 }
 
@@ -412,22 +496,25 @@ function applyFilters() {
 function renderApplicationsTable(data) {
   reportTable.innerHTML = "";
   if (!data || data.length === 0) {
-    reportTable.innerHTML = `<tr><td colspan="6">No applications found</td></tr>`;
+    reportTable.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#888;">No applications found for this type</td></tr>`;
     return;
   }
 
   data.forEach((d, index) => {
     const dateStr = d.date ? d.date.toLocaleDateString() : "N/A";
     const uploadCount = d.uploadCount || 0;
+    const statusIcon = d.status === "submitted" ? "✓" : "📝";
+    const statusColor = d.status === "submitted" ? "color: green; font-weight: bold;" : "color: orange; font-weight: bold;";
     
     const row = `
       <tr>
         <td>${dateStr}</td>
         <td>${escapeHtml(d.applicant)}</td>
-        <td>${escapeHtml(d.type)}</td>
-        <td>${escapeHtml(d.status)}</td>
-        <td>${uploadCount}</td>
-        <td><button class="view-details-btn" data-index="${index}">View Details</button></td>
+        <td><code>${escapeHtml(d.submissionId || "N/A")}</code></td>
+        <td>${escapeHtml(d.type.toUpperCase())}</td>
+        <td style="${statusColor}">${statusIcon} ${escapeHtml(d.status)}</td>
+        <td>${uploadCount} file(s)</td>
+        <td><button class="view-details-btn" data-index="${index}">📄 View Details</button></td>
       </tr>`;
     reportTable.insertAdjacentHTML("beforeend", row);
   });
@@ -494,6 +581,11 @@ function populateFilters() {
     if (t.applicantName && t.applicantName !== "Unknown") applicants.add(t.applicantName);
     if (t.species && t.species !== "Unknown") species.add(t.species);
     if (t.appointmentType && t.appointmentType !== "N/A") appointmentTypes.add(t.appointmentType);
+  });
+  
+  // Add applicants from applications data
+  applicationsData.forEach((app) => {
+    if (app.applicant && app.applicant !== "Unknown Applicant") applicants.add(app.applicant);
   });
 
   populateSelect(foresterFilter, [...foresters], "All Foresters");
@@ -821,7 +913,7 @@ function showApplicationDetails(application) {
   // Build the details HTML
   let uploadsHtml = "";
   if (application.uploads && application.uploads.length > 0) {
-    uploadsHtml = application.uploads.map((upload) => {
+    uploadsHtml = application.uploads.map((upload, index) => {
       const commentsHtml = upload.comments && upload.comments.length > 0
         ? upload.comments.map((comment) => {
             const commentDate = comment.createdAt 
@@ -836,34 +928,94 @@ function showApplicationDetails(application) {
             `;
           }).join("")
         : "<p style='margin-left: 20px; color: #888;'>No comments</p>";
+      
+      const reuploadBadge = upload.reuploadAllowed 
+        ? '<span style="background: #ff9800; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px;">⚠️ REUPLOAD REQUIRED</span>'
+        : '<span style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px;">✓ APPROVED</span>';
+      
+      const uploadedAtStr = upload.uploadedAt ? upload.uploadedAt.toLocaleString() : "N/A";
+      
+      const fileLink = upload.fileUrl 
+        ? `<a href="${escapeHtml(upload.fileUrl)}" target="_blank" style="color: #2e7d32; text-decoration: none;">🔗 View File</a>`
+        : "No file URL";
 
       return `
         <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; color: #2e7d32;">📄 ${escapeHtml(upload.title)}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+            <h4 style="margin: 0; color: #2e7d32;">📄 ${index + 1}. ${escapeHtml(upload.title)}</h4>
+            ${reuploadBadge}
+          </div>
           <p><strong>File Name:</strong> ${escapeHtml(upload.fileName)}</p>
-          <p><strong>Reupload Allowed:</strong> ${upload.reuploadAllowed ? "✅ Yes" : "❌ No"}</p>
-          <h5 style="margin: 10px 0 5px 0;">💬 Comments:</h5>
+          <p><strong>Document ID:</strong> <code>${escapeHtml(upload.id)}</code></p>
+          <p><strong>Uploaded At:</strong> ${uploadedAtStr}</p>
+          <p><strong>File:</strong> ${fileLink}</p>
+          <h5 style="margin: 15px 0 5px 0; color: #555;">💬 Comments (${upload.comments.length}):</h5>
           ${commentsHtml}
         </div>
       `;
     }).join("");
   } else {
-    uploadsHtml = "<p style='color: #888;'>No uploads found</p>";
+    uploadsHtml = "<p style='color: #888; text-align: center; padding: 20px;'>📭 No uploads found for this submission</p>";
   }
 
+  const statusBadge = application.status === "submitted" 
+    ? '<span style="background: #4caf50; color: white; padding: 5px 12px; border-radius: 6px; font-weight: bold;">✓ Submitted</span>'
+    : '<span style="background: #ff9800; color: white; padding: 5px 12px; border-radius: 6px; font-weight: bold;">📝 Draft</span>';
+  
+  const createdAtStr = application.createdAt ? application.createdAt.toLocaleString() : "N/A";
+  const submittedAtStr = application.submittedAt ? application.submittedAt.toLocaleString() : "Not yet submitted";
+  const dateSubmitted = application.date ? application.date.toLocaleString() : "N/A";
+  const lastUpdatedStr = application.lastUpdated ? application.lastUpdated.toLocaleString() : "N/A";
+  
   content.innerHTML = `
     <div style="padding: 10px;">
-      <h3 style="color: #2e7d32; margin-bottom: 15px;">📋 ${escapeHtml(application.applicant)}</h3>
-      <p><strong>Application Type:</strong> ${escapeHtml(application.type)}</p>
-      <p><strong>Permit Type:</strong> ${escapeHtml(application.permitType)}</p>
-      <p><strong>Status:</strong> ${escapeHtml(application.status)}</p>
-      <p><strong>Date:</strong> ${application.date ? application.date.toLocaleDateString() : "N/A"}</p>
-      <p><strong>Total Uploads:</strong> ${application.uploadCount || 0}</p>
-      <p><strong>Total Comments:</strong> ${application.commentCount || 0}</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div>
+          <h3 style="color: #2e7d32; margin: 0;">📋 ${escapeHtml(application.applicant)}</h3>
+          ${application.submissionsCount > 1 ? `<small style="color: #666;">Applicant has ${application.submissionsCount} total submission(s)</small>` : ''}
+        </div>
+        ${statusBadge}
+      </div>
       
-      <hr style="margin: 20px 0; border: 1px solid #e0e0e0;">
+      <div style="background: linear-gradient(135deg, #f0f8e8 0%, #e8f5e9 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 5px solid #2e7d32;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+          <div>
+            <p style="margin: 5px 0;"><strong>🆔 Applicant ID:</strong><br><code style="background: white; padding: 3px 6px; border-radius: 4px;">${escapeHtml(application.id)}</code></p>
+          </div>
+          <div>
+            <p style="margin: 5px 0;"><strong>📋 Submission ID:</strong><br><code style="background: white; padding: 3px 6px; border-radius: 4px;">${escapeHtml(application.submissionId || "N/A")}</code></p>
+          </div>
+          <div>
+            <p style="margin: 5px 0;"><strong>📂 Application Type:</strong><br>${escapeHtml(application.type.toUpperCase())}</p>
+          </div>
+          ${application.permitType !== "N/A" ? `
+          <div>
+            <p style="margin: 5px 0;"><strong>📋 Permit Type:</strong><br>${escapeHtml(application.permitType)}</p>
+          </div>
+          ` : ''}
+          <div>
+            <p style="margin: 5px 0;"><strong>📅 Created:</strong><br>${createdAtStr}</p>
+          </div>
+          <div>
+            <p style="margin: 5px 0;"><strong>✅ Submitted:</strong><br>${submittedAtStr}</p>
+          </div>
+          <div>
+            <p style="margin: 5px 0;"><strong>🔄 Last Updated:</strong><br>${lastUpdatedStr}</p>
+          </div>
+          <div>
+            <p style="margin: 5px 0;"><strong>📤 Date:</strong><br>${dateSubmitted}</p>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 30px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #c8e6c9;">
+          <p style="margin: 5px 0;"><strong>📁 Total Uploads:</strong> <span style="color: #2e7d32; font-size: 18px; font-weight: bold;">${application.uploadCount || 0}</span></p>
+          <p style="margin: 5px 0;"><strong>💬 Total Comments:</strong> <span style="color: #2e7d32; font-size: 18px; font-weight: bold;">${application.commentCount || 0}</span></p>
+        </div>
+      </div>
       
-      <h3 style="color: #2e7d32; margin-bottom: 15px;">📁 Uploads & Comments</h3>
+      <hr style="margin: 25px 0; border: none; border-top: 2px solid #e0e0e0;">
+      
+      <h3 style="color: #2e7d32; margin-bottom: 15px;">📁 Uploaded Documents & Comments</h3>
       ${uploadsHtml}
     </div>
   `;

@@ -320,6 +320,7 @@ async function fetchUserTrees(userId) {
 // ---------- Load Applications Data ----------
 async function loadApplicationsData() {
   allApplications = [];
+  console.log("📥 Loading applications with submissions...");
 
   const counts = {
     CTPO: 0,
@@ -329,61 +330,108 @@ async function loadApplicationsData() {
     Chainsaw: 0,
   };
 
-  const appDocsSnap = await getDocs(applicationsRef);
+  try {
+    // Define all application types explicitly (matching reports.js)
+    const applicationTypes = ['ctpo', 'chainsaw', 'cov', 'pltp', 'splt', 'ptc'];
+    console.log(`📦 Processing ${applicationTypes.length} application types: ${applicationTypes.join(', ')}`);
+    
+    for (const appType of applicationTypes) {
+      console.log(`📂 Processing ${appType} applications...`);
+      
+      try {
+        const applicantsRef = collection(db, `applications/${appType}/applicants`);
+        const applicantsSnap = await getDocs(applicantsRef);
+        console.log(`  👥 Found ${applicantsSnap.docs.length} applicants for ${appType}`);
 
-  for (const appDoc of appDocsSnap.docs) {
-    const rawType = appDoc.id;
-    const normalizedType = normalizeApplicationType(rawType);
+        if (applicantsSnap.empty) {
+          console.log(`  ⚠️ No applicants found for ${appType}, skipping...`);
+          continue;
+        }
 
-    const applicantsRef = collection(
-      db,
-      `applications/${rawType}/applicants`
-    );
-    const applicantsSnap = await getDocs(applicantsRef);
+        for (const applicantDoc of applicantsSnap.docs) {
+          const userId = applicantDoc.id;
+          const applicantData = applicantDoc.data();
+          
+          console.log(`    📝 Applicant ${userId}`);
+          
+          // Load submissions from the new multi-submission structure
+          const submissionsRef = collection(
+            db,
+            `applications/${appType}/applicants/${userId}/submissions`
+          );
+          const submissionsSnap = await getDocs(submissionsRef);
 
-    for (const applicantDoc of applicantsSnap.docs) {
-      const data = applicantDoc.data();
-      const createdAt =
-        parseTimestamp(data.createdAt) ||
-        parseTimestamp(data.submittedAt) ||
-        parseTimestamp(data.submitted_at) ||
-        parseTimestamp(data.uploadedAt) ||
-        parseTimestamp(data.timestamp) ||
-        parseTimestamp(data.dateSubmitted) ||
-        parseTimestamp(data.appliedAt) ||
-        parseTimestamp(data.created_date) ||
-        null;
+          if (submissionsSnap.empty) {
+            console.log(`      ⚠️ No submissions found for applicant ${userId}`);
+            continue;
+          }
 
-      const applicantName =
-        data.applicantName ||
-        data.name ||
-        data.fullName ||
-        data.ownerName ||
-        "Unknown Applicant";
+          for (const submissionDoc of submissionsSnap.docs) {
+            const data = submissionDoc.data();
+            console.log(`      🔖 Processing submission: ${submissionDoc.id}`);
+            
+            const createdAt =
+              parseTimestamp(data.createdAt) ||
+              parseTimestamp(data.submittedAt) ||
+              parseTimestamp(data.submitted_at) ||
+              parseTimestamp(data.uploadedAt) ||
+              parseTimestamp(data.timestamp) ||
+              parseTimestamp(data.dateSubmitted) ||
+              parseTimestamp(data.appliedAt) ||
+              parseTimestamp(data.created_date) ||
+              null;
 
-      const status = formatStatus(
-        data.status ||
-          data.applicationStatus ||
-          data.reviewStatus ||
-          data.progressStatus ||
-          data.currentStatus ||
-          data.state
-      );
+            // Get applicant name from user directory or submission data
+            const userInfo = userDirectory.get(userId);
+            const applicantName =
+              userInfo?.name ||
+              applicantData.applicantName ||
+              data.applicantName ||
+              data.name ||
+              data.fullName ||
+              data.ownerName ||
+              "Unknown Applicant";
 
-      allApplications.push({
-        id: applicantDoc.id,
-        type: normalizedType,
-        rawType,
-        status,
-        createdAt: createdAt || new Date(),
-        applicantName,
-        data,
-      });
+            const status = formatStatus(
+              data.status ||
+                data.applicationStatus ||
+                data.reviewStatus ||
+                data.progressStatus ||
+                data.currentStatus ||
+                data.state ||
+                "Pending"
+            );
 
-      if (counts[normalizedType] !== undefined) {
-        counts[normalizedType] += 1;
+            const normalizedType = normalizeApplicationType(appType);
+
+            allApplications.push({
+              id: submissionDoc.id,
+              submissionId: submissionDoc.id,
+              userId,
+              type: normalizedType,
+              rawType: appType,
+              status,
+              createdAt: createdAt || new Date(),
+              applicantName,
+              data,
+            });
+
+            if (counts[normalizedType] !== undefined) {
+              counts[normalizedType] += 1;
+            }
+          }
+        }
+      } catch (typeError) {
+        console.error(`❌ Error processing ${appType}:`, typeError.message);
+        // Continue with other application types
       }
     }
+    
+    console.log(`✅ Loaded ${allApplications.length} total submissions across all application types`);
+    console.log("📊 Application counts:", counts);
+  } catch (error) {
+    console.error("❌ Error loading applications:", error);
+    console.error("Error details:", error.message);
   }
 
   if (ctpoCountEl) ctpoCountEl.textContent = counts.CTPO.toString();

@@ -6,6 +6,7 @@ import {
   addDoc,
   doc,
   setDoc,
+  updateDoc,
   deleteDoc,
   serverTimestamp,
   query,
@@ -22,11 +23,7 @@ checkLogin();
 let applicantsContainer, filesSection, filesBody, applicantTitle, applicationTypeTitle, applicationTypeHeader;
 let submissionSelector, submissionDropdown;
 let scheduleContainer, scheduleBtn, scheduleModal, closeModal, saveAppointmentBtn;
-let assignCuttingForesterBtn, proceedBtn;
-let cuttingForesterModal, closeCuttingForesterModal, cuttingFormStep, cuttingReviewStep;
-let cuttingApplicantName, cuttingPermitType, cuttingLocation, cuttingRemarks;
-let cuttingForesterMultiSelect, reviewCuttingBtn, cuttingBackToEditBtn, confirmCuttingBtn;
-let cuttingReviewApplicant, cuttingReviewPermitType, cuttingReviewLocation, cuttingReviewRemarks, cuttingReviewForesters;
+let proceedBtn;
 let commentBtn, commentModal, closeCommentModal, sendCommentBtn, commentDocumentSelect;
 let claimCertificateBtn, claimCertificateModal, closeClaimCertificateModal, sendClaimNotificationBtn;
 let claimApplicantName, claimCertificateType, claimMessage, claimRemarks;
@@ -583,26 +580,11 @@ async function showApplicantFiles(
   currentApplicationType = type;
   currentApplicantData = userData;
 
-  // Show appropriate buttons based on application type
-  if (type === "ctpo") {
-    // CTPO: Show tree tagging/inventory button
-    proceedBtn.style.display = "block";
-    proceedBtn.textContent = "Assign for Tree Tagging"; // Default text
-    assignCuttingForesterBtn.style.display = "none";
-  } else if (
-    type === "pltp" ||
-    type === "splt" ||
-    type === "ptc" ||
-    type === "permitCut"
-  ) {
-    // Cutting permits: Show cutting forester assignment button
-    proceedBtn.style.display = "none";
-    assignCuttingForesterBtn.style.display = "block";
-  } else {
-    // Other types: hide both
-    proceedBtn.style.display = "none";
-    assignCuttingForesterBtn.style.display = "none";
-  }
+  // Hide all buttons initially until a submission is selected
+  if (proceedBtn) proceedBtn.style.display = "none";
+  if (commentBtn) commentBtn.style.display = "none";
+  if (claimCertificateBtn) claimCertificateBtn.style.display = "none";
+  if (scheduleBtn) scheduleBtn.style.display = "none";
 
   setCurrentApplicant(userId, userData);
 
@@ -910,6 +892,7 @@ function displaySubmissionsList(userId, type) {
 async function selectAndViewSubmission(userId, type, submissionId) {
   currentSubmissionId = submissionId;
   console.log(`🔄 Viewing submission: ${currentSubmissionId}`);
+  console.log(`📍 User: ${userId}, Type: ${type}`);
   
   // Update tree inventory module with current submission
   setCurrentApplication(type, submissionId);
@@ -924,63 +907,428 @@ async function selectAndViewSubmission(userId, type, submissionId) {
   // Update the submission cards to show selected state
   displaySubmissionsList(userId, type);
   
+  console.log(`🎯 Showing buttons for type: ${type}`);
+  console.log(`🔘 proceedBtn exists:`, !!proceedBtn);
+  
+  // Show appropriate buttons based on application type
+  if (type === "ctpo" || type === "pltp" || type === "splt") {
+    // CTPO, PLTP, SPLTP: Show tree tagging/inventory button
+    if (proceedBtn) {
+      proceedBtn.style.display = "block";
+      console.log("✅ Set proceedBtn display to block");
+    }
+  } else {
+    // Other types: hide proceed button
+    if (proceedBtn) proceedBtn.style.display = "none";
+  }
+  
+  // Show comment button and schedule button for all types when submission is selected
+  if (commentBtn) commentBtn.style.display = "block";
+  if (scheduleBtn) scheduleBtn.style.display = "block";
+  
+  console.log("📞 Calling updateProceedButtonState...");
   // Update button text based on appointment status
   await updateProceedButtonState(submissionId);
+  console.log("✅ updateProceedButtonState completed");
   
   // Scroll to files table
   filesTable?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// ------------------ CTPO REFERENCE MODAL FOR PLTP/SPLTP ------------------
+async function showCtpoReferenceModal() {
+  if (!currentOpenUserId) {
+    alert("No applicant selected.");
+    return;
+  }
+
+  try {
+    // Fetch all CTPO submissions for this applicant
+    console.log("🔍 Fetching CTPO submissions for applicant:", currentOpenUserId);
+    const ctpoSubmissionsRef = collection(db, `applications/ctpo/applicants/${currentOpenUserId}/submissions`);
+    const ctpoSnap = await getDocs(query(ctpoSubmissionsRef, orderBy("createdAt", "desc")));
+
+    if (ctpoSnap.empty) {
+      alert("⚠️ No CTPO submissions found for this applicant.\n\nThe applicant must have a completed CTPO tree tagging appointment before assigning " + currentApplicationType.toUpperCase() + " tree tagging.");
+      return;
+    }
+
+    // Find CTPO submissions with completed tree tagging appointments
+    const validCtpoSubmissions = [];
+    
+    // Query the appointments collection for completed tree tagging appointments
+    console.log(`🔍 Checking appointments collection for applicant: ${currentOpenUserId}`);
+    const appointmentsRef = collection(db, "appointments");
+    const appointmentsQuery = query(
+      appointmentsRef,
+      where("applicantId", "==", currentOpenUserId),
+      where("status", "==", "Completed")
+    );
+    const appointmentsSnap = await getDocs(appointmentsQuery);
+    
+    console.log(`📋 Found ${appointmentsSnap.size} completed tree tagging appointment(s) for applicant`);
+    
+    if (appointmentsSnap.size === 0) {
+      alert("⚠️ No completed tree tagging appointments found.\n\nThe applicant must have at least one completed tree tagging appointment before assigning " + currentApplicationType.toUpperCase() + " tree tagging.");
+      return;
+    }
+
+    // Build a set of submission IDs that have completed tree tagging
+    const completedSubmissionIds = new Set();
+    
+    appointmentsSnap.forEach(aptDoc => {
+      const aptData = aptDoc.data();
+      console.log(`  ✅ Completed appointment: ${aptDoc.id}`, aptData);
+      
+      // Check if appointment has a submissionId field
+      if (aptData.submissionId) {
+        completedSubmissionIds.add(aptData.submissionId);
+        console.log(`    → Linked to submission: ${aptData.submissionId}`);
+      }
+    });
+    
+    console.log(`📦 Completed submission IDs:`, Array.from(completedSubmissionIds));
+    
+    // Filter CTPO submissions that have completed tree tagging
+    for (const ctpoDoc of ctpoSnap.docs) {
+      const ctpoData = ctpoDoc.data();
+      const ctpoId = ctpoDoc.id;
+      
+      // If we found submissions with completed appointments, filter by them
+      // Otherwise, if applicant has completed appointments but no submissionId field,
+      // assume all CTPO submissions are valid
+      if (completedSubmissionIds.size > 0) {
+        if (completedSubmissionIds.has(ctpoId)) {
+          validCtpoSubmissions.push({
+            id: ctpoId,
+            data: ctpoData,
+            createdAt: ctpoData.createdAt,
+            submittedAt: ctpoData.submittedAt
+          });
+          console.log(`  ✓ Valid CTPO submission: ${ctpoId}`);
+        }
+      } else {
+        // No submissionId in appointments, but applicant has completed tree tagging
+        // So all their CTPO submissions are potentially valid
+        validCtpoSubmissions.push({
+          id: ctpoId,
+          data: ctpoData,
+          createdAt: ctpoData.createdAt,
+          submittedAt: ctpoData.submittedAt
+        });
+        console.log(`  ✓ Valid CTPO submission (no submissionId filter): ${ctpoId}`);
+      }
+    }
+
+    console.log(`✅ Found ${validCtpoSubmissions.length} CTPO submission(s) with completed tree tagging`);
+
+    if (validCtpoSubmissions.length === 0) {
+      alert("⚠️ No CTPO submissions with completed tree tagging found.\n\nThe applicant must have at least one CTPO submission with a completed tree tagging appointment before assigning " + currentApplicationType.toUpperCase() + " tree tagging.");
+      return;
+    }
+
+    // Show modal with CTPO selection
+    displayCtpoSelectionModal(validCtpoSubmissions);
+
+  } catch (err) {
+    console.error("❌ Error fetching CTPO submissions:", err);
+    alert("Error loading CTPO submissions: " + err.message);
+  }
+}
+
+function displayCtpoSelectionModal(ctpoSubmissions) {
+  // Create modal if it doesn't exist
+  let modal = document.getElementById("ctpoReferenceModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "ctpoReferenceModal";
+    modal.className = "modal";
+    modal.style.display = "none";
+    document.body.appendChild(modal);
+  }
+
+  const submissionsHtml = ctpoSubmissions.map(submission => {
+    const createdDate = submission.createdAt?.toDate 
+      ? submission.createdAt.toDate().toLocaleString()
+      : "N/A";
+    const submittedDate = submission.submittedAt?.toDate 
+      ? submission.submittedAt.toDate().toLocaleString()
+      : "-";
+    
+    return `
+      <div class="ctpo-reference-card" data-ctpo-id="${submission.id}" style="
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      ">
+        <h3 style="margin: 0 0 10px 0; color: #2d5016; font-size: 1.1em;">📋 ${escapeHtml(submission.id)}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9em; color: #666;">
+          <div>
+            <strong>📅 Created:</strong><br/>${createdDate}
+          </div>
+          <div>
+            <strong>✅ Submitted:</strong><br/>${submittedDate}
+          </div>
+          <div>
+            <strong>✓ Status:</strong><br/><span style="color: #4caf50;">Tree Tagging Completed</span>
+          </div>
+        </div>
+        <button class="select-ctpo-btn" data-ctpo-id="${submission.id}" style="
+          background: #2d5016;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9em;
+          margin-top: 10px;
+          width: 100%;
+        ">
+          ✓ Select This CTPO
+        </button>
+      </div>
+    `;
+  }).join("");
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+      <span class="close" id="closeCtpoReferenceModal">&times;</span>
+      <h2 style="color: #2d5016; margin-bottom: 20px;">📋 Select CTPO Reference</h2>
+      <p style="color: #666; margin-bottom: 20px;">
+        Select a CTPO submission with completed tree tagging to reference for this ${currentApplicationType.toUpperCase()} tree tagging assignment:
+      </p>
+      <div id="ctpoReferenceList">
+        ${submissionsHtml}
+      </div>
+    </div>
+  `;
+
+  modal.style.display = "block";
+
+  // Close button handler
+  const closeBtn = document.getElementById("closeCtpoReferenceModal");
+  closeBtn.onclick = () => {
+    modal.style.display = "none";
+  };
+
+  // Click outside to close
+  window.onclick = (event) => {
+    if (event.target === modal) {
+      modal.style.display = "none";
+    }
+  };
+
+  // Add hover effects
+  const style = document.createElement('style');
+  style.textContent = `
+    .ctpo-reference-card:hover {
+      border-color: #2d5016 !important;
+      box-shadow: 0 4px 12px rgba(45,80,22,0.3);
+      transform: translateY(-2px);
+    }
+    .select-ctpo-btn:hover {
+      background: #1a4d0a;
+    }
+  `;
+  if (!document.getElementById('ctpo-reference-modal-styles')) {
+    style.id = 'ctpo-reference-modal-styles';
+    document.head.appendChild(style);
+  }
+
+  // Attach selection handlers
+  document.querySelectorAll(".select-ctpo-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const ctpoId = btn.dataset.ctpoId;
+      selectCtpoReference(ctpoId);
+      modal.style.display = "none";
+    });
+  });
+
+  document.querySelectorAll(".ctpo-reference-card").forEach(card => {
+    card.addEventListener("click", (e) => {
+      if (!e.target.classList.contains("select-ctpo-btn")) {
+        const ctpoId = card.dataset.ctpoId;
+        selectCtpoReference(ctpoId);
+        modal.style.display = "none";
+      }
+    });
+  });
+}
+
+async function selectCtpoReference(ctpoId) {
+  console.log("✓ Selected CTPO reference:", ctpoId);
+  
+  // Store the CTPO reference in the current submission
+  try {
+    const submissionRef = doc(
+      db,
+      "applications",
+      currentApplicationType,
+      "applicants",
+      currentOpenUserId,
+      "submissions",
+      currentSubmissionId
+    );
+    
+    await updateDoc(submissionRef, {
+      ctpoReference: ctpoId,
+      ctpoReferenceUpdatedAt: serverTimestamp()
+    });
+    
+    console.log("✅ CTPO reference saved to submission");
+    
+    // Now proceed with tree tagging assignment, passing CTPO reference
+    setAppointmentMode('new', null, null, ctpoId);
+    
+  } catch (err) {
+    console.error("❌ Error saving CTPO reference:", err);
+    alert("Error saving CTPO reference: " + err.message);
+  }
+}
+
 // ------------------ UPDATE PROCEED BUTTON STATE ------------------
 async function updateProceedButtonState(submissionId) {
-  if (!proceedBtn || currentApplicationType !== "ctpo") return;
+  if (!proceedBtn) return;
+  
+  // Only handle CTPO, PLTP, and SPLTP
+  if (currentApplicationType !== "ctpo" && currentApplicationType !== "pltp" && currentApplicationType !== "splt") return;
   
   try {
     // Find the submission in availableSubmissions
     const submission = availableSubmissions.find(s => s.id === submissionId);
     
+    console.log("🔍 updateProceedButtonState called for:", submissionId);
+    console.log("📦 Found submission:", submission);
+    console.log("📋 Appointments:", submission?.appointments);
+    
     if (!submission || !submission.appointments || submission.appointments.length === 0) {
-      // No appointments - show "Assign for Tree Tagging"
-      proceedBtn.textContent = "Assign for Tree Tagging";
-      proceedBtn.disabled = false;
+      // No appointments
+      if (currentApplicationType === "ctpo") {
+        // CTPO: show "Assign for Tree Tagging"
+        proceedBtn.textContent = "Assign for Tree Tagging";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        
+        proceedBtn.onclick = () => {
+          setAppointmentMode('new', null, null);
+        };
+        console.log("✅ Button set to: Assign for Tree Tagging (CTPO)");
+      } else if (currentApplicationType === "pltp" || currentApplicationType === "splt") {
+        // PLTP/SPLTP: show "Select CTPO Reference"
+        proceedBtn.textContent = "Select CTPO Reference";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        
+        proceedBtn.onclick = async () => {
+          await showCtpoReferenceModal();
+        };
+        console.log("✅ Button set to: Select CTPO Reference (PLTP/SPLTP)");
+      }
       
-      // Set mode to 'new' when button will be clicked
-      proceedBtn.onclick = () => {
-        setAppointmentMode('new', null, null);
-      };
+      // Hide claim certificate button (no completed tree tagging)
+      if (claimCertificateBtn) claimCertificateBtn.style.display = "none";
       return;
     }
     
-    // Check if any appointment has "Completed" status
-    const hasCompletedAppointment = submission.appointments.some(
-      apt => apt.status && apt.status.toLowerCase() === 'completed'
+    // Check if there's a completed tree tagging appointment
+    const hasCompletedTreeTagging = submission.appointments.some(
+      apt => apt.appointmentType === 'Tree Tagging' && apt.status && apt.status.toLowerCase() === 'completed'
     );
     
-    if (hasCompletedAppointment) {
-      // Has completed appointment - show "Assign for Revisit"
-      proceedBtn.textContent = "Assign for Revisit";
-      proceedBtn.disabled = false;
-      
-      // Set mode to 'revisit' when button will be clicked
-      proceedBtn.onclick = () => {
-        setAppointmentMode('revisit', null, null);
-      };
-    } else {
-      // Has pending/scheduled appointment - show "Modify Assignment"
-      proceedBtn.textContent = "Modify Tree Tagging Assignment";
-      proceedBtn.disabled = false;
-      
-      // Find the first pending/scheduled appointment
-      const pendingAppointment = submission.appointments.find(
-        apt => apt.status && (apt.status.toLowerCase() === 'pending' || apt.status.toLowerCase() === 'scheduled')
-      );
-      
-      // Set mode to 'modify' with existing appointment data when button will be clicked
-      proceedBtn.onclick = () => {
-        if (pendingAppointment) {
-          setAppointmentMode('modify', pendingAppointment.id, pendingAppointment);
-        }
-      };
+    // Check if there's a revisit appointment (pending or scheduled)
+    const revisitAppointment = submission.appointments.find(
+      apt => apt.appointmentType === 'Revisit' && apt.status && 
+      (apt.status.toLowerCase() === 'pending' || apt.status.toLowerCase() === 'scheduled')
+    );
+    
+    // Check if there's a pending/scheduled tree tagging appointment
+    const pendingTreeTagging = submission.appointments.find(
+      apt => apt.appointmentType === 'Tree Tagging' && apt.status && 
+      (apt.status.toLowerCase() === 'pending' || apt.status.toLowerCase() === 'scheduled')
+    );
+    
+    // Show/hide claim certificate button based on completed tree tagging (CTPO only)
+    if (claimCertificateBtn) {
+      claimCertificateBtn.style.display = (currentApplicationType === "ctpo" && hasCompletedTreeTagging) ? "block" : "none";
+    }
+    
+    // Handle CTPO with revisit functionality
+    if (currentApplicationType === "ctpo") {
+      if (revisitAppointment) {
+        // Has revisit appointment - show "Modify Revisit Assignment"
+        proceedBtn.textContent = "Modify Revisit Assignment";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        
+        // Set mode to 'modify' for revisit appointment
+        proceedBtn.onclick = () => {
+          setAppointmentMode('modify', revisitAppointment.id, revisitAppointment);
+        };
+        console.log("✅ Button set to: Modify Revisit Assignment");
+      } else if (pendingTreeTagging) {
+        // Has pending/scheduled tree tagging - show "Modify Tree Tagging Assignment"
+        proceedBtn.textContent = "Modify Tree Tagging Assignment";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        
+        // Set mode to 'modify' with existing appointment data
+        proceedBtn.onclick = () => {
+          setAppointmentMode('modify', pendingTreeTagging.id, pendingTreeTagging);
+        };
+        console.log("✅ Button set to: Modify Tree Tagging Assignment");
+      } else if (hasCompletedTreeTagging) {
+        // Has completed tree tagging but no revisit - show "Assign for Revisit"
+        proceedBtn.textContent = "Assign for Revisit";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        
+        // Set mode to 'revisit' when button will be clicked
+        proceedBtn.onclick = () => {
+          setAppointmentMode('revisit', null, null);
+        };
+        console.log("✅ Button set to: Assign for Revisit");
+      } else {
+        // Default fallback
+        proceedBtn.textContent = "Assign for Tree Tagging";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        proceedBtn.onclick = () => {
+          setAppointmentMode('new', null, null);
+        };
+        console.log("✅ Button set to: Assign for Tree Tagging (fallback)");
+      }
+    } else if (currentApplicationType === "pltp" || currentApplicationType === "splt") {
+      // Handle PLTP/SPLTP without revisit functionality
+      if (pendingTreeTagging) {
+        // Has pending/scheduled tree tagging - show "Modify Tree Tagging Assignment"
+        proceedBtn.textContent = "Modify Tree Tagging Assignment";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        
+        // Set mode to 'modify' with existing appointment data
+        proceedBtn.onclick = () => {
+          setAppointmentMode('modify', pendingTreeTagging.id, pendingTreeTagging);
+        };
+        console.log("✅ Button set to: Modify Tree Tagging Assignment (PLTP/SPLTP)");
+      } else if (hasCompletedTreeTagging) {
+        // Tree tagging completed - hide button (no revisit for PLTP/SPLTP)
+        proceedBtn.style.display = "none";
+        console.log("✅ Button hidden (Tree Tagging completed, no revisit)");
+      } else {
+        // No appointments - show "Select CTPO Reference"
+        proceedBtn.textContent = "Select CTPO Reference";
+        proceedBtn.disabled = false;
+        proceedBtn.style.display = "block";
+        proceedBtn.onclick = async () => {
+          await showCtpoReferenceModal();
+        };
+        console.log("✅ Button set to: Select CTPO Reference (PLTP/SPLTP)");
+      }
     }
   } catch (err) {
     console.error("Error updating proceed button state:", err);
@@ -989,6 +1337,8 @@ async function updateProceedButtonState(submissionId) {
     proceedBtn.onclick = () => {
       setAppointmentMode('new', null, null);
     };
+    // Hide claim certificate button on error
+    if (claimCertificateBtn) claimCertificateBtn.style.display = "none";
   }
 }
 
@@ -1170,8 +1520,6 @@ function attachSidebarListeners() {
   const ctpoBtn = document.getElementById("ctpoBtn");
   const pltpBtn = document.getElementById("pltpBtn");
   const spltpBtn = document.getElementById("spltpBtn");
-  const permitCutBtn = document.getElementById("permitCutBtn");
-  const cttBtn = document.getElementById("cttBtn");
   const covBtn = document.getElementById("covBtn");
   const chainsawBtn = document.getElementById("chainsawBtn");
 
@@ -1192,14 +1540,6 @@ function attachSidebarListeners() {
     console.log("SPLTP button clicked");
     handleAppButtonClick("splt", "SPLT Applications");
   });
-  permitCutBtn?.addEventListener("click", () => {
-    console.log("Permit to Cut button clicked");
-    handleAppButtonClick("ptc", "Permit to Cut Applications");
-  });
-  cttBtn?.addEventListener("click", () => {
-    console.log("CTT button clicked");
-    handleAppButtonClick("ctt", "Certificate to Travel Applications");
-  });
   covBtn?.addEventListener("click", () => {
     console.log("COV button clicked");
     handleAppButtonClick("cov", "Certificate of Verification Applications");
@@ -1210,7 +1550,7 @@ function attachSidebarListeners() {
   });
 
   console.log("✅ Sidebar event listeners attached successfully!");
-  console.log("Found buttons:", { ctpoBtn, pltpBtn, spltpBtn, permitCutBtn, cttBtn, covBtn, chainsawBtn });
+  console.log("Found buttons:", { ctpoBtn, pltpBtn, spltpBtn, covBtn, chainsawBtn });
 }
 
 // Wait for sidebar to be loaded dynamically in applications.html
@@ -1440,186 +1780,6 @@ sendCommentBtn.addEventListener("click", async () => {
 
 closeCommentModal.addEventListener("click", () => {
   commentModal.style.display = "none";
-});
-}
-
-// ==================== CUTTING FORESTER ASSIGNMENT ====================
-function initCuttingForesterModal() {
-  assignCuttingForesterBtn = document.getElementById("assignCuttingForesterBtn");
-  proceedBtn = document.getElementById("proceedBtn");
-  cuttingForesterModal = document.getElementById("cuttingForesterModal");
-  closeCuttingForesterModal = document.getElementById("closeCuttingForesterModal");
-  cuttingFormStep = document.getElementById("cuttingFormStep");
-  cuttingReviewStep = document.getElementById("cuttingReviewStep");
-  cuttingApplicantName = document.getElementById("cuttingApplicantName");
-  cuttingPermitType = document.getElementById("cuttingPermitType");
-  cuttingLocation = document.getElementById("cuttingLocation");
-  cuttingRemarks = document.getElementById("cuttingRemarks");
-  cuttingForesterMultiSelect = document.getElementById("cuttingForesterMultiSelect");
-  reviewCuttingBtn = document.getElementById("reviewCuttingBtn");
-  cuttingBackToEditBtn = document.getElementById("cuttingBackToEditBtn");
-  confirmCuttingBtn = document.getElementById("confirmCuttingBtn");
-  cuttingReviewApplicant = document.getElementById("cuttingReviewApplicant");
-  cuttingReviewPermitType = document.getElementById("cuttingReviewPermitType");
-  cuttingReviewLocation = document.getElementById("cuttingReviewLocation");
-  cuttingReviewRemarks = document.getElementById("cuttingReviewRemarks");
-  cuttingReviewForesters = document.getElementById("cuttingReviewForesters");
-
-  if (!cuttingForesterModal) return; // Elements not ready yet
-
-// Close modal
-if (closeCuttingForesterModal) {
-  closeCuttingForesterModal.addEventListener("click", () => {
-    cuttingForesterModal.style.display = "none";
-  });
-}
-
-window.addEventListener("click", (e) => {
-  if (e.target === cuttingForesterModal)
-    cuttingForesterModal.style.display = "none";
-});
-
-// Open cutting forester assignment modal
-if (assignCuttingForesterBtn) {
-  assignCuttingForesterBtn.addEventListener("click", async () => {
-    if (!currentOpenUserId) return alert("⚠️ Select an applicant first.");
-
-    const userRef = doc(db, "users", currentOpenUserId);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) return alert("Applicant not found.");
-    const applicantData = userSnap.data();
-
-    cuttingApplicantName.value = applicantData.name || "";
-
-    // Set permit type based on application type
-    const permitTypeMap = {
-      pltp: "PLTP (Private Land Timber Permit)",
-      splt: "SPLTP (Special Land Timber Permit)",
-      permitCut: "Permit to Cut",
-    };
-    cuttingPermitType.textContent =
-      permitTypeMap[currentApplicationType] ||
-      currentApplicationType.toUpperCase();
-
-    await loadForesters(cuttingForesterMultiSelect);
-
-    cuttingForesterModal.style.display = "block";
-    cuttingFormStep.style.display = "block";
-    cuttingReviewStep.style.display = "none";
-
-    // Reset form
-    cuttingLocation.value = "";
-    cuttingRemarks.value = "";
-    cuttingForesterMultiSelect.selectedIndex = -1;
-  });
-}
-
-// Review cutting assignment
-if (reviewCuttingBtn) {
-  reviewCuttingBtn.addEventListener("click", () => {
-    const selectedForesters = Array.from(
-      cuttingForesterMultiSelect.selectedOptions
-    );
-
-    if (selectedForesters.length === 0)
-      return alert("⚠️ Please select at least one forester.");
-    if (!cuttingLocation.value.trim()) {
-      alert("⚠️ Please fill in the location.");
-      return;
-    }
-
-    // Populate review details
-    cuttingReviewApplicant.textContent = cuttingApplicantName.value;
-    cuttingReviewPermitType.textContent = cuttingPermitType.textContent;
-    cuttingReviewLocation.textContent = cuttingLocation.value;
-    cuttingReviewRemarks.textContent = cuttingRemarks.value || "None";
-    cuttingReviewForesters.innerHTML = selectedForesters
-      .map((f) => f.textContent)
-      .join(", ");
-
-    // Switch view
-    cuttingFormStep.style.display = "none";
-    cuttingReviewStep.style.display = "block";
-  });
-}
-
-// Back to edit
-if (cuttingBackToEditBtn) {
-  cuttingBackToEditBtn.addEventListener("click", () => {
-    cuttingFormStep.style.display = "block";
-    cuttingReviewStep.style.display = "none";
-  });
-}
-
-// Confirm and save cutting assignment
-if (confirmCuttingBtn) {
-  confirmCuttingBtn.addEventListener("click", async () => {
-    const selectedForesters = Array.from(
-      cuttingForesterMultiSelect.selectedOptions
-    ).map((opt) => opt.value);
-
-    if (selectedForesters.length === 0)
-      return alert("⚠️ Please select at least one forester.");
-
-    try {
-      // Get admin info from script.js
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      const adminId = currentUser?.email || "admin";
-
-      // Fetch all existing cutting appointments
-      const snapshot = await getDocs(collection(db, "appointments"));
-      const existingDocs = snapshot.docs
-        .filter((docSnap) => docSnap.id.startsWith("cutting_appointment_"))
-        .map((docSnap) => docSnap.id);
-
-      // Determine the next available index
-      let maxIndex = 0;
-      existingDocs.forEach((id) => {
-        const num = parseInt(id.replace("cutting_appointment_", ""));
-        if (!isNaN(num) && num > maxIndex) {
-          maxIndex = num;
-        }
-      });
-
-      const nextIndex = String(maxIndex + 1).padStart(2, "0");
-      const newDocId = `cutting_appointment_${nextIndex}`;
-
-      // Create the new cutting appointment document
-      await setDoc(doc(db, "appointments", newDocId), {
-        adminId,
-        applicantId: currentOpenUserId,
-        applicantName: cuttingApplicantName.value,
-        appointmentType: "Cutting Assignment",
-        permitType: cuttingPermitType.textContent,
-        location: cuttingLocation.value.trim(),
-        status: "Pending",
-        treeIds: [],
-        remarks: cuttingRemarks.value || "",
-        createdAt: serverTimestamp(),
-        completedAt: null,
-        foresterIds: selectedForesters, // multiple foresters
-      });
-
-      alert(
-        `✅ Cutting assignment "${newDocId}" assigned to ${selectedForesters.length} forester(s).`
-      );
-      cuttingForesterModal.style.display = "none";
-
-      // Reset form
-      cuttingLocation.value = "";
-      cuttingRemarks.value = "";
-      cuttingForesterMultiSelect.selectedIndex = -1;
-    } catch (err) {
-      console.error("❌ Error creating cutting assignment:", err);
-      alert("Failed to create assignment: " + err.message);
-    }
-  });
-}
-
-window.addEventListener("click", (e) => {
-  if (e.target === cuttingForesterModal)
-    cuttingForesterModal.style.display = "none";
 });
 }
 
@@ -2010,6 +2170,11 @@ function initScheduleModal() {
   scheduleBtn?.addEventListener("click", () => {
     if (!currentOpenUserId) return alert("Select an applicant first.");
     
+    if (!currentSubmissionId) {
+      alert("Please select a submission first.");
+      return;
+    }
+    
     // Set default date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -2041,6 +2206,11 @@ function initScheduleModal() {
     try {
       if (!currentOpenUserId) {
         alert("Select an applicant first.");
+        return;
+      }
+      
+      if (!currentSubmissionId) {
+        alert("No submission selected.");
         return;
       }
 
@@ -2111,6 +2281,7 @@ function initScheduleModal() {
         applicantId: currentOpenUserId,
         applicantName,
         appointmentType: "Walk-in Appointment",
+        appointmentId: currentSubmissionId, // Store the submission ID
         purpose: walkInPurpose,
         scheduledDate: appointmentDateTime.toISOString().split('T')[0], // Store date separately
         scheduledTime: walkInTime, // Store time separately
@@ -2121,10 +2292,39 @@ function initScheduleModal() {
         treeIds: [],
         createdAt: serverTimestamp(),
       });
+      
+      // Get the userId from applicant data to send notification
+      const applicantRef = doc(
+        db,
+        "applications",
+        currentApplicationType,
+        "applicants",
+        currentOpenUserId
+      );
+      const applicantSnap = await getDoc(applicantRef);
+      
+      if (applicantSnap.exists()) {
+        const applicantDataFromDb = applicantSnap.data();
+        const userId = applicantDataFromDb.userId;
+        
+        if (userId) {
+          // Create notification for the user
+          const notificationsRef = collection(db, "users", userId, "notifications");
+          await addDoc(notificationsRef, {
+            title: "Walk-in Appointment Scheduled",
+            message: `Your walk-in appointment for submission ${currentSubmissionId} has been scheduled for ${appointmentDateTime.toLocaleString()}.`,
+            appointmentId: currentSubmissionId, // Store the submission ID as appointmentId
+            timestamp: serverTimestamp(),
+            read: false,
+            type: "walk-in-appointment"
+          });
+        }
+      }
 
       alert(
         `✅ Walk-in appointment "${newDocId}" scheduled successfully!\n\n` +
         `Applicant: ${applicantName}\n` +
+        `Submission: ${currentSubmissionId}\n` +
         `Date: ${appointmentDateTime.toLocaleDateString()}\n` +
         `Time: ${appointmentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n` +
         `Purpose: ${walkInPurpose}`
@@ -2152,11 +2352,17 @@ function initElements() {
   applicantTitle = document.getElementById("applicantTitle");
   applicationTypeTitle = document.getElementById("applicationTypeTitle");
   applicationTypeHeader = document.getElementById("applicationTypeHeader");
+  
+  // Get button elements
+  proceedBtn = document.getElementById("proceedBtn");
+  commentBtn = document.getElementById("commentBtn");
+  scheduleBtn = document.getElementById("scheduleBtn");
+  claimCertificateBtn = document.getElementById("claimCertificateBtn");
+  manageTemplatesBtn = document.getElementById("manageTemplatesBtn");
 
   // Initialize modal systems
   initScheduleModal();
   initCommentModal();
-  initCuttingForesterModal();
   initClaimCertificateModal();
   initTemplateModal();
 

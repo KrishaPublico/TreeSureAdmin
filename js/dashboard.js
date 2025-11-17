@@ -1065,23 +1065,40 @@ async function loadTreeStats() {
 
 // ---------- Populate Filters ----------
 function populateFilterDropdowns(speciesList, foresterList) {
-  // Clear existing options (keep only "All" option)
-  speciesFilter.innerHTML = '<option value="all">All Species</option>';
-  foresterFilter.innerHTML = '<option value="all">All Foresters</option>';
-  applicantFilter.innerHTML = '<option value="all">All Applicants</option>';
+  console.log('🔍 Populating filter dropdowns...');
+  console.log('Species list:', speciesList);
+  console.log('Forester list:', foresterList);
+  console.log('Total trees for filtering:', allTrees.length);
   
+  // Get fresh references to filter elements
+  const speciesFilterEl = document.getElementById("speciesFilter");
+  const foresterFilterEl = document.getElementById("foresterFilter");
+  const applicantFilterEl = document.getElementById("applicantFilter");
+  
+  if (!speciesFilterEl || !foresterFilterEl || !applicantFilterEl) {
+    console.error('❌ Filter elements not found in DOM');
+    return;
+  }
+  
+  // Clear existing options (keep only "All" option)
+  speciesFilterEl.innerHTML = '<option value="all">All Species</option>';
+  foresterFilterEl.innerHTML = '<option value="all">All Foresters</option>';
+  applicantFilterEl.innerHTML = '<option value="all">All Applicants</option>';
+  
+  // Populate species filter
   speciesList.sort().forEach((sp) => {
     const opt = document.createElement("option");
     opt.value = sp;
     opt.textContent = sp;
-    speciesFilter.appendChild(opt);
+    speciesFilterEl.appendChild(opt);
   });
 
+  // Populate forester filter
   foresterList.sort().forEach((f) => {
     const opt = document.createElement("option");
     opt.value = f;
     opt.textContent = f;
-    foresterFilter.appendChild(opt);
+    foresterFilterEl.appendChild(opt);
   });
 
   // Populate applicant filter
@@ -1092,61 +1109,140 @@ function populateFilterDropdowns(speciesList, foresterList) {
     }
   });
   
+  const applicantCount = applicantSet.size;
   Array.from(applicantSet).sort().forEach((applicant) => {
     const opt = document.createElement("option");
     opt.value = applicant;
     opt.textContent = applicant;
-    applicantFilter.appendChild(opt);
+    applicantFilterEl.appendChild(opt);
   });
 
+  console.log(`✅ Filters populated: ${speciesList.length} species, ${foresterList.length} foresters, ${applicantCount} applicants`);
+  
   // Remove old event listeners by cloning and replacing
-  const newSpeciesFilter = speciesFilter.cloneNode(true);
-  const newForesterFilter = foresterFilter.cloneNode(true);
-  const newApplicantFilter = applicantFilter.cloneNode(true);
+  const newSpeciesFilter = speciesFilterEl.cloneNode(true);
+  const newForesterFilter = foresterFilterEl.cloneNode(true);
+  const newApplicantFilter = applicantFilterEl.cloneNode(true);
   
-  speciesFilter.parentNode.replaceChild(newSpeciesFilter, speciesFilter);
-  foresterFilter.parentNode.replaceChild(newForesterFilter, foresterFilter);
-  applicantFilter.parentNode.replaceChild(newApplicantFilter, applicantFilter);
+  speciesFilterEl.parentNode.replaceChild(newSpeciesFilter, speciesFilterEl);
+  foresterFilterEl.parentNode.replaceChild(newForesterFilter, foresterFilterEl);
+  applicantFilterEl.parentNode.replaceChild(newApplicantFilter, applicantFilterEl);
   
-  // Update references
-  const updatedSpeciesFilter = document.getElementById("speciesFilter");
-  const updatedForesterFilter = document.getElementById("foresterFilter");
-  const updatedApplicantFilter = document.getElementById("applicantFilter");
+  // Add event listeners to new elements
+  newSpeciesFilter.addEventListener("change", applyMapFilters);
+  newForesterFilter.addEventListener("change", applyMapFilters);
+  newApplicantFilter.addEventListener("change", applyMapFilters);
   
-  // Add event listeners
-  updatedSpeciesFilter.addEventListener("change", applyMapFilters);
-  updatedForesterFilter.addEventListener("change", applyMapFilters);
-  updatedApplicantFilter.addEventListener("change", applyMapFilters);
+  console.log('✅ Filter event listeners attached');
 }
 
 // ---------- Apply Map Filters ----------
 function applyMapFilters() {
-  const selectedSpecies = speciesFilter.value;
-  const selectedForester = foresterFilter.value;
-  const selectedApplicant = applicantFilter.value;
+  console.log('🗺️ Applying map filters...');
+  
+  // Get fresh references to filter elements
+  const speciesFilterEl = document.getElementById("speciesFilter");
+  const foresterFilterEl = document.getElementById("foresterFilter");
+  const applicantFilterEl = document.getElementById("applicantFilter");
+  
+  if (!speciesFilterEl || !foresterFilterEl || !applicantFilterEl) {
+    console.error('❌ Filter elements not found');
+    return;
+  }
+  
+  const selectedSpecies = speciesFilterEl.value;
+  const selectedForester = foresterFilterEl.value;
+  const selectedApplicant = applicantFilterEl.value;
+
+  console.log('Filter values:', {
+    species: selectedSpecies,
+    forester: selectedForester,
+    applicant: selectedApplicant
+  });
 
   let filtered = allTrees.filter((tree) => {
-    const speciesMatch =
-      selectedSpecies === "all" ||
-      (tree.specie || tree.species) === selectedSpecies;
-    const foresterMatch =
-      selectedForester === "all" || tree.foresterName === selectedForester;
-    const applicantMatch =
-      selectedApplicant === "all" || tree.ownerName === selectedApplicant;
+    // Species filter match
+    const treeSpecies = tree.specie || tree.species || "Unknown";
+    const speciesMatch = selectedSpecies === "all" || treeSpecies === selectedSpecies;
+    
+    // Forester filter match
+    const treeForester = tree.foresterName || "Unknown Forester";
+    const foresterMatch = selectedForester === "all" || treeForester === selectedForester;
+    
+    // Applicant filter match
+    const treeApplicant = tree.ownerName || "Unknown Owner";
+    const applicantMatch = selectedApplicant === "all" || treeApplicant === selectedApplicant;
+    
     return speciesMatch && foresterMatch && applicantMatch;
   });
 
+  console.log(`📊 Filtered ${filtered.length} trees from ${allTrees.length} total`);
+  
+  // Plot filtered trees on map
   plotTreeLocations(filtered);
   
-  // If filtering by applicant, zoom to their trees
-  if (selectedApplicant !== "all" && filtered.length > 0) {
-    const bounds = L.latLngBounds(filtered.map(tree => [tree.latitude, tree.longitude]).filter(coord => !isNaN(coord[0]) && !isNaN(coord[1])));
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [50, 50] });
+  // Update map view based on filters
+  if (filtered.length > 0) {
+    const validCoords = filtered
+      .map(tree => [parseFloat(tree.latitude), parseFloat(tree.longitude)])
+      .filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]));
+    
+    if (validCoords.length > 0) {
+      const bounds = L.latLngBounds(validCoords);
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+        console.log('✅ Map zoomed to filtered trees');
+      }
+    } else {
+      console.warn('⚠️ No valid coordinates in filtered trees');
+      map.setView([18.3, 121.7], 9);
     }
   } else {
+    console.warn('⚠️ No trees match current filter criteria');
     map.setView([18.3, 121.7], 9);
   }
+  
+  // Update filter summary display
+  updateFilterSummary(filtered.length, selectedSpecies, selectedForester, selectedApplicant);
+}
+
+// ---------- Update Filter Summary ----------
+function updateFilterSummary(count, species, forester, applicant) {
+  const mapContainer = document.querySelector('.map-container');
+  if (!mapContainer) return;
+  
+  let existingSummary = document.getElementById('filterSummary');
+  if (!existingSummary) {
+    existingSummary = document.createElement('div');
+    existingSummary.id = 'filterSummary';
+    existingSummary.style.cssText = `
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 14px;
+      max-width: 250px;
+    `;
+    mapContainer.appendChild(existingSummary);
+  }
+  
+  const filters = [];
+  if (species !== 'all') filters.push(`Species: ${species}`);
+  if (forester !== 'all') filters.push(`Forester: ${forester}`);
+  if (applicant !== 'all') filters.push(`Applicant: ${applicant}`);
+  
+  const filterText = filters.length > 0 
+    ? `<strong>Active Filters:</strong><br>${filters.join('<br>')}<br>` 
+    : '';
+  
+  existingSummary.innerHTML = `
+    ${filterText}
+    <strong>Showing:</strong> ${count} tree${count !== 1 ? 's' : ''}
+  `;
 }
 
 // ---------- Helper: Calculate distance ----------
@@ -1170,39 +1266,84 @@ function deg2rad(deg) {
 // ---------- Plot Trees ----------
 function plotTreeLocations(trees) {
   if (!map) {
-    console.error('Map not initialized');
+    console.error('❌ Map not initialized');
     initMap();
   }
   
   markersLayer.clearLayers();
   
-  console.log(`Plotting ${trees.length} trees on the map`);
+  console.log(`🗺️ Plotting ${trees.length} trees on the map`);
 
   let markersAdded = 0;
-  trees.forEach((tree) => {
+  let invalidCoordinates = 0;
+  
+  trees.forEach((tree, index) => {
     const lat = parseFloat(tree.latitude);
     const lng = parseFloat(tree.longitude);
-    if (!isNaN(lat) && !isNaN(lng)) {
+    
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
       const species = tree.specie || tree.species || "Unknown";
+      const treeId = tree.tree_no || tree.tree_id || tree.id || `Tree ${index + 1}`;
+      const foresterName = tree.foresterName || "Unknown Forester";
+      const applicantName = tree.ownerName || "Unknown Owner";
+      const location = tree.barangay || tree.municipality || "N/A";
+      const diameter = tree.diameter ? `${tree.diameter} cm` : "N/A";
+      const height = tree.height ? `${tree.height} m` : "N/A";
+      const volume = tree.volume ? `${tree.volume.toFixed(2)} m³` : "N/A";
+      const status = tree.tree_status || tree.status || "N/A";
+      
+      // Create custom icon based on tree status
+      let iconColor = '#2e7d32'; // default green
+      if (status.toLowerCase().includes('ready')) {
+        iconColor = '#4caf50'; // bright green for ready
+      } else if (status.toLowerCase().includes('not')) {
+        iconColor = '#ff9800'; // orange for not ready
+      }
+      
+      const customIcon = L.divIcon({
+        className: 'custom-tree-marker',
+        html: `<div style="background-color: ${iconColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+      
       const popup = `
-        <b>${species}</b><br>
-        🌳 Tree ID: ${tree.tree_no || tree.id}<br>
-        👷 Forester: ${tree.foresterName || "Unknown"}<br>
-        📍 Location: ${tree.barangay || tree.municipality || "N/A"}<br>
-        📏 Diameter: ${tree.diameter || "N/A"} cm<br>
-        📏 Height: ${tree.height || "N/A"} m
+        <div style="min-width: 200px;">
+          <h4 style="margin: 0 0 10px 0; color: #2e7d32; border-bottom: 2px solid #2e7d32; padding-bottom: 5px;">
+            🌳 ${species}
+          </h4>
+          <table style="width: 100%; font-size: 13px; line-height: 1.6;">
+            <tr><td style="font-weight: 600; width: 40%;">Tree ID:</td><td>${treeId}</td></tr>
+            <tr><td style="font-weight: 600;">Status:</td><td>${status}</td></tr>
+            <tr><td style="font-weight: 600;">Diameter:</td><td>${diameter}</td></tr>
+            <tr><td style="font-weight: 600;">Height:</td><td>${height}</td></tr>
+            <tr><td style="font-weight: 600;">Volume:</td><td>${volume}</td></tr>
+            <tr><td style="font-weight: 600;">Forester:</td><td>${foresterName}</td></tr>
+            <tr><td style="font-weight: 600;">Applicant:</td><td>${applicantName}</td></tr>
+            <tr><td style="font-weight: 600;">Location:</td><td>${location}</td></tr>
+          </table>
+        </div>
       `;
-      L.marker([lat, lng]).bindPopup(popup).addTo(markersLayer);
+      
+      L.marker([lat, lng], { icon: customIcon })
+        .bindPopup(popup)
+        .addTo(markersLayer);
       markersAdded++;
+    } else {
+      invalidCoordinates++;
     }
   });
   
-  console.log(`Successfully added ${markersAdded} markers to the map`);
+  console.log(`✅ Successfully added ${markersAdded} markers to the map`);
+  if (invalidCoordinates > 0) {
+    console.warn(`⚠️ ${invalidCoordinates} trees had invalid coordinates`);
+  }
 
   if (markersLayer.getLayers().length > 0) {
     map.fitBounds(markersLayer.getBounds(), { padding: [40, 40] });
   } else {
-    console.warn('No markers were added to the map');
+    console.warn('⚠️ No markers were added to the map');
+    map.setView([18.3, 121.7], 9);
   }
 }
 

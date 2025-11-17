@@ -213,7 +213,7 @@ function showSuccessToast(message) {
           <td>${user.name || "N/A"}</td>
           <td>${user.username || "N/A"}</td>
           <td>••••••</td>
-          <td>${user.contact || "N/A"}</td>
+          <td>${user.contact || "N/A"}</td> 
           <td>${user.address || "N/A"}</td>
           <td>${user.role || "N/A"}</td>
           <td>${user.active ? "Active" : "Inactive"}</td>

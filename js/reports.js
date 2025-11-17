@@ -376,6 +376,7 @@ async function loadAppointments() {
           treeId: treeData.tree_id || treeData.tree_no || treeDoc.id,
           treeNo: treeData.tree_no || treeData.tree_id || treeDoc.id,
           appointmentType: appointmentData.appointmentType || "N/A",
+          applicationType: appointmentData.applicationType || "N/A",
           applicantId: applicantId || "Unknown",
           applicantName: applicantName,
           species: treeData.specie || treeData.species || "Unknown",
@@ -465,7 +466,7 @@ function applyFilters() {
     const matchSpecies =
       activeTab === "trees" ? fSpecies === "all" || d.species === fSpecies : true;
     const matchAppointmentType =
-      activeTab === "trees" ? fAppointmentType === "all" || d.appointmentType === fAppointmentType : true;
+      activeTab === "trees" ? fAppointmentType === "all" || d.applicationType === fAppointmentType : true;
 
     const matchDate =
       (!startDate || (d.date && d.date >= new Date(startDate))) &&
@@ -549,7 +550,7 @@ function renderTreesTable(data) {
     const row = `
       <tr>
         <td>${escapeHtml(d.treeNo)}</td>
-        <td>${escapeHtml(d.appointmentType)}</td>
+        <td>${escapeHtml(d.applicationType)}</td>
         <td>${escapeHtml(d.applicantName || d.applicantId)}</td>
         <td>${escapeHtml(d.species)}</td>
         <td>${d.diameter}</td>
@@ -580,7 +581,7 @@ function populateFilters() {
     if (t.forester && t.forester !== "Unknown Forester") foresters.add(t.forester);
     if (t.applicantName && t.applicantName !== "Unknown") applicants.add(t.applicantName);
     if (t.species && t.species !== "Unknown") species.add(t.species);
-    if (t.appointmentType && t.appointmentType !== "N/A") appointmentTypes.add(t.appointmentType);
+    if (t.applicationType && t.applicationType !== "N/A") appointmentTypes.add(t.applicationType);
   });
   
   // Add applicants from applications data
@@ -591,7 +592,7 @@ function populateFilters() {
   populateSelect(foresterFilter, [...foresters], "All Foresters");
   populateSelect(applicantFilter, [...applicants], "All Applicants");
   populateSelect(speciesFilter, [...species], "All Species");
-  populateSelect(appointmentTypeFilter, [...appointmentTypes], "All Appointment Types");
+  populateSelect(appointmentTypeFilter, [...appointmentTypes], "All Application Types");
 
 
   [

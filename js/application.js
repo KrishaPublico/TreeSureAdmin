@@ -945,31 +945,51 @@ async function showCtpoReferenceModal() {
   try {
     // Fetch all CTPO submissions for this applicant
     console.log("🔍 Fetching CTPO submissions for applicant:", currentOpenUserId);
+    console.log("🔍 Current application type:", currentApplicationType);
     const ctpoSubmissionsRef = collection(db, `applications/ctpo/applicants/${currentOpenUserId}/submissions`);
     const ctpoSnap = await getDocs(query(ctpoSubmissionsRef, orderBy("createdAt", "desc")));
 
+    console.log(`📋 Found ${ctpoSnap.size} CTPO submission(s) for this applicant`);
+
     if (ctpoSnap.empty) {
-      alert("⚠️ No CTPO submissions found for this applicant.\n\nThe applicant must have a completed CTPO tree tagging appointment before assigning " + currentApplicationType.toUpperCase() + " tree tagging.");
+      // No CTPO submissions for this specific applicant
+      // Ask if admin wants to select from all CTPO submissions (any applicant)
+      const useAnyApplicant = confirm(
+        "⚠️ No CTPO submissions found for this applicant.\n\n" +
+        "Would you like to select a CTPO reference from ANY applicant?\n\n" +
+        "Click OK to see all completed CTPO submissions, or Cancel to go back."
+      );
+      
+      if (!useAnyApplicant) {
+        return;
+      }
+      
+      // Fetch ALL CTPO submissions from all applicants
+      console.log("🔍 Fetching ALL CTPO submissions from all applicants...");
+      await showAllCtpoReferencesModal();
       return;
     }
 
     // Find CTPO submissions with completed tree tagging appointments
     const validCtpoSubmissions = [];
     
-    // Query the appointments collection for completed tree tagging appointments
+    // Query the appointments collection for completed CTPO tree tagging appointments
     console.log(`🔍 Checking appointments collection for applicant: ${currentOpenUserId}`);
+    console.log(`🔍 Filtering for CTPO appointments...`);
     const appointmentsRef = collection(db, "appointments");
     const appointmentsQuery = query(
       appointmentsRef,
       where("applicantId", "==", currentOpenUserId),
+      where("applicationType", "==", "ctpo"),
       where("status", "==", "Completed")
     );
     const appointmentsSnap = await getDocs(appointmentsQuery);
     
-    console.log(`📋 Found ${appointmentsSnap.size} completed tree tagging appointment(s) for applicant`);
+    console.log(`📋 Found ${appointmentsSnap.size} completed CTPO tree tagging appointment(s) for applicant`);
     
     if (appointmentsSnap.size === 0) {
-      alert("⚠️ No completed tree tagging appointments found.\n\nThe applicant must have at least one completed tree tagging appointment before assigning " + currentApplicationType.toUpperCase() + " tree tagging.");
+      console.warn("⚠️ No completed CTPO appointments found for this applicant");
+      alert("⚠️ No completed CTPO tree tagging appointments found.\n\nThe applicant must have at least one completed CTPO tree tagging appointment before assigning " + currentApplicationType.toUpperCase() + " tree tagging.");
       return;
     }
 
@@ -978,12 +998,15 @@ async function showCtpoReferenceModal() {
     
     appointmentsSnap.forEach(aptDoc => {
       const aptData = aptDoc.data();
-      console.log(`  ✅ Completed appointment: ${aptDoc.id}`, aptData);
+      console.log(`  ✅ Completed CTPO appointment: ${aptDoc.id}`, aptData);
       
-      // Check if appointment has a submissionId field
-      if (aptData.submissionId) {
-        completedSubmissionIds.add(aptData.submissionId);
-        console.log(`    → Linked to submission: ${aptData.submissionId}`);
+      // Check if appointment has applicationID field (newer structure) or submissionId field (older structure)
+      const linkedSubmissionId = aptData.applicationID || aptData.submissionId;
+      if (linkedSubmissionId) {
+        completedSubmissionIds.add(linkedSubmissionId);
+        console.log(`    → Linked to submission: ${linkedSubmissionId}`);
+      } else {
+        console.warn(`    ⚠️ Appointment ${aptDoc.id} has no applicationID or submissionId field`);
       }
     });
     
@@ -1055,6 +1078,13 @@ function displayCtpoSelectionModal(ctpoSubmissions) {
       ? submission.submittedAt.toDate().toLocaleString()
       : "-";
     
+    // Show applicant name if available (for cross-applicant references)
+    const applicantInfo = submission.applicantName 
+      ? `<div style="background: #f0f8e8; padding: 8px; border-radius: 4px; margin-bottom: 10px;">
+           <strong>👤 Applicant:</strong> ${escapeHtml(submission.applicantName)}
+         </div>`
+      : '';
+    
     return `
       <div class="ctpo-reference-card" data-ctpo-id="${submission.id}" style="
         background: white;
@@ -1066,6 +1096,7 @@ function displayCtpoSelectionModal(ctpoSubmissions) {
         transition: all 0.3s ease;
       ">
         <h3 style="margin: 0 0 10px 0; color: #2d5016; font-size: 1.1em;">📋 ${escapeHtml(submission.id)}</h3>
+        ${applicantInfo}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9em; color: #666;">
           <div>
             <strong>📅 Created:</strong><br/>${createdDate}
@@ -1158,6 +1189,77 @@ function displayCtpoSelectionModal(ctpoSubmissions) {
       }
     });
   });
+}
+
+// Show ALL CTPO references from all applicants
+async function showAllCtpoReferencesModal() {
+  try {
+    console.log("🔍 Fetching ALL completed CTPO appointments...");
+    
+    // Query all completed CTPO tree tagging appointments
+    const appointmentsRef = collection(db, "appointments");
+    const appointmentsQuery = query(
+      appointmentsRef,
+      where("applicationType", "==", "ctpo"),
+      where("appointmentType", "==", "Tree Tagging"),
+      where("status", "==", "Completed")
+    );
+    const appointmentsSnap = await getDocs(appointmentsQuery);
+    
+    console.log(`📋 Found ${appointmentsSnap.size} completed CTPO tree tagging appointment(s) across all applicants`);
+    
+    if (appointmentsSnap.size === 0) {
+      alert("⚠️ No completed CTPO tree tagging appointments found in the system.");
+      return;
+    }
+
+    // Build list of valid CTPO submissions with applicant info
+    const validCtpoSubmissions = [];
+    
+    for (const aptDoc of appointmentsSnap.docs) {
+      const aptData = aptDoc.data();
+      const linkedSubmissionId = aptData.applicationID || aptData.submissionId;
+      const applicantId = aptData.applicantId;
+      const applicantName = aptData.applicantName || "Unknown Applicant";
+      
+      if (linkedSubmissionId && applicantId) {
+        // Check if this submission exists
+        try {
+          const submissionRef = doc(db, "applications", "ctpo", "applicants", applicantId, "submissions", linkedSubmissionId);
+          const submissionSnap = await getDoc(submissionRef);
+          
+          if (submissionSnap.exists()) {
+            const submissionData = submissionSnap.data();
+            validCtpoSubmissions.push({
+              id: linkedSubmissionId,
+              data: submissionData,
+              createdAt: submissionData.createdAt,
+              submittedAt: submissionData.submittedAt,
+              applicantId: applicantId,
+              applicantName: applicantName
+            });
+            console.log(`  ✓ Valid CTPO submission: ${linkedSubmissionId} (Applicant: ${applicantName})`);
+          }
+        } catch (err) {
+          console.warn(`  ⚠️ Error fetching submission ${linkedSubmissionId}:`, err);
+        }
+      }
+    }
+
+    console.log(`✅ Found ${validCtpoSubmissions.length} valid CTPO submission(s) with completed tree tagging`);
+
+    if (validCtpoSubmissions.length === 0) {
+      alert("⚠️ No valid CTPO submissions with completed tree tagging found.");
+      return;
+    }
+
+    // Show modal with CTPO selection
+    displayCtpoSelectionModal(validCtpoSubmissions);
+
+  } catch (err) {
+    console.error("❌ Error fetching all CTPO references:", err);
+    alert("Error loading CTPO references: " + err.message);
+  }
 }
 
 async function selectCtpoReference(ctpoId) {

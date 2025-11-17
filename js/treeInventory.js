@@ -463,75 +463,66 @@ function attachEventListeners() {
                   // Create tree_inventory subcollection in the new PLTP/SPLTP appointment
                   const newTreeInventoryRef = collection(db, "appointments", newDocId, "tree_inventory");
                   
-                  // Copy each tree's data as reference
+                  // Copy each tree's data directly from CTPO
                   for (const treeDoc of sourceTreeSnap.docs) {
                     const treeId = treeDoc.id;
                     const treeData = treeDoc.data();
                     
-                    let ctpoData;
+                    let copiedTreeData;
                     let ctpoTreeRef;
                     
                     if (useRevisitData) {
                       // Using revisit data - extract the "new" data (updated measurements)
-                      ctpoData = {
+                      copiedTreeData = {
                         height: treeData.new?.height || treeData.old?.height || null,
                         diameter: treeData.new?.diameter || treeData.old?.diameter || null,
                         specie: treeData.new?.specie || treeData.old?.specie || null,
                         latitude: treeData.old?.latitude || null, // Location doesn't change
                         longitude: treeData.old?.longitude || null,
-                        photo_url: treeData.new?.photo_url || treeData.old?.photo_url || null,
-                        qr_url: treeData.old?.qr_url || null, // QR doesn't change
-                        tree_status: treeData.new?.tree_status || treeData.old?.tree_status || null,
+                        photo_url: treeData.new?.photo_url || treeData.old?.photo_url || "",
+                        qr_url: treeData.old?.qr_url || "",
+                        tree_status: treeData.new?.tree_status || treeData.old?.tree_status || "Not Yet Ready",
                         volume: treeData.new?.volume || treeData.old?.volume || null,
-                        tree_no: treeData.old?.tree_no || null, // Tree number doesn't change
-                        forester_name: treeData.new?.forester_name || treeData.old?.forester_name || null,
-                        forester_id: treeData.new?.forester_id || treeData.old?.forester_id || null
+                        tree_no: treeData.old?.tree_no || null,
+                        tree_id: treeId,
+                        forester_name: treeData.new?.forester_name || treeData.old?.forester_name || "",
+                        forester_id: treeData.new?.forester_id || treeData.old?.forester_id || "",
+                        timestamp: treeData.new?.updatedAt || treeData.old?.timestamp || serverTimestamp()
                       };
                       // Reference points to the revisit document
                       ctpoTreeRef = doc(db, "appointments", sourceAppointmentId, "tree_revisit", treeId);
                       console.log(`  📋 Using revisit data for tree ${treeId}`);
                     } else {
                       // Using original tree inventory data
-                      ctpoData = {
+                      copiedTreeData = {
                         height: treeData.height || null,
                         diameter: treeData.diameter || null,
                         specie: treeData.specie || null,
                         latitude: treeData.latitude || null,
                         longitude: treeData.longitude || null,
-                        photo_url: treeData.photo_url || null,
-                        qr_url: treeData.qr_url || null,
-                        tree_status: treeData.tree_status || null,
+                        photo_url: treeData.photo_url || "",
+                        qr_url: treeData.qr_url || "",
+                        tree_status: treeData.tree_status || "Not Yet Ready",
                         volume: treeData.volume || null,
                         tree_no: treeData.tree_no || null,
-                        forester_name: treeData.forester_name || null,
-                        forester_id: treeData.forester_id || null
+                        tree_id: treeId,
+                        forester_name: treeData.forester_name || "",
+                        forester_id: treeData.forester_id || "",
+                        timestamp: treeData.timestamp || serverTimestamp()
                       };
                       // Reference points to the original tree inventory document
                       ctpoTreeRef = doc(db, "appointments", sourceAppointmentId, "tree_inventory", treeId);
                       console.log(`  📋 Using tree inventory data for tree ${treeId}`);
                     }
                     
-                    // Copy tree data as reference (foresters will verify/update)
+                    // Copy all tree data fields directly from CTPO
                     await setDoc(doc(newTreeInventoryRef, treeId), {
-                      ctpo_tree_ref: ctpoTreeRef, // Reference to CTPO tree document (inventory or revisit)
-                      ctpo_data: ctpoData, // Store CTPO tree data for reference (most recent available)
-                      source_type: useRevisitData ? 'revisit' : 'tree_tagging', // Track data source
-                      // Empty fields for foresters to fill during PLTP/SPLTP verification
-                      height: null,
-                      diameter: null,
-                      specie: null,
-                      latitude: null,
-                      longitude: null,
-                      photo_url: null,
-                      qr_url: null,
-                      tree_status: null,
-                      volume: null,
-                      tree_no: null,
-                      tree_id: treeId,
-                      forester_name: null,
-                      forester_id: null,
-                      timestamp: serverTimestamp(),
-                      appointment_id: newDocId
+                      // Copy all fields directly from CTPO (no empty fields)
+                      ...copiedTreeData,
+                      appointment_id: newDocId,
+                      tree_tagging_appointment_id: null, // Will be set when foresters verify
+                      ctpo_reference_source: ctpoTreeRef.path, // Store reference path for tracking
+                      source_type: useRevisitData ? 'revisit' : 'tree_tagging' // Track data source
                     });
                     
                     console.log(`✅ Copied tree ${treeId} from CTPO ${sourceCollection} to ${currentApplicationType.toUpperCase()} appointment`);

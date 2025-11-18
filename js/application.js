@@ -36,6 +36,8 @@ let currentApplicantData = null;
 let currentSubmissionId = null;
 let availableSubmissions = [];
 
+
+
 // ------------------ HELPER ------------------
 function escapeHtml(str) {
   if (!str) return "";
@@ -780,7 +782,7 @@ function displaySubmissionsList(userId, type) {
             cursor: pointer;
             font-size: 0.9em;
           ">
-            ${isSelected ? '✓ Viewing' : '👁️ View Files'}
+            ${isSelected ? '✓ Viewing' : '<i class="fa fa-eye"></i> View Files'}
           </button>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9em; color: #666;">

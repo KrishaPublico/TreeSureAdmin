@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-forest-green">
+  <title>User Management</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Sidebar Container */
+    #sidebar-container {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      width: 224px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 1000 !important;
+    }
+
+    /* Reset all input styling */
+    input, select, textarea {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    input.input-base,
+    select.input-base,
+    textarea.input-base {
+      color: #000000 !important;
+      border: 1px solid #cccccc !important;
+      border-radius: 6px !important;
+      background-color: #ffffff !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+      padding: 10px 12px !important;
+    }
+    input.input-base:focus,
+    select.input-base:focus,
+    textarea.input-base:focus {
+      border-color: #000000 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+      outline: none !important;
+      background-color: #ffffff !important;
+    }
+    input.input-base::placeholder,
+    textarea.input-base::placeholder {
+      color: #999999 !important;
+    }
+
+    /* Keep search text clear of the absolute-positioned icon. */
+    #searchInput {
+      padding-left: 42px !important;
+    }
+
+    /* Modal styles */
+    #editUserModal, #addUserModal {
+      display: none;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: rgba(0, 0, 0, 0.5) !important;
+      z-index: 9999 !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #editUserModal.show, #addUserModal.show {
+      display: flex !important;
+    }
+
+    #editUserModal.hidden, #addUserModal.hidden {
+      display: none !important;
+    }
+
+    .modal-content {
+      background: white !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+      padding: 32px !important;
+      max-width: 600px !important;
+      width: 90% !important;
+      max-height: 80vh !important;
+      overflow-y: auto !important;
+      position: relative !important;
+      z-index: 10000 !important;
+    }
+
+    /* Toast Container Styling */
+    #toast-container {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 99999 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      pointer-events: none !important;
+      max-width: 400px !important;
+    }
+
+    .toast {
+      background: white !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 6px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      padding: 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 12px !important;
+      pointer-events: auto !important;
+      animation: slideIn 0.3s ease-out !important;
+      min-width: 300px !important;
+    }
+
+    .toast.show {
+      opacity: 1 !important;
+      transform: translateX(0) !important;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0 !important;
+        transform: translateX(400px) !important;
+      }
+      to {
+        opacity: 1 !important;
+        transform: translateX(0) !important;
+      }
+    }
+
+    .toast .message {
+      color: #333 !important;
+      font-size: 14px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex: 1 !important;
+    }
+
+    .toast .icon {
+      color: #22c55e !important;
+      font-weight: bold !important;
+    }
+
+    .toast-actions {
+      display: flex !important;
+      gap: 8px !important;
+      align-items: center !important;
+    }
+
+    .toast .ok-btn,
+    .toast .cancel-btn,
+    .toast .close-btn {
+      background: none !important;
+      border: none !important;
+      cursor: pointer !important;
+      padding: 6px 12px !important;
+      border-radius: 4px !important;
+      font-size: 13px !important;
+      transition: all 0.2s !important;
+    }
+
+    .toast .ok-btn {
+      background: #166d22 !important;
+      color: white !important;
+    }
+
+    .toast .ok-btn:hover {
+      background: #0f4a17 !important;
+    }
+
+    .toast .cancel-btn {
+      background: #f3f4f6 !important;
+      color: #333 !important;
+    }
+
+    .toast .cancel-btn:hover {
+      background: #e5e7eb !important;
+    }
+
+    .toast .close-btn {
+      color: #999 !important;
+      font-size: 18px !important;
+      padding: 0 4px !important;
+    }
+
+    .toast .close-btn:hover {
+      color: #333 !important;
+    }
+  </style>
+</head>
+
+<body onload="checkLogin()" class="bg-slate-50">
+  <!-- Toast / Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Sidebar (loaded dynamically) -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content -->
+  <div class="ml-56 min-h-screen">
+    <!-- Header -->
+    <header style="background-color: #166d22 !important; padding: 18px 32px; border: 1px solid #0f4a17; box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4); position: sticky; top: 0; z-index: 5;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #ffffff; margin: 0 0 8px 0;"><i class="fas fa-users" style="color: #ffffff;"></i> User Management</h1>
+      <p style="font-size: 13px; color: rgba(255, 255, 255, 0.9); margin: 0;">Manage admin users and their permissions</p>
+    </header>
+      <button id="openAddUserBtn" class="mt-4 btn-primary" style="background-color: #ffffff; color: #166d22; border: none; cursor: pointer; padding: 10px 16px; border-radius: 6px; font-weight: 600;">
+        <i class="fas fa-plus"></i> Add New User
+      </button>
+    </header>
+
+    <div class="space-y-8 p-8">
+      <!-- Search Section -->
+      <section>
+        <h2 class="mb-6 text-xl font-bold text-slate-900">🔍 Search Users</h2>
+        <div class="card">
+          <div class="relative">
+            <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="searchInput" placeholder="Search users by name, username, or email..." class="input-base pl-10 w-full" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Users Table Section -->
+      <section class="pb-12">
+        <h2 class="mb-6 text-xl font-bold text-slate-900">👥 List of Users</h2>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full" id="usersTable">
+              <thead class="bg-gradient-to-r from-emerald-50 to-emerald-100 font-semibold text-emerald-900">
+                <tr>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">User ID</th>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Name</th>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Username</th>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Contact</th>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Role</th>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Status</th>
+                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200" id="usersTableBody">
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td colspan="7" class="px-6 py-8 text-center text-slate-500">
+                    <i class="fa fa-spinner fa-spin"></i> Loading users...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="editUserModal" class="hidden">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-6">
+        <h2 id="editUserTitle" class="text-2xl font-bold text-slate-900">Edit User</h2>
+        <button type="button" class="btn-icon text-slate-400 hover:text-slate-600" id="closeEditModal">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <form id="editUserForm" class="space-y-6">
+          <input type="hidden" id="editUserId">
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="label-base">Full Name</label>
+              <input type="text" id="editName" class="input-base" required>
+            </div>
+            <div>
+              <label class="label-base">Username</label>
+              <input type="text" id="editUsername" class="input-base" required>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="label-base">Password</label>
+              <input type="password" id="editPassword" class="input-base" placeholder="Leave empty to keep current password">
+            </div>
+            <div>
+              <label class="label-base">Contact Number</label>
+              <input type="text" id="editContact" class="input-base" required>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="label-base">Address</label>
+              <input type="text" id="editAddress" class="input-base" required>
+            </div>
+            <div>
+              <label class="label-base">Role</label>
+              <select id="editRole" class="input-base" required>
+                <option value="Admin">Admin</option>
+                <option value="Forester">Forester</option>
+                <option value="Applicant">Applicant</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="label-base">Status</label>
+              <select id="editStatus" class="input-base" required>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex gap-3 justify-end pt-6 border-t border-slate-200">
+            <button type="button" class="btn-secondary" id="cancelEditBtn">
+              <i class="fa fa-times"></i> Cancel
+            </button>
+            <button type="submit" class="btn-primary" style="background-color: #166d22 !important; background-image: none !important;">
+              <i class="fa fa-save"></i> Update User
+            </button>
+          </div>
+        </form>
+      </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="hidden">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-slate-900">Add New User</h2>
+        <button type="button" class="btn-icon text-slate-400 hover:text-slate-600" id="closeAddModal">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <form id="addUserForm" class="space-y-6">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="label-base">Full Name</label>
+            <input type="text" id="name" placeholder="Enter full name" class="input-base" required>
+          </div>
+          <div>
+            <label class="label-base">Username</label>
+            <input type="text" id="username" placeholder="Enter username" class="input-base" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="label-base">Password</label>
+            <input type="password" id="password" placeholder="Enter password" class="input-base" required>
+          </div>
+          <div>
+            <label class="label-base">Contact Number</label>
+            <input type="text" id="contact" placeholder="Enter contact number" class="input-base" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="label-base">Address</label>
+            <input type="text" id="address" placeholder="Enter address" class="input-base" required>
+          </div>
+          <div>
+            <label class="label-base">Role</label>
+            <select id="role" class="input-base" required>
+              <option value="">Select Role</option>
+              <option value="Forester">Forester</option>
+              <option value="Applicant">Applicant</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="label-base">Status</label>
+            <select id="status" class="input-base" required>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3 justify-end pt-6 border-t border-slate-200">
+          <button type="button" class="btn-secondary" id="cancelAddBtn">
+            <i class="fa fa-times"></i> Cancel
+          </button>
+          <button type="submit" class="btn-primary" style="background-color: #166d22 !important; background-image: none !important;">
+            <i class="fa fa-user-plus"></i> Add User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Styles for status badge and table -->
+  <style>
+    .status-badge {
+      @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium;
+    }
+    .status-active {
+      @apply bg-emerald-100 text-emerald-700;
+    }
+    .status-inactive {
+      @apply bg-red-100 text-red-700;
+    }
+  </style>
+
+  <!-- Scripts -->
+  <script type="module" src="users.js"></script>
+
+  <!-- Load Sidebar Dynamically -->
+  <script src="../shared/sidebar-loader.js"></script>
+    // Modal handlers
+    const editModal = document.getElementById("editUserModal");
+    const addModal = document.getElementById("addUserModal");
+    const closeEditModal = document.getElementById("closeEditModal");
+    const closeAddModal = document.getElementById("closeAddModal");
+    const cancelAddBtn = document.getElementById("cancelAddBtn");
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
+    const openAddUserBtn = document.getElementById("openAddUserBtn");
+
+    function showAddModal() {
+      if (addModal) {
+        addModal.classList.remove("hidden");
+        addModal.classList.add("show");
+      }
+    }
+
+    function hideAddModal() {
+      if (addModal) {
+        addModal.classList.add("hidden");
+        addModal.classList.remove("show");
+      }
+      document.getElementById("addUserForm")?.reset();
+    }
+
+    function showEditModal() {
+      if (editModal) {
+        editModal.classList.remove("hidden");
+        editModal.classList.add("show");
+      }
+    }
+
+    function hideEditModal() {
+      if (editModal) {
+        editModal.classList.add("hidden");
+        editModal.classList.remove("show");
+      }
+    }
+
+    openAddUserBtn?.addEventListener("click", showAddModal);
+    closeAddModal?.addEventListener("click", hideAddModal);
+    cancelAddBtn?.addEventListener("click", hideAddModal);
+    closeEditModal?.addEventListener("click", hideEditModal);
+    cancelEditBtn?.addEventListener("click", hideEditModal);
+
+    // Close modals when clicking outside (on the backdrop)
+    addModal?.addEventListener("click", (e) => {
+      if (e.target === addModal) {
+        console.log("Closing add modal - clicked outside");
+        hideAddModal();
+      }
+    });
+
+    editModal?.addEventListener("click", (e) => {
+      if (e.target === editModal) {
+        console.log("Closing edit modal - clicked outside");
+        hideEditModal();
+      }
+    });
+  </script>
+
+  <script type="module" src="../applications/application-temp-fix.js"></script>
+</body>
+</html>

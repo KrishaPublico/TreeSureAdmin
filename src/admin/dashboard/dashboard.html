@@ -1,0 +1,1050 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-darkgreen-final">
+  <title>Dashboard - TreeSure Admin</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
+
+  <style>
+    /* Forest Green & White Aesthetic */
+
+    /* Primary Colors */
+    :root {
+      --forest-green: #16663a;
+      --forest-green-light: rgba(22, 102, 58, 0.1);
+      --forest-green-dark: #0b4a2f;
+      --hero-green: #059669;
+    }
+
+    /* Sidebar Container */
+    #sidebar-container {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      width: 224px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 1000 !important;
+    }
+
+    /* Hero Banner Styling */
+    .hero-banner {
+      background: linear-gradient(135deg, #166d22 0%, #145a1e 100%);
+      border-radius: 16px;
+      padding: 48px 40px;
+      color: white;
+      margin-bottom: 40px;
+      box-shadow: 0 8px 20px rgba(22, 109, 34, 0.2);
+      display: none;
+    }
+
+    .hero-banner h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 0 0 12px 0;
+      color: white;
+    }
+
+    .hero-banner p {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0 0 24px 0;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Navigation Cards Grid */
+    .nav-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .nav-card {
+      background-color: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 24px;
+      transition: all 300ms ease;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 200px;
+    }
+
+    .nav-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: inherit;
+    }
+
+    .nav-card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      transform: translateY(-4px);
+      border-color: #d1d5db;
+    }
+
+    .nav-card.green::before {
+      background-color: #059669;
+    }
+
+    .nav-card.blue::before {
+      background-color: #3b82f6;
+    }
+
+    .nav-card.purple::before {
+      background-color: #a855f7;
+    }
+
+    .nav-card.orange::before {
+      background-color: #f97316;
+    }
+
+    .nav-card.red::before {
+      background-color: #ef4444;
+    }
+
+    .nav-card.cyan::before {
+      background-color: #06b6d4;
+    }
+
+    .nav-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .nav-card.green .nav-card-icon {
+      background-color: rgba(5, 150, 105, 0.1);
+      color: #059669;
+    }
+
+    .nav-card.blue .nav-card-icon {
+      background-color: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+
+    .nav-card.purple .nav-card-icon {
+      background-color: rgba(168, 85, 247, 0.1);
+      color: #a855f7;
+    }
+
+    .nav-card.orange .nav-card-icon {
+      background-color: rgba(249, 115, 22, 0.1);
+      color: #f97316;
+    }
+
+    .nav-card.red .nav-card-icon {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .nav-card.cyan .nav-card-icon {
+      background-color: rgba(6, 182, 212, 0.1);
+      color: #06b6d4;
+    }
+
+    .nav-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0 0 8px 0;
+    }
+
+    .nav-card p {
+      font-size: 14px;
+      color: #6b7280;
+      margin: 0 0 16px 0;
+      flex-grow: 1;
+    }
+
+    .nav-card-link {
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap 200ms ease;
+    }
+
+    .nav-card.green .nav-card-link {
+      color: #059669;
+    }
+
+    .nav-card.blue .nav-card-link {
+      color: #3b82f6;
+    }
+
+    .nav-card.purple .nav-card-link {
+      color: #a855f7;
+    }
+
+    .nav-card.orange .nav-card-link {
+      color: #f97316;
+    }
+
+    .nav-card.red .nav-card-link {
+      color: #ef4444;
+    }
+
+    .nav-card.cyan .nav-card-link {
+      color: #06b6d4;
+    }
+
+    .nav-card-link:hover {
+      gap: 10px;
+    }
+
+    /* Stat Card - Universal for all statistics */
+    .stat-card {
+      border: 1px solid #e0e0e0;
+      border-top: 3px solid #059669;
+      background-color: #FFFFFF !important;
+      @apply rounded-lg p-6 transition-all duration-300 flex flex-col items-center justify-center gap-2;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      min-height: 140px;
+    }
+
+    .stat-card:hover {
+      @apply translate-y-[-4px];
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      border-color: #d0d0d0;
+      border-top-color: #047857;
+    }
+
+    /* Icon Container - Forest Green Badge - Perfect Circle */
+    .stat-icon-container {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #f0f9ff;
+      color: #16663a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      border: 2px solid #e0f2fe;
+    }
+
+    .stat-icon-container i {
+      font-size: 16px;
+      color: #16663a;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .stat-content {
+      @apply flex flex-col items-center justify-center text-center w-full;
+    }
+
+    .stat-label {
+      @apply text-sm font-bold uppercase tracking-wider;
+      color: #1a1a1a !important;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
+
+    .stat-value {
+      @apply font-black;
+      color: #1a1a1a !important;
+      font-size: 32px !important;
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin: 4px 0 0 0;
+    }
+
+    .stat-sublabel {
+      @apply text-xs font-medium;
+      color: #4b5563 !important;
+      margin-top: 8px;
+    }
+
+    /* Section Headers */
+    .section-header {
+      font-size: 20px;
+      font-weight: 900 !important;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #16663a;
+      letter-spacing: -0.5px;
+    }
+
+    .section-icon {
+      @apply w-7 h-7;
+      color: #16663a;
+    }
+
+    /* Premium Cards */
+    .card-premium {
+      border: 1px solid #e0e0e0;
+      background-color: #FFFFFF;
+      @apply rounded-xl p-8 transition-all duration-300;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-premium:hover {
+      border-color: #d0d0d0;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Header Styling */
+    header {
+      @apply border-b border-slate-100 px-8 py-6 shadow-sm sticky top-0 z-10;
+      background-color: #1a4731;
+    }
+
+    .header-top {
+      background-color: #166d22;
+      border-bottom: 1px solid #0f4a17;
+      padding: 20px 32px 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      margin-left: 224px;
+      width: calc(100% - 224px);
+      box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4);
+      height: auto;
+      min-height: 110px;
+    }
+
+    .header-top h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 8px 0;
+      line-height: 1.3;
+    }
+
+    .header-top p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    /* Reset all input styling */
+    input, select, textarea {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    input,
+    select,
+    textarea {
+      color: #000000 !important;
+      border: 1px solid #cccccc !important;
+      border-radius: 6px !important;
+      background-color: #ffffff !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+      padding: 10px 12px !important;
+    }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #000000 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+      outline: none !important;
+      background-color: #ffffff !important;
+    }
+    input::placeholder,
+    textarea::placeholder {
+      color: #999999 !important;
+    }
+
+    /* Modal z-index fix - Card style popup */
+    .modal {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 99999 !important;
+      background: transparent !important;
+      inset: auto !important;
+      width: auto !important;
+      padding: 0 !important;
+    }
+
+    .modal.hidden {
+      display: none !important;
+    }
+
+    .modal-backdrop {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 99999 !important;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      inset: auto !important;
+    }
+
+    .modal-backdrop.hidden {
+      display: none !important;
+    }
+
+    .modal-content {
+      position: relative !important;
+      z-index: 99999 !important;
+      background: white !important;
+      border: 1px solid #e0e0e0 !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .header-top-left {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .header-badge {
+      background-color: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 18px;
+      font-size: 11px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    #refreshDashboard {
+      background-color: #ffffff;
+      color: #166d22;
+      border: 1px solid #ffffff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 300ms ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #refreshDashboard:hover {
+      background-color: #f0f9f6;
+      border-color: #ffffff;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    }
+
+    #refreshDashboard:active {
+      transform: scale(0.98);
+    }
+
+    /* Content padding to account for fixed header */
+    .main-content-wrapper {
+      padding-top: 110px;
+    }
+
+    /* Map styling - ensure it doesn't appear above fixed header */
+    #treeMap {
+      height: 500px;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid rgba(226,232,240,0.8);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Leaflet map controls z-index fix */
+    .leaflet-control {
+      z-index: 10 !important;
+    }
+
+    .leaflet-top, .leaflet-bottom {
+      z-index: 10 !important;
+      pointer-events: none;
+    }
+
+    .leaflet-control {
+      pointer-events: auto;
+    }
+
+    /* Header admin name */
+    #adminName {
+      color: #ffffff;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50" style="background-color: #f9fafb;">
+  <!-- Sidebar (loaded dynamically with glassmorphism) -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content -->
+  <div class="ml-56 min-h-screen" style="background-color: #f9fafb;">
+    <!-- Top Bar (Fixed) -->
+    <div class="header-top">
+      <div class="header-top-left">
+        <h1>Welcome back, <span id="adminNameTop">Admin</span>!</h1>
+        <p>Real-time forest management dashboard</p>
+        <div class="header-badges">
+          <div class="header-badge">
+            <i class="fa-solid fa-user-shield"></i>
+            <span id="roleDisplayTop">Admin</span>
+          </div>
+          <div class="header-badge">
+            <i class="fa-solid fa-calendar"></i>
+            <span id="dateDisplayTop"></span>
+          </div>
+        </div>
+      </div>
+      <button id="refreshDashboard" title="Refresh dashboard data">
+        <i class="fa-solid fa-rotate-right"></i> Refresh Data
+      </button>
+    </div>
+
+    <!-- Content Wrapper with Padding for Fixed Header -->
+    <div class="main-content-wrapper">
+      <!-- Hero Banner -->
+    <div class="hero-banner" style="margin: 32px;">
+      <h1>Welcome back, <span id="adminNameHero">Admin</span>!</h1>
+      <p>Real-time forest management dashboard</p>
+      <div class="hero-badges">
+        <div class="hero-badge">
+          <i class="fa-solid fa-user-shield" style="margin-right: 6px;"></i>
+          <span id="roleDisplay">Admin</span>
+        </div>
+        <div class="hero-badge">
+          <i class="fa-solid fa-location-dot" style="margin-right: 6px;"></i>
+          <span>National Forest</span>
+        </div>
+        <div class="hero-badge">
+          <i class="fa-solid fa-calendar" style="margin-right: 6px;"></i>
+          <span id="dateDisplay"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Cards -->
+    <div class="nav-cards-grid" style="padding: 0 32px; margin-top: 80px;">
+      <!-- Trees Management -->
+      <div class="nav-card green" onclick="navigateToSection('trees')">
+        <div class="nav-card-icon">
+          <i class="fa-solid fa-tree"></i>
+        </div>
+        <h3>Trees Management</h3>
+        <p>View and manage all tagged trees in the forest inventory system</p>
+        <a class="nav-card-link">Open section <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i></a>
+      </div>
+
+      <!-- Applications -->
+      <div class="nav-card blue" onclick="navigateToSection('applications')">
+        <div class="nav-card-icon">
+          <i class="fa-solid fa-file-lines"></i>
+        </div>
+        <h3>Applications</h3>
+        <p>Review and process all application types including permits and licenses</p>
+        <a class="nav-card-link">Open section <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i></a>
+      </div>
+
+      <!-- Users & Foresters -->
+      <div class="nav-card purple" onclick="navigateToSection('users')">
+        <div class="nav-card-icon">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <h3>Users & Foresters</h3>
+        <p>Manage user accounts, foresters, and applicant profiles</p>
+        <a class="nav-card-link">Open section <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i></a>
+      </div>
+
+      <!-- Reports -->
+      <div class="nav-card orange" onclick="navigateToSection('reports')">
+        <div class="nav-card-icon">
+          <i class="fa-solid fa-chart-bar"></i>
+        </div>
+        <h3>Reports</h3>
+        <p>Access detailed analytics and export forest management reports</p>
+        <a class="nav-card-link">Open section <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i></a>
+      </div>
+
+      <!-- Settings -->
+      <div class="nav-card cyan" onclick="navigateToSection('settings')">
+        <div class="nav-card-icon">
+          <i class="fa-solid fa-cog"></i>
+        </div>
+        <h3>Settings</h3>
+        <p>Configure system preferences and other admin settings</p>
+        <a class="nav-card-link">Open section <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i></a>
+      </div>
+
+      <!-- Map View -->
+      <div class="nav-card red" onclick="navigateToSection('map')">
+        <div class="nav-card-icon">
+          <i class="fa-solid fa-map"></i>
+        </div>
+        <h3>Map View</h3>
+        <p>Visualize forest geographic distribution and tree locations</p>
+        <a class="nav-card-link">Open section <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i></a>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="space-y-8 p-8" style="background-color: #f9fafb;">
+      <!-- Quick Overview Section -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-chart-simple section-icon"></i>
+          Quick Overview
+        </h2>
+        <div class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          <!-- Total Tagged Trees -->
+          <div class="stat-card">
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-tree text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Total Trees Tagged</div>
+              <div class="stat-value" id="totalTaggedTrees" style="color: #1a1a1a !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Species Count -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-leaf text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Species Varieties</div>
+              <div class="stat-value" id="speciesCount" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Total Foresters -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-person-hiking text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Active Foresters</div>
+              <div class="stat-value" id="totalForester" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Total Applicants -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-users text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Total Applicants</div>
+              <div class="stat-value" id="totalApplicants" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Total Applications -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-file-invoice text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Applications</div>
+              <div class="stat-value" id="totalApplications" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Pending Applications -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-hourglass-end text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Pending Review</div>
+              <div class="stat-value" id="pendingApplications" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Approved Applications -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-circle-check text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Approved</div>
+              <div class="stat-value" id="approvedApplications" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+
+          <!-- Avg Trees/Forester -->
+          <div class="stat-card" >
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-chart-bar text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Avg per Forester</div>
+              <div class="stat-value" id="avgTreesPerForester" style="color: #000000 !important;">0</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Application Statistics -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-chart-line section-icon"></i>
+          Application Pipeline
+        </h2>
+        <div class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
+          <!-- CTPO -->
+          <div class="stat-card">
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-certificate text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">CTPO</div>
+              <div class="stat-value text-xl" id="ctpoCount" style="color: #1a1a1a !important;">0</div>
+              <div class="text-xs mt-1" style="color: #4b5563 !important;">Permits</div>
+            </div>
+          </div>
+
+          <!-- PLTP -->
+          <div class="stat-card">
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-tree text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">PLTP</div>
+              <div class="stat-value text-xl" id="pltpCount" style="color: #000000 !important;">0</div>
+              <div class="text-xs mt-1" style="color: #6b7280 !important;">Plantings</div>
+            </div>
+          </div>
+
+          <!-- SPLTP -->
+          <div class="stat-card">
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-leaf text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">SPLTP</div>
+              <div class="stat-value text-xl" id="spltCount" style="color: #000000 !important;">0</div>
+              <div class="text-xs mt-1" style="color: #6b7280 !important;">Special</div>
+            </div>
+          </div>
+
+          <!-- Permit to Cut -->
+          <div class="stat-card">
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-scroll text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Cut Permits</div>
+              <div class="stat-value text-xl" id="ptcCount" style="color: #000000 !important;">0</div>
+              <div class="text-xs mt-1" style="color: #6b7280 !important;">Active</div>
+            </div>
+          </div>
+
+          <!-- Chainsaw -->
+          <div class="stat-card">
+            <div class="stat-icon-container">
+              <i class="fa-solid fa-screwdriver-wrench text-xl" style="color: #16663a;"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Chainsaw</div>
+              <div class="stat-value text-xl" id="chainsawCount" style="color: #000000 !important;">0</div>
+              <div class="text-xs mt-1" style="color: #6b7280 !important;">Registered</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-bars section-icon"></i>
+          Analytics & Insights
+        </h2>
+        <div class="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          <div class="card-premium">
+            <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2" style="color: #1a1a1a;">
+              <i class="fa-solid fa-sitemap" style="color: #16663a;"></i>
+              Trees by Species
+            </h3>
+            <canvas id="speciesChart" style="max-height: 300px;"></canvas>
+          </div>
+          <div class="card-premium">
+            <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2" style="color: #1a1a1a;">
+              <i class="fa-solid fa-person" style="color: #16663a;"></i>
+              Trees per Forester
+            </h3>
+            <canvas id="applicantChart" style="max-height: 300px;"></canvas>
+          </div>
+          <div class="card-premium">
+            <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2" style="color: #1a1a1a;">
+              <i class="fa-solid fa-pie-chart" style="color: #16663a;"></i>
+              Application Status
+            </h3>
+            <canvas id="statusChart" style="max-height: 300px;"></canvas>
+          </div>
+          <div class="card-premium">
+            <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2" style="color: #1a1a1a;">
+              <i class="fa-solid fa-layer-group" style="color: #16663a;"></i>
+              Type Distribution
+            </h3>
+            <canvas id="appointmentTypeChart" style="max-height: 300px;"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Top Performers Section -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-trophy section-icon"></i>
+          Top Performers
+        </h2>
+        <div class="grid gap-6 grid-cols-1 md:grid-cols-3">
+          <div class="card-premium" style="border-left: 4px solid #064e3b;">
+            <div class="mb-3">
+              <h3 class="font-semibold text-slate-900">Most Active Forester</h3>
+            </div>
+            <div id="topForester" class="text-2xl font-bold" style="color: #1a1a1a;">Loading...</div>
+            <div id="topForesterCount" class="mt-2 text-sm" style="color: #4b5563;">0 trees tagged</div>
+          </div>
+          <div class="card-premium" style="border-left: 4px solid #064e3b;">
+            <div class="mb-3">
+              <h3 class="font-semibold text-slate-900">Most Common Species</h3>
+            </div>
+            <div id="topSpecies" class="text-2xl font-bold" style="color: #16663a;">Loading...</div>
+            <div id="topSpeciesCount" class="mt-2 text-sm text-slate-500">0 trees</div>
+          </div>
+          <div class="card-premium" style="border-left: 4px solid #064e3b;">
+            <div class="mb-3">
+              <h3 class="font-semibold text-slate-900">Most Active Location</h3>
+            </div>
+            <div id="topLocation" class="text-2xl font-bold" style="color: #16663a;">Loading...</div>
+            <div id="topLocationCount" class="mt-2 text-sm text-slate-500">0 appointments</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Map Section -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-map section-icon"></i>
+          Geographic Distribution
+        </h2>
+        <div class="card-premium">
+          <div class="mb-6 flex flex-col gap-4 md:flex-row md:gap-6">
+            <div class="flex-1">
+              <label class="label-base">Filter by Species:</label>
+              <select id="speciesFilter" class="input-base">
+                <option value="all" selected>All Species</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="label-base">Filter by Forester:</label>
+              <select id="foresterFilter" class="input-base">
+                <option value="all" selected>All Foresters</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="label-base">Filter by Applicant:</label>
+              <select id="applicantFilter" class="input-base">
+                <option value="all" selected>All Applicants</option>
+              </select>
+            </div>
+          </div>
+          <div id="treeMap" style="height: 500px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(226,232,240,0.8);"></div>
+        </div>
+      </section>
+
+      <!-- Trends Section -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-chart-area section-icon"></i>
+          Growth Trends
+        </h2>
+        <div class="card-premium">
+          <canvas id="trendsChart" style="max-height: 350px;"></canvas>
+        </div>
+      </section>
+
+      <!-- Monthly Performance -->
+      <section>
+        <h2 class="section-header">
+          <i class="fa-solid fa-calendar-days section-icon"></i>
+          Monthly Performance
+        </h2>
+        <div class="grid gap-6 grid-cols-1 md:grid-cols-3">
+          <div class="card-premium" style="border-left: 4px solid #064e3b;">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">This Month</div>
+            <div class="mt-3 text-3xl font-bold" id="thisMonthTrees" style="color: #1a1a1a;">0</div>
+            <div class="text-sm text-slate-600 mt-1 font-medium" style="color: #4b5563;">Trees Tagged</div>
+          </div>
+          <div class="card-premium" style="border-left: 4px solid #064e3b;">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Last Month</div>
+            <div class="mt-3 text-3xl font-bold" id="lastMonthTrees" style="color: #1a1a1a;">0</div>
+            <div class="text-sm text-slate-600 mt-1 font-medium">Trees Tagged</div>
+          </div>
+          <div class="card-premium" style="border-left: 4px solid #064e3b;">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Growth Rate</div>
+            <div class="mt-3 text-3xl font-bold" id="growthPercentage" style="color: #1a1a1a;">0%</div>
+            <div class="text-sm text-slate-600 mt-1 font-medium">Month-over-Month</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent Activities -->
+      <section class="pb-12">
+        <h2 class="section-header">
+          <i class="fa-solid fa-list-check section-icon"></i>
+          Recent Activities
+        </h2>
+        <div class="card-premium">
+          <ul id="recentActivities" class="space-y-4 divide-y divide-slate-100">
+            <li class="text-slate-500 py-2 text-sm">Loading recent updates...</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set date in both top bar and hero badge
+      const dateDisplay = document.getElementById('dateDisplay');
+      const dateDisplayTop = document.getElementById('dateDisplayTop');
+      const today = new Date();
+      const options = { weekday: 'short', month: 'short', day: 'numeric' };
+      const dateStr = today.toLocaleDateString('en-US', options);
+      if (dateDisplay) dateDisplay.textContent = dateStr;
+      if (dateDisplayTop) dateDisplayTop.textContent = dateStr;
+
+      // Set admin name in hero banner and top bar
+      const adminName = localStorage.getItem('adminName') || 'Admin';
+      const adminNameHero = document.getElementById('adminNameHero');
+      const adminNameTop = document.getElementById('adminNameTop');
+      if (adminNameHero) adminNameHero.textContent = adminName;
+      if (adminNameTop) adminNameTop.textContent = adminName;
+
+      // Set role display in both locations
+      const adminRole = localStorage.getItem('adminRole') || 'Administrator';
+      const roleDisplay = document.getElementById('roleDisplay');
+      const roleDisplayTop = document.getElementById('roleDisplayTop');
+      if (roleDisplay) roleDisplay.textContent = adminRole;
+      if (roleDisplayTop) roleDisplayTop.textContent = adminRole;
+
+      // Refresh button functionality
+      const refreshBtn = document.getElementById('refreshDashboard');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          const icon = refreshBtn.querySelector('i');
+          icon.style.animation = 'spin 1s linear infinite';
+
+          // Reload the page after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        });
+      }
+    });
+
+    // Add CSS animation for refresh spin
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Navigation function for cards
+    function navigateToSection(section) {
+      const navigationMap = {
+        'trees': '../trees/trees.html',
+        'applications': '../applications/applications.html',
+        'users': '../users/users.html',
+        'reports': '../reports/reports.html',
+        'settings': '../settings/settings.html',
+        'map': '#map'
+      };
+
+      const target = navigationMap[section];
+      if (target === '#map') {
+        // Scroll to map section
+        const mapSection = document.querySelector('[id*="treeMap"]');
+        if (mapSection) {
+          mapSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else if (target) {
+        window.location.href = target;
+      }
+    }
+
+  <!-- Unified Sidebar System -->
+  <script src="../shared/sidebar-loader.js"></script>
+</body>
+
+</html>

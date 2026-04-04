@@ -1,41 +1,50 @@
 /**
- * Sidebar Loader - Professional Design
+ * Sidebar Loader - Professional Design (ROBUST VERSION)
  * Handles dynamic sidebar loading, navigation, and dropdown menus
  */
 
-console.log("✅ Sidebar loader script initialized");
+console.log("✅ [SIDEBAR] Script loaded");
 
+// Get sidebar container
 const sidebarContainer = document.getElementById("sidebar-container");
+console.log("✅ [SIDEBAR] Container found:", !!sidebarContainer);
 
 if (!sidebarContainer) {
-  console.error("❌ ERROR: No sidebar-container div found!");
+  console.error("❌ [SIDEBAR] No sidebar-container div found!");
 }
 
+/**
+ * Initialize sidebar - main entry point
+ */
 function initSidebar() {
-  if (!sidebarContainer) return;
-
-  let fetchPath = "./sidebar.html";
-  const pathname = window.location.pathname;
-  const pathParts = pathname.split("/");
-
-  // Determine correct fetch path based on current page location
-  const currentFolder = pathParts[pathParts.length - 2];
-  if (["dashboard", "users", "applications", "reports", "settings", "trees"].includes(currentFolder)) {
-    fetchPath = "../shared/sidebar.html";
+  if (!sidebarContainer) {
+    console.error("❌ [SIDEBAR] Container not found, cannot initialize");
+    return;
   }
 
-  console.log("📍 Loading sidebar from:", fetchPath);
+  // Determine correct fetch path
+  let fetchPath = "../shared/sidebar.html";
+  const pathname = window.location.pathname;
+
+  console.log("📍 [SIDEBAR] Current pathname:", pathname);
+  console.log("📍 [SIDEBAR] Fetching from:", fetchPath);
 
   fetch(fetchPath)
     .then(response => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      console.log("📡 [SIDEBAR] Response status:", response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       return response.text();
     })
     .then(html => {
-      sidebarContainer.innerHTML = html;
-      console.log("✅ Sidebar loaded successfully");
+      console.log("✅ [SIDEBAR] HTML received, length:", html.length);
 
-      // Initialize all sidebar features
+      // Inject sidebar HTML
+      sidebarContainer.innerHTML = html;
+      console.log("✅ [SIDEBAR] HTML injected into DOM");
+
+      // Initialize all sidebar functionality
       initDropdowns();
       initSubmenus();
       initMenuItems();
@@ -43,14 +52,15 @@ function initSidebar() {
       initLogout();
       setActiveMenuItems();
 
-      console.log("✅ Sidebar fully initialized");
+      console.log("✅ [SIDEBAR] Fully initialized");
     })
     .catch(error => {
-      console.error("❌ Failed to load sidebar:", error);
+      console.error("❌ [SIDEBAR] Failed to load:", error);
       sidebarContainer.innerHTML = `
         <div style="position: fixed; left: 0; top: 0; width: 260px; height: 100vh; background: #fee2e2; border-right: 1px solid #fca5a5; padding: 20px; color: #dc2626; z-index: 1000; overflow: auto; font-family: system-ui;">
-          <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">Sidebar Error</h3>
+          <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">❌ Sidebar Error</h3>
           <p style="margin: 0; font-size: 12px;">${error.message}</p>
+          <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.7;">Path: ${fetchPath}</p>
         </div>
       `;
     });
@@ -61,6 +71,7 @@ function initSidebar() {
  */
 function initDropdowns() {
   const dropdowns = document.querySelectorAll(".dropdown");
+  console.log("📍 [SIDEBAR] Found dropdowns:", dropdowns.length);
 
   dropdowns.forEach(dropdown => {
     const toggle = dropdown.querySelector(".dropdown-toggle");
@@ -71,11 +82,16 @@ function initDropdowns() {
       e.stopPropagation();
 
       const isOpen = dropdown.classList.contains("open");
-      closeAllDropdowns();
 
+      // Close all dropdowns
+      document.querySelectorAll(".dropdown.open").forEach(d => {
+        d.classList.remove("open");
+      });
+
+      // Open this dropdown if it was closed
       if (!isOpen) {
         dropdown.classList.add("open");
-        console.log("📖 Dropdown opened");
+        console.log("📖 [SIDEBAR] Dropdown opened");
       }
     });
   });
@@ -83,16 +99,11 @@ function initDropdowns() {
   // Close dropdown when clicking outside
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".dropdown")) {
-      closeAllDropdowns();
+      document.querySelectorAll(".dropdown.open").forEach(d => {
+        d.classList.remove("open");
+      });
     }
   });
-}
-
-function closeAllDropdowns() {
-  document.querySelectorAll(".dropdown.open").forEach(dropdown => {
-    dropdown.classList.remove("open");
-  });
-  closeAllSubmenus();
 }
 
 /**
@@ -100,6 +111,7 @@ function closeAllDropdowns() {
  */
 function initSubmenus() {
   const subToggles = document.querySelectorAll(".sub-toggle");
+  console.log("📍 [SIDEBAR] Found submenus:", subToggles.length);
 
   subToggles.forEach(toggle => {
     toggle.addEventListener("click", (e) => {
@@ -118,17 +130,11 @@ function initSubmenus() {
 
       if (!isOpen) {
         parent.classList.add("open");
-        console.log("📚 Submenu opened");
+        console.log("📚 [SIDEBAR] Submenu opened");
       } else {
         parent.classList.remove("open");
       }
     });
-  });
-}
-
-function closeAllSubmenus() {
-  document.querySelectorAll(".dropdown-sub.open").forEach(sub => {
-    sub.classList.remove("open");
   });
 }
 
@@ -137,13 +143,17 @@ function closeAllSubmenus() {
  */
 function initMenuItems() {
   const menuItems = document.querySelectorAll(".menu-item");
+  console.log("📍 [SIDEBAR] Found menu items:", menuItems.length);
 
   menuItems.forEach(item => {
-    if (item.classList.contains("dropdown-toggle")) return; // Skip dropdown toggles
+    if (item.classList.contains("dropdown-toggle")) return;
 
     item.addEventListener("click", () => {
-      closeAllDropdowns();
-      console.log("🔗 Menu item clicked");
+      // Close dropdowns when navigating
+      document.querySelectorAll(".dropdown.open").forEach(d => {
+        d.classList.remove("open");
+      });
+      console.log("🔗 [SIDEBAR] Menu item clicked");
     });
   });
 }
@@ -168,7 +178,7 @@ function initAppButtons() {
         e.preventDefault();
         e.stopPropagation();
 
-        console.log("📋 App type selected:", btn.type);
+        console.log("📋 [SIDEBAR] App type clicked:", btn.type);
 
         localStorage.setItem("selectedApplicationType", btn.type);
         localStorage.setItem("selectedApplicationTitle", btn.title);
@@ -177,6 +187,8 @@ function initAppButtons() {
       });
     }
   });
+
+  console.log("✅ [SIDEBAR] App buttons initialized");
 }
 
 /**
@@ -187,10 +199,11 @@ function initLogout() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      console.log("👋 Logging out");
+      console.log("👋 [SIDEBAR] Logout clicked");
       localStorage.clear();
       window.location.href = "../../auth/login/index.html";
     });
+    console.log("✅ [SIDEBAR] Logout button initialized");
   }
 }
 
@@ -198,22 +211,34 @@ function initLogout() {
  * Set active menu items based on current page
  */
 function setActiveMenuItems() {
-  const currentPage = window.location.pathname.split("/").pop();
-  console.log("🔍 Current page:", currentPage);
+  const currentPage = window.location.pathname.split("/").pop() || "dashboard.html";
+  console.log("🔍 [SIDEBAR] Current page:", currentPage);
 
   const menuItems = document.querySelectorAll(".menu-item");
+  let activeCount = 0;
+
   menuItems.forEach(item => {
     const href = item.getAttribute("href");
     if (href && (href.endsWith(currentPage) || href === currentPage)) {
       item.classList.add("active");
-      console.log("✅ Activated menu item:", href);
+      activeCount++;
+      console.log("✅ [SIDEBAR] Activated:", href);
     }
   });
+
+  console.log("📊 [SIDEBAR] Total active menu items:", activeCount);
 }
 
-// Initialize sidebar when DOM is ready
+// Initialize sidebar when document is ready
+console.log("📍 [SIDEBAR] Document ready state:", document.readyState);
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initSidebar);
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("📍 [SIDEBAR] DOMContentLoaded event fired");
+    initSidebar();
+  });
 } else {
+  console.log("📍 [SIDEBAR] Document already loaded, initializing sidebar now");
   initSidebar();
 }
+

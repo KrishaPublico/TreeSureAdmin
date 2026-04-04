@@ -1,0 +1,346 @@
+@import "tailwindcss";
+
+@source "../**/*.{html,js}";
+@source "../../index.html";
+@source "../../public/**/*.html";
+
+@theme {
+  --color-forest-50: #f0fdf4;
+  --color-forest-100: #dcfce7;
+  --color-forest-150: #c8e6c9;
+  --color-forest-200: #b3ddb8;
+  --color-forest-300: #8ed3a7;
+  --color-forest-400: #69c895;
+  --color-forest-500: #4caf50;
+  --color-forest-550: #16663a;
+  --color-forest-600: #0d6b52;
+  --color-forest-700: #0a5d47;
+  --color-forest-800: #064e3b;
+  --color-forest-900: #0a2e1f;
+
+  --color-treesure-green-900: #0b4a2f;
+  --color-treesure-green-700: #16663a;
+  --color-treesure-mint-100: #daedd7;
+  --color-treesure-surface-200: #d9d9d9;
+
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-900: #0f172a;
+}
+
+@layer components {
+  /* ============ PROFESSIONAL BASE STYLES ============ */
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-slate-50 font-sans text-slate-700;
+  }
+
+  /* ============ BUTTON COMPONENTS ============ */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-forest-800 px-6 py-2.5 font-medium text-white transition-all duration-200 hover:bg-forest-900 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-forest-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border-2 border-forest-200 bg-forest-50 px-6 py-2.5 font-medium text-forest-800 transition-all duration-200 hover:bg-forest-100 hover:border-forest-300 focus:outline-none focus:ring-2 focus:ring-forest-800 focus:ring-offset-2;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 font-medium text-slate-600 transition-all duration-200 hover:bg-forest-50 hover:text-forest-800 focus:outline-none focus:ring-2 focus:ring-forest-800;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-forest-800 px-6 py-2.5 font-medium text-white transition-all duration-200 hover:bg-forest-900 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-forest-800 focus:ring-offset-2;
+  }
+
+  /* Icon buttons */
+  .btn-icon {
+    @apply inline-flex items-center justify-center rounded-lg p-2 transition-all duration-200 hover:bg-forest-50 focus:outline-none focus:ring-2 focus:ring-forest-800;
+  }
+
+  /* ============ CARD COMPONENTS ============ */
+  .card {
+    @apply rounded-xl bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md;
+  }
+
+  .card-elevated {
+    @apply rounded-xl bg-white p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .card-outlined {
+    @apply rounded-xl border border-slate-200 bg-white p-6 transition-all duration-300;
+  }
+
+  /* Stat/Summary Cards */
+  .stat-card {
+    @apply flex flex-col gap-2 rounded-xl bg-forest-550 p-6 shadow-sm transition-all duration-300 hover:shadow-md;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-white;
+  }
+
+  .stat-label {
+    @apply text-sm font-medium text-forest-50;
+  }
+
+  /* ============ FORM COMPONENTS ============ */
+  .input-base {
+    @apply w-full rounded-lg border border-forest-300 bg-white px-4 py-2.5 text-slate-700 placeholder-forest-400 transition-all duration-200 focus:border-forest-800 focus:outline-none focus:ring-2 focus:ring-forest-800/20;
+  }
+
+  .input-error {
+    @apply border-forest-300 focus:border-forest-800 focus:ring-forest-800/20;
+  }
+
+  .input-success {
+    @apply border-forest-400 focus:border-forest-800 focus:ring-forest-800/20;
+  }
+
+  .label-base {
+    @apply block text-sm font-semibold text-forest-800 mb-2;
+  }
+
+  /* ============ TABLE COMPONENTS ============ */
+  .table-container {
+    @apply overflow-x-auto rounded-xl border border-forest-200 shadow-sm;
+  }
+
+  .table-header {
+    @apply bg-gradient-to-r from-forest-50 to-forest-100 font-semibold text-forest-900;
+  }
+
+  .table-row-hover {
+    @apply transition-colors duration-200 hover:bg-forest-50;
+  }
+
+  /* ============ BADGE/CHIP COMPONENTS ============ */
+  .badge-success {
+    @apply inline-flex items-center gap-1 rounded-full bg-forest-100 px-3 py-1 text-sm font-medium text-forest-800;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center gap-1 rounded-full bg-forest-100 px-3 py-1 text-sm font-medium text-forest-800;
+  }
+
+  .badge-error {
+    @apply inline-flex items-center gap-1 rounded-full bg-forest-100 px-3 py-1 text-sm font-medium text-forest-800;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center gap-1 rounded-full bg-forest-100 px-3 py-1 text-sm font-medium text-forest-800;
+  }
+
+  /* ============ NAVIGATION STYLE ============ */
+  .sidebar-item {
+    @apply flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 text-slate-600 hover:bg-forest-50 hover:text-forest-800;
+  }
+
+  .sidebar-item.active {
+    @apply bg-white text-forest-800 font-semibold border-l-4 border-forest-800;
+  }
+
+  /* ============ MODAL/DIALOG ============ */
+  .modal-backdrop {
+    @apply fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300;
+  }
+
+  .modal-content {
+    @apply relative z-50 max-w-2xl rounded-2xl bg-white p-8 shadow-2xl;
+  }
+
+  /* ============ LOGIN PAGE ============ */
+  body.login-page {
+    @apply flex min-h-screen items-center justify-center bg-treesure-mint-100 p-5 font-sans;
+  }
+
+  .login-container {
+    @apply flex h-screen w-full items-center justify-center p-5;
+  }
+
+  .login-card {
+    @apply flex w-full max-w-[900px] overflow-hidden rounded-xl bg-treesure-surface-200 shadow-[0_4px_20px_rgba(0,0,0,0.12)];
+  }
+
+  .login-left {
+    @apply flex flex-1 flex-col items-start justify-center bg-gradient-to-br from-[#0b4a2f] to-[#16663a] px-10 py-16 text-left text-white;
+  }
+
+  .logo-badge {
+    @apply mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-white/10;
+  }
+
+  .logo-img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+  }
+
+  .login-left h1 {
+    @apply mb-4 font-serif text-4xl font-bold leading-tight text-white;
+  }
+
+  .description {
+    @apply mb-10 max-w-[300px] text-base leading-7 text-white/95;
+  }
+
+  .features {
+    @apply w-full text-left;
+  }
+
+  .feature-item {
+    @apply mb-4 flex items-center text-base font-medium;
+  }
+
+  .checkmark {
+    @apply mr-3 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center font-bold text-treesure-mint-100;
+  }
+
+  .login-right {
+    @apply flex flex-1 flex-col justify-center bg-white px-10 py-16;
+  }
+
+  .login-right h2 {
+    @apply mb-2 font-serif text-[32px] font-bold text-treesure-green-900;
+  }
+
+  .subtitle {
+    @apply mb-8 text-sm text-[#868686];
+  }
+
+  .error-box {
+    @apply mb-5 hidden rounded-lg border border-[#f5c2c7] bg-[#fdecea] px-4 py-3 text-center text-sm text-[#b71c1c] opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-opacity duration-300;
+  }
+
+  .error-box.show {
+    @apply block opacity-100;
+  }
+
+  .login-form {
+    @apply flex flex-col gap-5;
+  }
+
+  .form-group {
+    @apply flex flex-col;
+  }
+
+  .form-group label {
+    @apply mb-1.5 text-[13px] font-medium text-treesure-green-900;
+  }
+
+  .input-wrapper {
+    @apply relative flex items-center;
+  }
+
+  .input-icon {
+    @apply pointer-events-none absolute left-3 text-[#999];
+  }
+
+  .login-form input {
+    @apply w-full rounded-md border border-[#ddd] bg-white py-3 pl-9 pr-3 text-sm text-[#333] transition duration-300 focus:border-treesure-green-900 focus:outline-none focus:ring-4 focus:ring-treesure-green-900/10;
+  }
+
+  .login-form input::placeholder {
+    @apply text-[#999];
+  }
+
+  .password-group .input-wrapper {
+    @apply relative;
+  }
+
+  .eye-icon {
+    @apply absolute right-3 flex cursor-pointer items-center justify-center text-[#999] transition-colors duration-300;
+  }
+
+  .eye-icon:hover {
+    @apply text-treesure-green-900;
+  }
+
+  .eye-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .forgot-password {
+    @apply mb-2.5 self-end text-[13px] font-medium text-treesure-green-900 no-underline transition-opacity duration-300 hover:opacity-80 hover:underline;
+  }
+
+  .sign-in-btn {
+    @apply mt-2.5 flex items-center justify-center gap-2 rounded-md border-0 bg-gradient-to-br from-[#102f24] to-treesure-green-900 px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(27,67,50,0.34)];
+  }
+
+  .sign-in-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .divider {
+    @apply my-6 h-px bg-[#ddd];
+  }
+
+  .signup-text {
+    @apply text-center text-sm text-[#666];
+  }
+
+  .signup-link {
+    @apply font-semibold text-treesure-green-900 no-underline transition-opacity duration-300 hover:opacity-80 hover:underline;
+  }
+
+  .back-home {
+    @apply mt-4 text-center text-[13px] text-treesure-green-900 no-underline transition-opacity duration-300 hover:opacity-70;
+  }
+
+  @media (max-width: 768px) {
+    .login-card {
+      @apply flex-col;
+    }
+
+    .login-left {
+      @apply items-center px-8 py-10 text-center;
+      min-height: 300px;
+    }
+
+    .login-right {
+      @apply px-8 py-10;
+    }
+
+    .login-left h1 {
+      @apply text-[28px];
+    }
+
+    .login-right h2 {
+      @apply text-2xl;
+    }
+
+    .features {
+      @apply mt-5;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .login-left,
+    .login-right {
+      @apply px-5 py-8;
+    }
+
+    .login-left h1 {
+      @apply text-[22px];
+    }
+
+    .login-right h2 {
+      @apply text-[20px];
+    }
+
+    .description {
+      @apply text-sm;
+    }
+  }
+}

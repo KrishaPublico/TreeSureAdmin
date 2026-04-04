@@ -1,93 +1,79 @@
-<!-- Sidebar using only Tailwind CSS -->
-<aside class="fixed left-0 top-0 h-screen w-56 overflow-y-auto border-r border-slate-200 bg-white shadow-lg z-[1000]" style="display: block; visibility: visible;">
-  <!-- Logo Section -->
-  <div class="flex items-center gap-4 border-b border-slate-200 px-8 py-6 min-h-[110px]">
-    <img src="/assets/images/treesurelogo.png" alt="TreeSure Logo" class="h-14 w-14 object-contain" />
-    <div>
-      <h2 class="text-xl font-black text-forest-800">TreeSure</h2>
-      <p class="text-xs font-semibold text-slate-600">Admin Panel</p>
-    </div>
+<aside class="sidebar">
+  <div class="logo-section">
+    <img src="/assets/images/treesurelogo.png" alt="TreeSure Logo" class="logo" />
+    <h2>TreeSure</h2>
+    <p class="admin-label">Admin Panel</p>
   </div>
 
-  <!-- Navigation Menu -->
-  <nav class="p-2">
-    <ul class="space-y-1">
+  <nav class="menu">
+    <ul>
       <!-- Dashboard -->
       <li>
-        <a href="../dashboard/dashboard.html" class="sidebar-item group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-forest-800 transition-all duration-200">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg text-forest-800">
-            <i class="fa-solid fa-gauge text-lg font-bold"></i>
-          </div>
-          <span class="text-sm font-bold text-slate-700">Dashboard</span>
+        <a href="../dashboard/dashboard.html" class="menu-item">
+          <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
         </a>
       </li>
 
       <!-- Users -->
       <li>
-        <a href="../users/users.html" class="sidebar-item group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-forest-800 transition-all duration-200">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg text-forest-800">
-            <i class="fa-solid fa-users text-lg font-bold"></i>
-          </div>
-          <span class="text-sm font-bold text-slate-700">Users</span>
+        <a href="../users/users.html" class="menu-item">
+          <i class="fa-solid fa-users"></i> <span>Users</span>
         </a>
       </li>
 
       <!-- Applications Dropdown -->
       <li class="dropdown">
-        <button type="button" class="dropdown-toggle sidebar-item w-full flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-forest-800 transition-all duration-200">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg text-forest-800">
-            <i class="fa-solid fa-file-invoice text-lg font-bold"></i>
-          </div>
-          <span class="text-sm font-bold flex-1 text-left text-slate-700">Applications</span>
-          <i class="fa-solid fa-chevron-down dropdown-icon text-xs transition-transform duration-300"></i>
-        </button>
-        <ul class="dropdown-menu mt-1 space-y-0 rounded-lg bg-slate-50 px-2 py-1 overflow-hidden" style="max-height: 0px; opacity: 0; transition: max-height 300ms ease, opacity 300ms ease; display: block;">
+        <a href="#" class="dropdown-toggle menu-item">
+          <i class="fa-solid fa-file-lines"></i>
+          <span>Applications</span>
+          <i class="fa-solid fa-caret-down dropdown-icon"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <!-- CTPO -->
           <li>
-            <button class="app-type-btn w-full text-left flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-100 transition-all duration-200" id="ctpoBtn">
-              <div class="flex items-center justify-center w-6 h-6 rounded text-forest-800">
-                <i class="fa-solid fa-certificate text-sm font-bold"></i>
-              </div>
-              <span class="font-semibold">CTPO</span>
+            <button class="app-type-btn" id="ctpoBtn">
+              <i class="fa-solid fa-certificate"></i> CTPO
             </button>
           </li>
+
+          <!-- Cutting Permits Submenu -->
+          <li class="dropdown-sub">
+            <button class="app-type-btn sub-toggle">
+              <i class="fa-solid fa-tree"></i> Cutting Permits
+              <i class="fa-solid fa-caret-down sub-icon"></i>
+            </button>
+            <ul class="sub-menu">
+              <li>
+                <button class="app-type-btn" id="pltpBtn">
+                  <i class="fa-solid fa-leaf"></i> PLTP
+                </button>
+              </li>
+              <li>
+                <button class="app-type-btn" id="spltpBtn">
+                  <i class="fa-solid fa-leaf"></i> SPLTP
+                </button>
+              </li>
+            </ul>
+          </li>
+
+          <!-- COV -->
           <li>
-            <button class="app-type-btn w-full text-left flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-100 transition-all duration-200" id="pltpBtn">
-              <div class="flex items-center justify-center w-6 h-6 rounded text-forest-800">
-                <i class="fa-solid fa-tree text-sm font-bold"></i>
-              </div>
-              <span class="font-semibold">PLTP</span>
+            <button class="app-type-btn" id="covBtn">
+              <i class="fa-solid fa-rectangle-list"></i> COV
             </button>
           </li>
+
+          <!-- CTT -->
           <li>
-            <button class="app-type-btn w-full text-left flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-100 transition-all duration-200" id="spltpBtn">
-              <div class="flex items-center justify-center w-6 h-6 rounded text-forest-800">
-                <i class="fa-solid fa-leaf text-sm font-bold"></i>
-              </div>
-              <span class="font-semibold">SPLTP</span>
+            <button class="app-type-btn" id="cttBtn">
+              <i class="fa-solid fa-truck"></i> CTT
             </button>
           </li>
+
+          <!-- Chainsaw -->
           <li>
-            <button class="app-type-btn w-full text-left flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-100 transition-all duration-200" id="covBtn">
-              <div class="flex items-center justify-center w-6 h-6 rounded text-forest-800">
-                <i class="fa-solid fa-rectangle-list text-sm font-bold"></i>
-              </div>
-              <span class="font-semibold">COV</span>
-            </button>
-          </li>
-          <li>
-            <button class="app-type-btn w-full text-left flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-100 transition-all duration-200" id="chainsawBtn">
-              <div class="flex items-center justify-center w-6 h-6 rounded text-forest-800">
-                <i class="fa-solid fa-screwdriver-wrench text-sm font-bold"></i>
-              </div>
-              <span class="font-semibold">Chainsaw</span>
-            </button>
-          </li>
-          <li>
-            <button class="app-type-btn w-full text-left flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-100 transition-all duration-200" id="cttBtn">
-              <div class="flex items-center justify-center w-6 h-6 rounded text-forest-800">
-                <i class="fa-solid fa-truck text-sm font-bold"></i>
-              </div>
-              <span class="font-semibold">CTT</span>
+            <button class="app-type-btn" id="chainsawBtn">
+              <i class="fa-solid fa-screwdriver-wrench"></i> Chainsaw
             </button>
           </li>
         </ul>
@@ -95,48 +81,304 @@
 
       <!-- Reports -->
       <li>
-        <a href="../reports/reports.html" class="sidebar-item group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-forest-800 transition-all duration-200">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg text-forest-800">
-            <i class="fa-solid fa-chart-line text-lg font-bold"></i>
-          </div>
-          <span class="text-sm font-bold text-slate-700">Reports</span>
+        <a href="../reports/reports.html" class="menu-item">
+          <i class="fa-solid fa-chart-line"></i> <span>Reports</span>
         </a>
       </li>
 
       <!-- Settings -->
       <li>
-        <a href="../settings/settings.html" class="sidebar-item group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-forest-800 transition-all duration-200">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg text-forest-800">
-            <i class="fa-solid fa-sliders text-lg font-bold"></i>
-          </div>
-          <span class="text-sm font-bold text-slate-700">Settings</span>
+        <a href="../settings/settings.html" class="menu-item">
+          <i class="fa-solid fa-sliders"></i> <span>Settings</span>
+        </a>
+      </li>
+
+      <!-- Trees -->
+      <li>
+        <a href="../trees/trees.html" class="menu-item">
+          <i class="fa-solid fa-tree"></i> <span>Trees</span>
         </a>
       </li>
 
       <!-- Logout -->
-      <li class="pt-2 border-t border-slate-200 mt-2">
-        <a href="#" id="logoutBtn" class="sidebar-item group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-forest-800 transition-all duration-200">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg text-forest-800">
-            <i class="fa-solid fa-right-from-bracket text-lg font-bold"></i>
-          </div>
-          <span class="text-sm font-bold text-slate-700">Logout</span>
+      <li class="logout-section">
+        <a href="#" id="logoutBtn" class="menu-item logout-btn">
+          <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
         </a>
       </li>
     </ul>
   </nav>
-
-  <!-- Tailwind Styles for Active States -->
-  <style>
-    .sidebar-item.active {
-      @apply bg-white text-forest-800 font-black border-l-4 border-forest-800 !important;
-    }
-
-    .app-type-btn.active {
-      @apply bg-forest-50 text-forest-800 font-semibold border-l-4 border-forest-800 !important;
-    }
-
-    .sidebar-item:focus {
-      @apply outline-none ring-2 ring-forest-800 !important;
-    }
-  </style>
 </aside>
+
+<style>
+  /* ========== SIDEBAR PROFESSIONAL STYLES ========== */
+  :root {
+    --sidebar-bg: #f4f6f8;
+    --sidebar-text: #2e7d32;
+    --sidebar-hover: #dff5df;
+    --sidebar-active: #1b5e20;
+    --sidebar-width: 260px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background-color: var(--sidebar-bg);
+    padding: 0;
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08),
+                0 4px 10px rgba(0, 0, 0, 0.06);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    overflow-y: auto;
+  }
+
+  /* Logo Section */
+  .sidebar .logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .sidebar .logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+    object-fit: contain;
+  }
+
+  .sidebar h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--sidebar-text);
+    text-align: center;
+    margin: 0 0 4px 0;
+  }
+
+  .sidebar .admin-label {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: 500;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Menu */
+  .sidebar .menu {
+    width: 100%;
+    flex: 1;
+    padding: 10px 0;
+  }
+
+  .sidebar .menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar .menu ul li {
+    margin: 0;
+  }
+
+  /* Menu Items */
+  .sidebar .menu-item,
+  .sidebar .app-type-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+    font-weight: 600;
+    cursor: pointer;
+    width: calc(100% - 40px);
+    border: none;
+    background: none;
+    text-align: left;
+    margin: 0 20px;
+    font-size: 0.95rem;
+  }
+
+  .sidebar .menu-item i,
+  .sidebar .app-type-btn i {
+    font-size: 1.15rem;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .sidebar .menu-item span,
+  .sidebar .app-type-btn span {
+    flex: 1;
+  }
+
+  /* Hover State */
+  .sidebar .menu-item:hover,
+  .sidebar .app-type-btn:hover {
+    background-color: var(--sidebar-hover);
+    color: var(--sidebar-active);
+    transform: translateX(4px);
+  }
+
+  .sidebar .menu-item:hover i,
+  .sidebar .app-type-btn:hover i {
+    color: var(--sidebar-active);
+  }
+
+  /* Active State */
+  .sidebar .menu-item.active,
+  .sidebar .app-type-btn.active {
+    background-color: var(--sidebar-hover);
+    color: var(--sidebar-active);
+    border-left: 4px solid var(--sidebar-active);
+    padding-left: 16px;
+  }
+
+  /* Dropdown Toggle */
+  .sidebar .dropdown-toggle {
+    position: relative;
+  }
+
+  .sidebar .dropdown-icon {
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .sidebar .dropdown.open .dropdown-icon {
+    transform: rotate(180deg);
+  }
+
+  /* Dropdown Menu */
+  .sidebar .dropdown-menu {
+    display: none;
+    list-style: none;
+    padding: 5px 0;
+    margin: 0;
+    background-color: rgba(46, 125, 50, 0.04);
+  }
+
+  .sidebar .dropdown.open .dropdown-menu {
+    display: block;
+  }
+
+  .sidebar .dropdown-menu li {
+    margin: 0;
+  }
+
+  .sidebar .dropdown-menu .app-type-btn {
+    padding-left: 35px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  .sidebar .dropdown-menu .app-type-btn:hover {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: var(--sidebar-active);
+  }
+
+  /* Sub-menu Toggle */
+  .sidebar .sub-toggle {
+    position: relative;
+  }
+
+  .sidebar .sub-icon {
+    font-size: 0.7rem;
+    transition: transform 0.3s ease;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .sidebar .dropdown-sub.open .sub-icon {
+    transform: rotate(180deg);
+  }
+
+  /* Sub-menu */
+  .sidebar .sub-menu {
+    display: none;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background-color: rgba(46, 125, 50, 0.08);
+  }
+
+  .sidebar .dropdown-sub.open .sub-menu {
+    display: block;
+  }
+
+  .sidebar .sub-menu li {
+    margin: 0;
+  }
+
+  .sidebar .sub-menu .app-type-btn {
+    padding-left: 50px;
+    font-size: 0.85rem;
+    color: #666;
+  }
+
+  .sidebar .sub-menu .app-type-btn:hover {
+    background-color: rgba(46, 125, 50, 0.12);
+    color: var(--sidebar-active);
+  }
+
+  /* Logout Section */
+  .sidebar .logout-section {
+    margin-top: auto;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 10px;
+  }
+
+  .sidebar .logout-btn {
+    color: #d32f2f;
+  }
+
+  .sidebar .logout-btn:hover {
+    background-color: rgba(211, 47, 47, 0.1);
+    color: #b71c1c;
+  }
+
+  .sidebar .logout-btn i {
+    color: #d32f2f;
+  }
+
+  .sidebar .logout-btn:hover i {
+    color: #b71c1c;
+  }
+
+  /* Scrollbar Styling */
+  .sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    :root {
+      --sidebar-width: 220px;
+    }
+  }
+</style>

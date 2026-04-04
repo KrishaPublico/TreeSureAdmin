@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-forest-green">
+    <link rel="stylesheet" href="login.css">
+    <title>TreeSure - Login</title>
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Left Panel -->
+            <div class="login-left">
+                <div class="logo-badge">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="30" cy="30" r="28" fill="none" stroke="#1b4332" stroke-width="2"/>
+                        <path d="M30 15C25 15 22 20 22 25C22 30 25 35 30 38C35 35 38 30 38 25C38 20 35 15 30 15Z" fill="#1b4332"/>
+                        <rect x="25" y="35" width="10" height="8" fill="#1b4332" rx="1"/>
+                    </svg>
+                </div>
+                <h1>Welcome to TreeSureApp</h1>
+                <p class="description">The official digital platform for urban forest management and sustainability tracking.</p>
+
+                <div class="features">
+                    <div class="feature-item">
+                        <span class="checkmark">✓</span>
+                        <span>Sustainable Practices</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="checkmark">✓</span>
+                        <span>Secure & Verified</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="checkmark">✓</span>
+                        <span>Forest Data</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="login-right">
+                <h2>Log In</h2>
+                <p class="subtitle">Enter your credentials to access your account</p>
+
+                <form class="login-form">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 4H14C14.55 4 15 4.45 15 5V11C15 11.55 14.55 12 14 12H2C1.45 12 1 11.55 1 11V5C1 4.45 1.45 4 2 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                                <path d="M15 5L8 8.5L1 5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                            </svg>
+                            <input type="email" id="email" placeholder="your.name@treesure.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 8H13" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M8 3V13" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <input type="password" id="password" placeholder="••••••••" required>
+                            <svg class="eye-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 2C4 2 1 5 1 8C1 11 4 14 8 14C12 14 15 11 15 8C15 5 12 2 8 2Z" stroke="currentColor" stroke-width="1"/>
+                                <circle cx="8" cy="8" r="2" fill="currentColor"/>
+                                <line x1="12" y1="4" x2="4" y2="12" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <a href="#" class="forgot-password">Forgot password?</a>
+
+                    <button type="submit" class="sign-in-btn">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 2C5.5 2 2.5 4 1 7M9 2C12.5 2 15.5 4 17 7M9 2V16M9 16C5.5 16 2.5 14 1 11M9 16C12.5 16 15.5 14 17 11" stroke="white" stroke-width="1.5" fill="none"/>
+                        </svg>
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="divider"></div>
+
+                <p class="signup-text">Don't have an account? <a href="#" class="signup-link">Create Account</a></p>
+
+                <a href="#" class="back-home">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+

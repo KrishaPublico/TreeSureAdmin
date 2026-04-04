@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-forest-green">
+  <title>Settings - TreeSure Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBca-tYDQIXxSzOAz2jph3Mse6rJ3Ag9is",
+      authDomain: "treesure-6496c.firebaseapp.com",
+      databaseURL: "https://treesure-6496c-default-rtdb.firebaseio.com",
+      projectId: "treesure-6496c",
+      storageBucket: "treesure-6496c.firebasestorage.app",
+      messagingSenderId: "324875915553",
+      appId: "1:324875915553:web:9c8b1136a2d04594bcae60",
+      measurementId: "G-G9V6QMHX1E"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <style>
+    body { @apply bg-slate-50; background-color: #f8fafc !important; }
+
+    #sidebar-container {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      width: 260px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 1000 !important;
+    }
+
+    body {
+      margin-left: 260px;
+    }
+
+    .ml-56 {
+      margin-left: 224px !important;
+    }
+
+    .card { @apply bg-white rounded-lg border border-slate-200 p-6 shadow-sm; background-color: #ffffff !important; }
+    .card-header { @apply border-b border-slate-200 pb-4 mb-4; }
+
+    /* Header */
+    header {
+      background-color: #166d22 !important;
+      padding: 18px 32px !important;
+      border: 1px solid #0f4a17 !important;
+      box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4) !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 1001 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    header h1 {
+      font-size: 28px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+      margin: 0 0 8px 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+    }
+
+    header p {
+      font-size: 13px !important;
+      color: rgba(255, 255, 255, 0.9) !important;
+      margin: 0 !important;
+    }
+
+    /* Settings Sections */
+    .settings-card {
+      @apply bg-white rounded-lg border border-slate-200 mb-6 shadow-sm;
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 8px !important;
+      margin-bottom: 24px !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    .settings-card-header {
+      @apply px-6 py-4 border-b border-slate-200 bg-slate-50;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 16px 24px !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      background-color: #f8fafc !important;
+      background-image: none !important;
+    }
+
+    .settings-card-header h3 {
+      @apply text-lg font-bold text-slate-900 m-0;
+      color: #166d22 !important;
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      margin: 0 !important;
+      display: block !important;
+    }
+
+    .settings-card-header i {
+      font-size: 18px !important;
+      color: #166d22 !important;
+      display: inline-block !important;
+    }
+
+    .settings-card-body {
+      @apply p-0;
+      padding: 0 !important;
+      display: block !important;
+    }
+
+    .settings-item {
+      @apply px-6 py-4 border-b border-slate-100 cursor-pointer transition-colors hover:bg-slate-50 flex justify-between items-center;
+      padding: 16px 24px !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      cursor: pointer !important;
+      transition: background-color 200ms !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      background-color: #ffffff !important;
+    }
+
+    .settings-item:hover {
+      background-color: #f8fafc !important;
+    }
+
+    .settings-item:last-child {
+      @apply border-b-0;
+      border-bottom: none !important;
+    }
+
+    .settings-item-left {
+      @apply flex items-start gap-3 flex-1;
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      flex: 1 !important;
+    }
+
+    .settings-item-icon {
+      @apply text-lg mt-1;
+      color: #166d22 !important;
+      font-size: 16px !important;
+      margin-top: 4px !important;
+      width: 24px !important;
+      text-align: center !important;
+      display: block !important;
+    }
+
+    .settings-item-text {
+      display: block !important;
+    }
+
+    .settings-item-text h3 {
+      @apply font-semibold text-slate-900 mb-1 text-sm;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: #1e293b !important;
+      margin: 0 0 4px 0 !important;
+      display: block !important;
+    }
+
+    .settings-item-text p {
+      @apply text-xs text-slate-600;
+      font-size: 12px !important;
+      color: #64748b !important;
+      margin: 0 !important;
+      display: block !important;
+    }
+
+    .settings-item-arrow {
+      @apply text-slate-400;
+      color: #cbd5e1 !important;
+      display: block !important;
+    }
+
+    /* Modals */
+    .modal {
+      display: none !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: rgba(0, 0, 0, 0.6) !important;
+      z-index: 2000 !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    .modal.active {
+      display: flex !important;
+    }
+
+    .modal-content {
+      background: white !important;
+      border-radius: 16px !important;
+      max-width: 550px !important;
+      width: 90% !important;
+      max-height: 85vh !important;
+      overflow-y: auto !important;
+      position: relative !important;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2) !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+
+    .modal-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 24px 28px !important;
+      border-bottom: 2px solid #f0fdf4 !important;
+      background: linear-gradient(135deg, rgba(22, 109, 34, 0.02) 0%, rgba(22, 109, 34, 0.01) 100%) !important;
+      flex-shrink: 0 !important;
+    }
+
+    .modal-header h2 {
+      color: #166d22 !important;
+      font-size: 18px !important;
+      font-weight: 700 !important;
+      margin: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      flex: 1 !important;
+    }
+
+    .modal-header h2 i {
+      font-size: 20px !important;
+      color: #166d22 !important;
+    }
+
+    .close {
+      background: none !important;
+      border: none !important;
+      font-size: 28px !important;
+      color: #9ca3af !important;
+      cursor: pointer !important;
+      padding: 0 !important;
+      width: 32px !important;
+      height: 32px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 6px !important;
+      transition: background-color 200ms, color 200ms !important;
+    }
+
+    .close:hover {
+      background-color: #e5e7eb !important;
+      color: #1f2937 !important;
+    }
+
+    .modal-body {
+      padding: 28px !important;
+      flex: 1 !important;
+      overflow-y: auto !important;
+    }
+
+    .form-row {
+      margin-bottom: 20px !important;
+    }
+
+    .form-row label {
+      display: block !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      color: #374151 !important;
+      margin-bottom: 8px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.03em !important;
+    }
+
+    .form-row input[type="text"],
+    .form-row input[type="email"],
+    .form-row input[type="password"],
+    .form-row select {
+      width: 100% !important;
+      padding: 12px 14px !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 8px !important;
+      font-size: 14px !important;
+      color: #1f2937 !important;
+      background-color: #ffffff !important;
+      transition: border-color 200ms, box-shadow 200ms !important;
+    }
+
+    .form-row input[type="text"]:focus,
+    .form-row input[type="email"]:focus,
+    .form-row input[type="password"]:focus,
+    .form-row select:focus {
+      outline: none !important;
+      border-color: #166d22 !important;
+      box-shadow: 0 0 0 3px rgba(22, 109, 34, 0.1) !important;
+    }
+
+    .form-row input[type="text"]:disabled,
+    .form-row input[type="email"]:disabled,
+    .form-row input[type="password"]:disabled {
+      background-color: #f3f4f6 !important;
+      color: #6b7280 !important;
+      cursor: not-allowed !important;
+    }
+
+    .modal-footer {
+      display: flex !important;
+      justify-content: flex-end !important;
+      gap: 10px !important;
+      padding: 20px 28px !important;
+      border-top: 1px solid #e5e7eb !important;
+      background-color: #f9fafb !important;
+      flex-shrink: 0 !important;
+    }
+
+    button {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      border-radius: 8px !important;
+      padding: 10px 20px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 200ms !important;
+    }
+
+    .btn-primary {
+      background-color: #166d22 !important;
+      color: #ffffff !important;
+    }
+
+    .btn-primary:hover {
+      background-color: #0f4a17 !important;
+      box-shadow: 0 4px 12px rgba(22, 109, 34, 0.3) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    .btn-primary:active {
+      transform: translateY(0) !important;
+    }
+
+    .btn-secondary {
+      background-color: #e5e7eb !important;
+      color: #374151 !important;
+    }
+
+    .btn-secondary:hover {
+      background-color: #d1d5db !important;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 20px !important;
+      margin-bottom: 32px !important;
+      width: 100% !important;
+    }
+
+    @media (max-width: 1200px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    .stat-card {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 12px !important;
+      padding: 24px !important;
+      text-align: center !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      min-height: 140px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+      transition: all 200ms ease !important;
+    }
+
+    .stat-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      transform: translateY(-2px) !important;
+      border-color: #d1e7dd !important;
+    }
+
+    .stat-icon {
+      color: #166d22 !important;
+      font-size: 44px !important;
+      margin-bottom: 12px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 60px !important;
+      height: 60px !important;
+      background-color: rgba(22, 109, 34, 0.08) !important;
+      border-radius: 10px !important;
+    }
+
+    .stat-label {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #6b7280 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      margin-bottom: 10px !important;
+      display: block !important;
+    }
+
+    .stat-value {
+      color: #166d22 !important;
+      font-size: 18px !important;
+      font-weight: 700 !important;
+      display: block !important;
+      margin-bottom: 4px !important;
+    }
+
+    .badge-success {
+      background-color: #d1fae5 !important;
+      color: #065f46 !important;
+      padding: 6px 14px !important;
+      border-radius: 999px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      display: inline-block !important;
+      border: 1px solid #a7f3d0 !important;
+    }
+
+    #passwordMessage {
+      @apply p-3 rounded-lg text-sm font-medium mt-4;
+    }
+
+    #passwordMessage.success {
+      @apply bg-green-50 text-green-700 border border-green-200;
+    }
+
+    #passwordMessage.error {
+      @apply bg-red-50 text-red-700 border border-red-200;
+    }
+
+    .space-y-8 {
+      display: block !important;
+      padding: 32px !important;
+    }
+
+    .p-8 {
+      padding: 32px !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <!-- Sidebar -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content -->
+  <div class="ml-56 min-h-screen">
+    <!-- Header -->
+    <header>
+      <h1>
+        <i class="fas fa-sliders"></i>
+        Settings
+      </h1>
+      <p>Manage your account, preferences, and administrative tools</p>
+    </header>
+
+    <!-- Content -->
+    <div class="space-y-8 p-8">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+          <div class="stat-label">Account</div>
+          <div class="badge-success">Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-lock"></i></div>
+          <div class="stat-label">Security</div>
+          <div class="badge-success">Secure</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-bell"></i></div>
+          <div class="stat-label">Notifications</div>
+          <div class="badge-success">Enabled</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-clock"></i></div>
+          <div class="stat-label">Last Update</div>
+          <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Today</p>
+        </div>
+      </div>
+
+      <!-- Account Section -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-user-circle"></i>
+          <h3>Account</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-item" id="profilePreferencesBtn">
+            <div class="settings-item-left">
+              <i class="fas fa-user settings-item-icon"></i>
+              <div class="settings-item-text">
+                <h3>Profile</h3>
+                <p>View account details</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right settings-item-arrow"></i>
+          </div>
+          <div class="settings-item" id="changePasswordBtn">
+            <div class="settings-item-left">
+              <i class="fas fa-key settings-item-icon"></i>
+              <div class="settings-item-text">
+                <h3>Change Password</h3>
+                <p>Update your login password</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right settings-item-arrow"></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- Administration Section -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-user-shield"></i>
+          <h3>Administration</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-item" id="manageAdminsBtn">
+            <div class="settings-item-left">
+              <i class="fas fa-users settings-item-icon"></i>
+              <div class="settings-item-text">
+                <h3>Manage Admin Accounts</h3>
+                <p>Create and manage admin users</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right settings-item-arrow"></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- Preferences Section -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-sliders"></i>
+          <h3>Preferences</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-item" id="notificationsBtn">
+            <div class="settings-item-left">
+              <i class="fas fa-bell settings-item-icon"></i>
+              <div class="settings-item-text">
+                <h3>Notifications</h3>
+                <p>Control email and system alerts</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right settings-item-arrow"></i>
+          </div>
+          <div class="settings-item" id="appearanceBtn">
+            <div class="settings-item-left">
+              <i class="fas fa-palette settings-item-icon"></i>
+              <div class="settings-item-text">
+                <h3>Appearance</h3>
+                <p>Theme, density, and date format</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right settings-item-arrow"></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data Tools Section -->
+      <section class="settings-card pb-12">
+        <div class="settings-card-header">
+          <i class="fas fa-database"></i>
+          <h3>Data Tools</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-item" id="dataToolsBtn">
+            <div class="settings-item-left">
+              <i class="fas fa-download settings-item-icon"></i>
+              <div class="settings-item-text">
+                <h3>Export & Reset</h3>
+                <p>Download settings or clear local data</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right settings-item-arrow"></i>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modals -->
+
+  <!-- Profile Modal -->
+  <div class="modal" id="profilePreferencesModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-user-circle"></i> Admin Profile</h2>
+        <button class="close" data-close="profilePreferencesModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center; margin-bottom:2rem;">
+          <div style="width: 80px; height: 80px; background-color: #166d22; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+            <i class="fas fa-user" style="font-size: 40px; color: #ffffff;"></i>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Email Address</label>
+          <input type="email" id="adminEmail" disabled />
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" value="••••••••" disabled />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="profilePreferencesModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal" id="changePasswordModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-key"></i> Change Password</h2>
+        <button class="close" data-close="changePasswordModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="currentPassword">Current Password:</label>
+          <input type="password" id="currentPassword" placeholder="Enter current password" />
+        </div>
+        <div class="form-row">
+          <label for="newPassword">New Password:</label>
+          <input type="password" id="newPassword" placeholder="Enter new password" />
+        </div>
+        <div class="form-row">
+          <label for="confirmPassword">Confirm Password:</label>
+          <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+        </div>
+        <div id="passwordMessage"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="changePasswordModal">Cancel</button>
+        <button id="savePasswordBtn" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Admins Modal -->
+  <div class="modal" id="manageAdminsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-users"></i> Manage Admin Accounts</h2>
+        <button class="close" data-close="manageAdminsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="newAdminEmail">Email:</label>
+          <input type="email" id="newAdminEmail" placeholder="Enter admin email" />
+        </div>
+        <div class="form-row">
+          <label for="newAdminPassword">Password:</label>
+          <input type="password" id="newAdminPassword" placeholder="Enter password" />
+        </div>
+        <ul id="adminList" style="margin-top: 1rem; list-style: none; padding: 0;"></ul>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="manageAdminsModal">Cancel</button>
+        <button id="addAdminBtn" class="btn-primary">Add Admin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications Modal -->
+  <div class="modal" id="notificationsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-bell"></i> Notifications</h2>
+        <button class="close" data-close="notificationsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="notifyEmail">
+            <input type="checkbox" id="notifyEmail" style="margin-right: 8px;" />
+            Email Notifications
+          </label>
+        </div>
+        <div class="form-row">
+          <label for="notifySystem">
+            <input type="checkbox" id="notifySystem" style="margin-right: 8px;" />
+            System Alerts
+          </label>
+        </div>
+        <div class="form-row">
+          <label for="notifyAppointments">
+            <input type="checkbox" id="notifyAppointments" style="margin-right: 8px;" />
+            Appointment Updates
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="notificationsModal">Cancel</button>
+        <button id="saveNotificationsBtn" class="btn-primary">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Appearance Modal -->
+  <div class="modal" id="appearanceModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-palette"></i> Appearance</h2>
+        <button class="close" data-close="appearanceModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="themeSelect">Theme:</label>
+          <select id="themeSelect">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="densitySelect">Density:</label>
+          <select id="densitySelect">
+            <option value="comfortable">Comfortable</option>
+            <option value="compact">Compact</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="dateFormatSelect">Date Format:</label>
+          <select id="dateFormatSelect">
+            <option value="mdy">MM/DD/YYYY</option>
+            <option value="dmy">DD/MM/YYYY</option>
+            <option value="ymd">YYYY-MM-DD</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="appearanceModal">Cancel</button>
+        <button id="saveAppearanceBtn" class="btn-primary">Save Appearance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Tools Modal -->
+  <div class="modal" id="dataToolsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-database"></i> Export & Reset</h2>
+        <button class="close" data-close="dataToolsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 1rem; text-align:center;">Download your local preferences or clear them.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="exportSettingsBtn" class="btn-primary">Export Settings</button>
+        <button id="clearLocalSettingsBtn" class="btn-secondary">Clear Local Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Sidebar System -->
+  <script src="../shared/sidebar-loader.js"></script>
+
+  <script>
+    document.querySelectorAll("[data-close]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const modalId = btn.getAttribute("data-close");
+        document.getElementById(modalId).classList.remove("active");
+      });
+    });
+
+    document.querySelectorAll(".modal").forEach(modal => {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) modal.classList.remove("active");
+      });
+    });
+
+    // Settings buttons
+    document.getElementById("profilePreferencesBtn").addEventListener("click", () => {
+      document.getElementById("profilePreferencesModal").classList.add("active");
+    });
+
+    document.getElementById("changePasswordBtn").addEventListener("click", () => {
+      document.getElementById("changePasswordModal").classList.add("active");
+    });
+
+    document.getElementById("manageAdminsBtn").addEventListener("click", () => {
+      document.getElementById("manageAdminsModal").classList.add("active");
+    });
+
+    document.getElementById("notificationsBtn").addEventListener("click", () => {
+      document.getElementById("notificationsModal").classList.add("active");
+    });
+
+    document.getElementById("appearanceBtn").addEventListener("click", () => {
+      document.getElementById("appearanceModal").classList.add("active");
+    });
+
+    document.getElementById("dataToolsBtn").addEventListener("click", () => {
+      document.getElementById("dataToolsModal").classList.add("active");
+    });
+  </script>
+
+  <script src="settings.js"></script>
+</body>
+</html>

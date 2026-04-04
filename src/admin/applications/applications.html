@@ -1,0 +1,473 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-forest-green">
+  <title>Applications | TreeSure Admin</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBca-tYDQIXxSzOAz2jph3Mse6rJ3Ag9is",
+      authDomain: "treesure-6496c.firebaseapp.com",
+      databaseURL: "https://treesure-6496c-default-rtdb.firebaseio.com",
+      projectId: "treesure-6496c",
+      storageBucket: "treesure-6496c.firebasestorage.app",
+      messagingSenderId: "324875915553",
+      appId: "1:324875915553:web:9c8b1136a2d04594bcae60",
+      measurementId: "G-G9V6QMHX1E"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    function checkLogin() {
+      firebase.auth().onAuthStateChanged(user => {
+        if (!user) {
+          window.location.href = "../../auth/login/index.html";
+        }
+      });
+    }
+  </script>
+
+  <style>
+    body { @apply bg-slate-50; }
+
+    #sidebar-container {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      width: 224px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 1000 !important;
+    }
+
+    #sidebar-container aside {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    #sidebar-container aside > div:first-child {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    header {
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 1001 !important;
+      background-color: #166d22 !important;
+      padding: 18px 32px !important;
+      border: 1px solid #0f4a17 !important;
+      box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4) !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      width: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+    }
+
+    .main-content {
+      @apply ml-56 min-h-screen;
+      position: relative !important;
+      display: block !important;
+    }
+
+    .main-content header {
+      margin-left: 0 !important;
+    }
+    .modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; z-index: 99999 !important; background: transparent !important; inset: auto !important; width: auto !important; padding: 0 !important; }
+    .modal-content { background: white !important; border: 1px solid #e0e0e0 !important; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important; }
+    .modal-content { @apply bg-white rounded-2xl p-8 max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl; }
+    .close { @apply cursor-pointer text-2xl text-slate-400 hover:text-slate-600 float-right; }
+    label { @apply block text-sm font-semibold text-slate-700 mb-2 mt-4 first:mt-0; }
+    input[type="text"], input[type="password"], input[type="date"], input[type="time"], textarea, select { @apply w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-700 placeholder-slate-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/20; }
+
+    /* Reset all input styling */
+    input, select, textarea {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    input[type="time"],
+    textarea,
+    select {
+      color: #000000 !important;
+      border: 1px solid #cccccc !important;
+      border-radius: 6px !important;
+      background-color: #ffffff !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+      padding: 10px 12px !important;
+    }
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="date"]:focus,
+    input[type="time"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #000000 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+      outline: none !important;
+      background-color: #ffffff !important;
+    }
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder,
+    textarea::placeholder {
+      color: #999999 !important;
+    }
+    .action-btn-main { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-forest-800 px-6 py-2.5 font-medium text-white transition-all duration-200 hover:bg-forest-900 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-forest-800 focus:ring-offset-2; }
+    .action-btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-lg border-2 border-forest-200 bg-forest-50 px-6 py-2.5 font-medium text-forest-800 transition-all duration-200 hover:bg-forest-100 hover:border-forest-300; }
+    .applicant-list { @apply grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3; }
+    table { @apply w-full border-collapse; }
+    thead { @apply bg-gradient-to-r from-forest-50 to-forest-100 font-semibold text-forest-900; }
+    th, td { @apply border-b border-forest-200 px-6 py-3 text-left; }
+    tbody tr { @apply hover:bg-forest-50 transition-colors; }
+    #filesTable { @apply w-full; }
+    .preview-header { @apply flex items-center justify-between mb-4; }
+  </style>
+</head>
+
+<body onload="checkLogin()">
+  <div id="sidebar-container"></div>
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header style="background-color: #166d22; padding: 18px 32px; border: 1px solid #0f4a17; box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4);">
+      <h1 style="font-size: 28px; font-weight: 700; color: #ffffff; margin: 0 0 8px 0;"><i class="fas fa-file-lines" style="color: #ffffff;"></i> Applications</h1>
+      <p style="font-size: 13px; color: rgba(255, 255, 255, 0.9); margin: 0;">Manage and process all applications</p>
+    </header>
+
+    <div class="p-8 space-y-8">
+      <div id="applicationTypeHeader" style="display:none;" class="card mb-6">
+        <h2 id="applicationTypeTitle" class="text-2xl font-bold text-slate-900 mb-4"></h2>
+        <button id="manageTemplatesBtn" class="action-btn-secondary">Manage Templates</button>
+      </div>
+      <div id="applicantsContainer" class="applicant-list" style="display:none;"></div>
+
+      <div id="filesSection" style="display:none;" class="card">
+      <h2 id="applicantTitle"></h2>
+      <!-- Submission selector will be inserted here dynamically -->
+      <table id="filesTable">
+        <thead>
+          <tr>
+            <th>Label</th>
+            <th>File Name</th>
+            <th>Uploaded At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="filesBody"></tbody>
+      </table>
+
+      <div id="scheduleContainer" style="display:none; gap:10px; justify-content:center;">
+        <button id="scheduleBtn" class="action-btn-main">Schedule Walk-in Appointment</button>
+        <button id="proceedBtn" class="action-btn-main" style="display:none;">Assign for Tree Tagging</button>
+        <button id="assignCuttingForesterBtn" class="action-btn-main" style="display:none;">Assign Forester for
+          Cutting</button>
+        <button id="claimCertificateBtn" class="action-btn-main">Claim Certificate</button>
+        <button id="commentBtn" class="action-btn-secondary">Comment</button>
+      </div>
+    </div>
+
+    <!-- ========== SCHEDULE MODAL ========== -->
+    <div id="scheduleModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>Schedule Walk-in Appointment</h2>
+
+        <label>Purpose:</label>
+        <input type="text" id="walkInPurpose" placeholder="e.g., Document Submission" />
+
+        <label>Appointment Date:</label>
+        <input type="date" id="walkInDate" required />
+
+        <label>Appointment Time:</label>
+        <input type="time" id="walkInTime" required />
+
+        <label>Remarks (optional):</label>
+        <textarea id="walkInAppointmentRemarks" rows="4" placeholder="Additional notes..."></textarea>
+
+        <button id="saveAppointmentBtn" class="action-btn-main">Save Appointment</button>
+      </div>
+    </div>
+
+    <!-- ========== INVENTORY MODAL ========== -->
+    <div id="inventoryModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeInventoryModal">&times;</span>
+        <h2>Tree Inventory Appointment</h2>
+
+        <!-- Form Step -->
+        <div id="inventoryFormStep">
+          <label>Applicant Name:</label>
+          <input type="text" id="applicantNameInput" readonly />
+
+          <label>Appointment Type:</label>
+          <select id="appointmentType">
+            <option value="">-- Select Type --</option>
+            <option value="Tree Tagging">Tree Tagging</option>
+            <option value="Tree Inventory">Tree Inventory</option>
+          </select>
+
+          <label>Location:</label>
+          <input type="text" id="appointmentLocation" placeholder="e.g., Applicant's property" />
+
+          <label>Remarks (optional):</label>
+          <textarea id="appointmentRemarks" rows="4" placeholder="Additional instructions..."></textarea>
+
+          <label>Assign Forester(s):</label>
+          <select id="foresterMultiSelect" multiple size="5">
+            <!-- Options populated dynamically -->
+          </select>
+
+          <button id="reviewAppointmentBtn" class="action-btn-main">Review Appointment</button>
+        </div>
+
+        <!-- Review Step -->
+        <div id="inventoryReviewStep" style="display:none;">
+          <h3>Review Appointment</h3>
+          <p><strong>Applicant:</strong> <span id="reviewApplicant"></span></p>
+          <p><strong>Type:</strong> <span id="reviewType"></span></p>
+          <p><strong>Date:</strong> <span id="reviewDate"></span></p>
+          <p><strong>Location:</strong> <span id="reviewLocation"></span></p>
+          <p><strong>Remarks:</strong> <span id="reviewRemarks"></span></p>
+          <p><strong>Assigned Forester(s):</strong> <span id="reviewForesters"></span></p>
+
+          <button id="backToEditBtn" class="action-btn-secondary">Back to Edit</button>
+          <button id="confirmAppointmentBtn" class="action-btn-main">Confirm & Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== COMMENT MODAL ========== -->
+    <div id="commentModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeCommentModal">&times;</span>
+        <h2>Add Comment and Request Reupload</h2>
+
+        <label>Select Document(s) to Comment On:</label>
+        <select id="commentDocumentSelect" multiple size="5">
+          <!-- Options populated dynamically -->
+        </select>
+
+        <label>Your Comment:</label>
+        <textarea id="commentMessage" rows="4" placeholder="Explain what needs to be corrected..."></textarea>
+
+        <button id="sendCommentBtn" class="action-btn-main">Send Comment</button>
+      </div>
+    </div>
+
+    <!-- ========== CUTTING FORESTER MODAL ========== -->
+    <div id="cuttingForesterModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeCuttingForesterModal">&times;</span>
+        <h2>Assign Cutting Forester</h2>
+
+        <!-- Form Step -->
+        <div id="cuttingFormStep">
+          <label>Applicant Name:</label>
+          <input type="text" id="cuttingApplicantName" readonly />
+
+          <label>Permit Type:</label>
+          <p id="cuttingPermitType" style="font-weight:bold; margin:5px 0;"></p>
+
+          <label>Location:</label>
+          <input type="text" id="cuttingLocation" placeholder="e.g., Lot 123, Barangay XYZ" />
+
+          <label>Remarks (optional):</label>
+          <textarea id="cuttingRemarks" rows="3" placeholder="Additional instructions..."></textarea>
+
+          <label>Assign Forester(s):</label>
+          <select id="cuttingForesterMultiSelect" multiple size="5">
+            <!-- Options populated dynamically -->
+          </select>
+
+          <button id="reviewCuttingBtn" class="action-btn-main">Review Assignment</button>
+        </div>
+
+        <!-- Review Step -->
+        <div id="cuttingReviewStep" style="display:none;">
+          <h3>Review Cutting Assignment</h3>
+          <p><strong>Applicant:</strong> <span id="cuttingReviewApplicant"></span></p>
+          <p><strong>Permit Type:</strong> <span id="cuttingReviewPermitType"></span></p>
+          <p><strong>Location:</strong> <span id="cuttingReviewLocation"></span></p>
+          <p><strong>Remarks:</strong> <span id="cuttingReviewRemarks"></span></p>
+          <p><strong>Assigned Forester(s):</strong> <span id="cuttingReviewForesters"></span></p>
+
+          <button id="cuttingBackToEditBtn" class="action-btn-secondary">Back to Edit</button>
+          <button id="confirmCuttingBtn" class="action-btn-main">Confirm & Assign</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========== FILE PREVIEW MODAL ========== -->
+    <div id="filePreviewModal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:90%; max-height:90vh;">
+        <span class="close" id="closeFilePreview">&times;</span>
+        <h2 id="previewTitle">File Preview</h2>
+        <div class="preview-header">
+          <h2 id="previewTitle">File Preview</h2>
+          <a id="downloadFileBtn" class="action-btn-secondary" href="#" target="_blank" rel="noopener">
+            <i class="fa fa-download"></i> Download
+          </a>
+        </div>
+        <iframe id="previewFrame" style="width:100%; height:70vh; border:1px solid #ccc;"></iframe>
+      </div>
+    </div>
+
+    <!-- ========== CLAIM CERTIFICATE MODAL ========== -->
+    <div id="claimCertificateModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeClaimCertificateModal">&times;</span>
+        <h2>Notify Certificate Ready for Claim</h2>
+
+        <label>Applicant Name:</label>
+        <input type="text" id="claimApplicantName" readonly />
+
+        <label>Certificate Type:</label>
+        <p id="claimCertificateType" style="font-weight:bold; margin:5px 0;"></p>
+
+        <label>Message to Applicant:</label>
+        <textarea id="claimMessage" rows="4"
+          placeholder="Your certificate is now ready for pickup at the DENR office...">Your certificate is now ready for pickup at the DENR Municipal Office in Aparri. Please bring a valid ID and your application reference number.</textarea>
+
+        <label>Additional Remarks (optional):</label>
+        <textarea id="claimRemarks" rows="3" placeholder="Office hours, special instructions, etc."></textarea>
+
+        <button id="sendClaimNotificationBtn" class="action-btn-main">Send Notification</button>
+      </div>
+    </div>
+
+    <!-- ========== TEMPLATE UPLOAD MODAL ========== -->
+    <div id="templateModal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:800px;">
+        <span class="close" id="closeTemplateModal">&times;</span>
+        <h2>Manage Document Templates</h2>
+        <p style="color:#666; font-size:0.9em; margin-bottom:20px;">
+          Upload templates that all applicants can download before submitting their documents.
+        </p>
+
+        <!-- Existing Templates List -->
+        <div id="existingTemplatesSection" style="margin-bottom:30px;">
+          <h3 style="border-bottom:2px solid #2d5016; padding-bottom:10px;">Current Templates</h3>
+          <div id="existingTemplatesList" style="max-height:300px; overflow-y:auto;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Upload New Template -->
+        <div id="uploadNewTemplateSection">
+          <h3 style="border-bottom:2px solid #2d5016; padding-bottom:10px;">Add New Template</h3>
+
+          <label>Document Type/Label:</label>
+          <input type="text" id="templateDocumentType" placeholder="e.g., Land Title, Tax Declaration, etc." />
+          <p style="color:#888; font-size:0.85em; margin-top:5px;">
+            This will be the name applicants see for this required document.
+          </p>
+
+          <label>Template Title:</label>
+          <input type="text" id="templateTitle" placeholder="e.g., Sample Land Title Format" />
+
+          <label>Description (optional):</label>
+          <textarea id="templateDescription" rows="3"
+            placeholder="Brief description to help applicants understand what this template is for..."></textarea>
+
+          <label>Upload Template File:</label>
+          <input type="file" id="templateFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+          <p style="color:#888; font-size:0.85em; margin-top:5px;">
+            Supported formats: PDF, Word, Excel, Images (JPG, PNG)
+          </p>
+
+          <button id="uploadTemplateFileBtn" class="action-btn-main">Upload Template</button>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Unified Sidebar System -->
+  <script src="../shared/sidebar-loader.js"></script>
+
+  <!-- Application-specific sidebar logic -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Add highlighting for app type buttons
+      document.addEventListener("click", function(e) {
+        const appTypeBtn = e.target.closest(".app-type-btn");
+        if (appTypeBtn) {
+          // Remove active class from all app-type buttons
+          document.querySelectorAll(".app-type-btn").forEach(btn => {
+            btn.classList.remove("active");
+          });
+          // Add active class to clicked button
+          appTypeBtn.classList.add("active");
+          // Store the selected type
+          const btnId = appTypeBtn.id;
+          localStorage.setItem("selectedAppTypeBtn", btnId);
+        }
+      });
+
+      // Restore highlighting for previously selected button
+      const selectedBtnId = localStorage.getItem("selectedAppTypeBtn");
+      if (selectedBtnId) {
+        const selectedBtn = document.getElementById(selectedBtnId);
+        if (selectedBtn) {
+          selectedBtn.classList.add("active");
+        }
+      }
+
+      // Check if we navigated here from dashboard with a selected app type
+      const selectedType = localStorage.getItem("selectedApplicationType");
+      const selectedTitle = localStorage.getItem("selectedApplicationTitle");
+
+      if (selectedType && selectedTitle) {
+        // Clear the stored values
+        localStorage.removeItem("selectedApplicationType");
+        localStorage.removeItem("selectedApplicationTitle");
+
+        // Load the selected application type
+        setTimeout(() => {
+          const appTypeTitle = document.getElementById("applicationTypeTitle");
+          if (appTypeTitle && window.loadApplicants) {
+            appTypeTitle.textContent = selectedTitle;
+            window.loadApplicants(selectedType);
+          }
+        }, 100);
+      }
+
+      // Attempt to call attachSidebarListeners if the module has exposed it
+      (function tryAttach(retries = 0) {
+        if (window.attachSidebarListeners) {
+          window.attachSidebarListeners();
+          return;
+        }
+        if (retries >= 50) return; // give up after ~2.5s
+        setTimeout(() => tryAttach(retries + 1), 50);
+      })();
+    });
+  </script>
+
+  <!-- SCRIPTS -->
+  <script type="module" src="application.js"></script>
+
+
+</body>
+
+</html>

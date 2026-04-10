@@ -7,6 +7,16 @@ console.log("✅ [SIDEBAR] Script loaded");
 
 const APPLICATIONS_OPEN_KEY = "sidebarApplicationsOpen";
 const CUTTING_PERMITS_OPEN_KEY = "sidebarCuttingPermitsOpen";
+const SHELL_DEFAULT_PAGE = "dashboard/dashboard.html";
+const SHELL_ALLOWED_PAGES = new Set([
+  "dashboard/dashboard.html",
+  "users/users.html",
+  "applications/applications.html",
+  "reports/reports.html",
+  "settings/settings.html",
+  "trees/trees.html",
+]);
+let sidebarInitialized = false;
 
 // Get sidebar container
 const sidebarContainer = document.getElementById("sidebar-container");
@@ -16,17 +26,189 @@ if (!sidebarContainer) {
   console.error("❌ [SIDEBAR] No sidebar-container div found!");
 }
 
+function isShellMode() {
+  return !!document.getElementById("admin-content-frame");
+}
+
+function isEmbeddedAdminContent() {
+  return window.self !== window.top;
+}
+
+function applyEmbeddedShellLayoutFixes() {
+  if (!isEmbeddedAdminContent()) return;
+
+  const styleId = "embedded-shell-layout-fixes";
+  if (document.getElementById(styleId)) return;
+
+  const style = document.createElement("style");
+  style.id = styleId;
+  style.textContent = `
+    #sidebar-container { display: none !important; }
+    body { margin-left: 0 !important; }
+    .main-content { margin-left: 0 !important; }
+    .ml-56 { margin-left: 0 !important; }
+  `;
+  document.head.appendChild(style);
+}
+
+function normalizeShellPage(page) {
+  if (!page) return SHELL_DEFAULT_PAGE;
+  const cleaned = String(page).replace(/^\/+/, "");
+  if (SHELL_ALLOWED_PAGES.has(cleaned)) {
+    return cleaned;
+  }
+  return SHELL_DEFAULT_PAGE;
+}
+
+function toShellPageFromPath(pathname) {
+  if (!pathname || !pathname.includes("/src/admin/")) return null;
+  const relative = pathname.split("/src/admin/")[1] || "";
+  const cleaned = relative.replace(/^\/+/, "");
+  return SHELL_ALLOWED_PAGES.has(cleaned) ? cleaned : null;
+}
+
+function getShellTargetPageFromHref(href) {
+  if (!href || href === "#") return null;
+  try {
+    const resolvedUrl = new URL(href, window.location.href);
+    return toShellPageFromPath(resolvedUrl.pathname);
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentAdminPathname() {
+  if (!isShellMode()) {
+    return window.location.pathname;
+  }
+
+  const frame = document.getElementById("admin-content-frame");
+  if (!frame) return window.location.pathname;
+
+  try {
+    if (frame.contentWindow?.location?.pathname && frame.contentWindow.location.pathname !== "about:blank") {
+      return frame.contentWindow.location.pathname;
+    }
+  } catch {
+    // Ignore cross-frame access issues.
+  }
+
+  if (frame.src) {
+    try {
+      return new URL(frame.src, window.location.href).pathname;
+    } catch {
+      return window.location.pathname;
+    }
+  }
+
+  return window.location.pathname;
+}
+
+function setShellLoading(isLoading) {
+  if (!isShellMode()) return;
+
+  document.body.classList.toggle("shell-loading", !!isLoading);
+  const overlay = document.getElementById("shell-loading-overlay");
+  if (overlay) {
+    overlay.setAttribute("aria-hidden", isLoading ? "false" : "true");
+  }
+}
+
+function navigateShellTo(page, replaceHistory = false) {
+  const frame = document.getElementById("admin-content-frame");
+  if (!frame) return;
+
+  const normalized = normalizeShellPage(page);
+  const targetPath = `/src/admin/${normalized}`;
+
+  const currentPath = getCurrentAdminPathname();
+  if (currentPath !== targetPath) {
+    setShellLoading(true);
+    frame.src = targetPath;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", normalized);
+  const historyAction = replaceHistory ? "replaceState" : "pushState";
+  history[historyAction]({ page: normalized }, "", url);
+
+  setActiveMenuItems();
+}
+
+function initShellFrame() {
+  if (!isShellMode()) return;
+
+  const frame = document.getElementById("admin-content-frame");
+  if (!frame) return;
+
+  const pageFromQuery = new URL(window.location.href).searchParams.get("page");
+  const initialPage = normalizeShellPage(pageFromQuery);
+
+  setShellLoading(true);
+  frame.src = `/src/admin/${initialPage}`;
+
+  frame.addEventListener("load", () => {
+    const currentPath = getCurrentAdminPathname();
+    const page = toShellPageFromPath(currentPath) || SHELL_DEFAULT_PAGE;
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", page);
+    history.replaceState({ page }, "", url);
+    setActiveMenuItems();
+    setShellLoading(false);
+  });
+
+  window.addEventListener("popstate", () => {
+    const page = normalizeShellPage(new URL(window.location.href).searchParams.get("page"));
+    const target = `/src/admin/${page}`;
+    if (getCurrentAdminPathname() !== target) {
+      setShellLoading(true);
+      frame.src = target;
+    } else {
+      setShellLoading(false);
+    }
+    setActiveMenuItems();
+  });
+}
+
+function redirectTopLevelAdminPageToShell() {
+  if (window.self !== window.top) return;
+  if (isShellMode()) return;
+
+  const pathname = window.location.pathname;
+  if (!pathname.includes("/src/admin/")) return;
+  if (pathname.endsWith("/src/admin/index.html")) return;
+
+  const page = toShellPageFromPath(pathname);
+  if (!page) return;
+
+  const shellUrl = new URL("/src/admin/index.html", window.location.origin);
+  shellUrl.searchParams.set("page", page);
+  window.location.replace(shellUrl.toString());
+}
+
 /**
  * Initialize sidebar - main entry point
  */
 function initSidebar() {
+  if (sidebarInitialized) {
+    console.log("📍 [SIDEBAR] initSidebar skipped (already initialized)");
+    return;
+  }
+
   if (!sidebarContainer) {
     console.error("❌ [SIDEBAR] Container not found, cannot initialize");
     return;
   }
 
+  sidebarInitialized = true;
+
+  // Keep fixed layout space visible while async HTML loads.
+  if (!sidebarContainer.innerHTML.trim()) {
+    sidebarContainer.innerHTML = `<aside class="sidebar" aria-hidden="true"></aside>`;
+  }
+
   // Determine correct fetch path
-  let fetchPath = "../shared/sidebar.html";
+  let fetchPath = "/src/admin/shared/sidebar.html";
   const pathname = window.location.pathname;
 
   console.log("📍 [SIDEBAR] Current pathname:", pathname);
@@ -68,6 +250,7 @@ function initSidebar() {
       console.log("✅ [SIDEBAR] Fully initialized");
     })
     .catch(error => {
+      sidebarInitialized = false;
       console.error("❌ [SIDEBAR] Failed to load:", error);
       sidebarContainer.innerHTML = `
         <div style="position: fixed; left: 0; top: 0; width: 260px; height: 100vh; background: #fee2e2; border-right: 1px solid #fca5a5; padding: 20px; color: #dc2626; z-index: 1000; overflow: auto; font-family: system-ui;">
@@ -264,12 +447,20 @@ function initSubmenus() {
  */
 function initMenuItems() {
   const menuItems = document.querySelectorAll(".menu-item");
+  const shellMode = isShellMode();
   console.log("📍 [SIDEBAR] Found menu items:", menuItems.length);
 
   menuItems.forEach(item => {
     if (item.classList.contains("dropdown-toggle")) return;
 
-    item.addEventListener("click", () => {
+    item.addEventListener("click", (e) => {
+      const shellPage = getShellTargetPageFromHref(item.getAttribute("href"));
+
+      if (shellMode && shellPage) {
+        e.preventDefault();
+        navigateShellTo(shellPage);
+      }
+
       // Only close dropdowns if this item is NOT inside a dropdown
       const isInsideDropdown = item.closest(".dropdown-menu") || item.closest(".sub-menu");
       if (!isInsideDropdown) {
@@ -294,14 +485,9 @@ function initMenuItems() {
  * Initialize application type buttons
  */
 function initAppButtons() {
-  // Only run this on the applications page
-  const onApplicationsPage = window.location.pathname.includes("/applications/applications.html");
-  console.log("📍 [SIDEBAR] initAppButtons called, onApplicationsPage:", onApplicationsPage);
-
-  if (!onApplicationsPage) {
-    console.log("📍 [SIDEBAR] Not on applications page, skipping button initialization");
-    return;
-  }
+  const onApplicationsPage = getCurrentAdminPathname().includes("/applications/applications.html");
+  const shellMode = isShellMode();
+  console.log("📍 [SIDEBAR] initAppButtons called, onApplicationsPage:", onApplicationsPage, "shellMode:", shellMode);
 
   const buttons = [
     { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
@@ -317,6 +503,39 @@ function initAppButtons() {
   buttons.forEach(btn => {
     buttonMap[btn.id] = btn;
   });
+
+  if (shellMode) {
+    const sidebar = document.querySelector(".sidebar");
+    if (!sidebar) return;
+
+    sidebar.addEventListener("click", (e) => {
+      const clickedBtn = e.target.closest(".app-type-btn");
+      if (!clickedBtn || !clickedBtn.id) return;
+
+      const btnConfig = buttonMap[clickedBtn.id];
+      if (!btnConfig) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      document.querySelectorAll(".app-type-btn").forEach(b => b.classList.remove("active"));
+      clickedBtn.classList.add("active");
+
+      localStorage.setItem("selectedAppTypeBtn", clickedBtn.id);
+      localStorage.setItem("selectedApplicationType", btnConfig.type);
+      localStorage.setItem("selectedApplicationTitle", btnConfig.title);
+
+      navigateShellTo("applications/applications.html");
+    }, true);
+
+    console.log("✅ [SIDEBAR] App buttons initialized for shell mode");
+    return;
+  }
+
+  if (!onApplicationsPage) {
+    console.log("📍 [SIDEBAR] Not on applications page, skipping button initialization");
+    return;
+  }
 
   // Wait for loadApplicants to be available before attaching handlers
   const attachButtonHandlers = (retries = 0) => {
@@ -399,7 +618,7 @@ function initAppButtons() {
  * Restore Applications dropdown/submenu state after sidebar load.
  */
 function restoreApplicationsMenuState() {
-  const onApplicationsPage = window.location.pathname.includes("/applications/applications.html");
+  const onApplicationsPage = getCurrentAdminPathname().includes("/applications/applications.html");
   const applicationsDropdown = document.getElementById("applicationsDropdown");
   const cuttingPermitsSubmenu = document.querySelector("#applicationsDropdown .dropdown-sub");
 
@@ -432,7 +651,7 @@ function initLogout() {
       e.preventDefault();
       console.log("👋 [SIDEBAR] Logout clicked");
       localStorage.clear();
-      window.location.href = "../../auth/login/index.html";
+      window.location.href = "/src/auth/login/index.html";
     });
     console.log("✅ [SIDEBAR] Logout button initialized");
   }
@@ -442,7 +661,7 @@ function initLogout() {
  * Set active menu items based on current page
  */
 function setActiveMenuItems() {
-  const currentPage = window.location.pathname.split("/").pop() || "dashboard.html";
+  const currentPage = getCurrentAdminPathname().split("/").pop() || "dashboard.html";
   console.log("🔍 [SIDEBAR] Current page:", currentPage);
 
   const menuItems = document.querySelectorAll(".menu-item");
@@ -462,26 +681,30 @@ function setActiveMenuItems() {
 
 // Initialize sidebar when document is ready
 console.log("📍 [SIDEBAR] Document ready state:", document.readyState);
+redirectTopLevelAdminPageToShell();
 
-// Expose initSidebar globally so HTML can call it when ready
-window.initSidebar = initSidebar;
-console.log("✅ [SIDEBAR] initSidebar exposed globally");
-
-// Fallback auto-init after a delay if HTML script doesn't call it
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("📍 [SIDEBAR] DOMContentLoaded event fired");
-    // Check if HTML script called initSidebar already
-    setTimeout(() => {
-      const sidebarContainer = document.getElementById("sidebar-container");
-      if (sidebarContainer && !sidebarContainer.innerHTML) {
-        console.log("📍 [SIDEBAR] Auto-initializing sidebar (HTML script hasn't done it yet)");
-        initSidebar();
-      }
-    }, 1000);
-  });
+if (isEmbeddedAdminContent()) {
+  applyEmbeddedShellLayoutFixes();
+  window.initSidebar = () => {};
+  console.log("📍 [SIDEBAR] Embedded content detected: local sidebar disabled");
 } else {
-  console.log("📍 [SIDEBAR] Document already loaded, exposed initSidebar");
-  // Document is already loaded, just expose the function
+  // Expose initSidebar globally so HTML can call it when ready
+  window.initSidebar = initSidebar;
+  console.log("✅ [SIDEBAR] initSidebar exposed globally");
+
+  // Auto-init immediately; guard above prevents duplicate initializations.
+  initSidebarWhenReady();
+  initShellFrame();
+}
+function initSidebarWhenReady() {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("📍 [SIDEBAR] DOMContentLoaded event fired");
+      initSidebar();
+    }, { once: true });
+    return;
+  }
+
+  initSidebar();
 }
 

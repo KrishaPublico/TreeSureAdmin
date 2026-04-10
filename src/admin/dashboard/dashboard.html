@@ -357,11 +357,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: fixed;
+      position: sticky;
       top: 0;
-      left: 260px;
-      right: 0;
-      z-index: 5;
+      left: 0;
+      width: 100%;
+      z-index: 30;
       box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4);
       height: auto;
       min-height: 110px;
@@ -506,7 +506,7 @@
 
     /* Content padding to account for fixed header */
     .main-content-wrapper {
-      padding-top: 110px;
+      padding-top: 28px;
     }
 
     /* Map styling - ensure it doesn't appear above fixed header */
@@ -590,7 +590,7 @@
     </div>
 
     <!-- Navigation Cards -->
-    <div class="nav-cards-grid" style="padding: 0 32px; margin-top: 80px;">
+    <div class="nav-cards-grid" style="padding: 0 32px; margin-top: 0;">
       <!-- Trees Management -->
       <div class="nav-card green" onclick="navigateToSection('trees')">
         <div class="nav-card-icon">

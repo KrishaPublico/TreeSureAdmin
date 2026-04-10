@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TreeSure Admin</title>
+  <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-forest-green">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --sidebar-width: 260px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    #sidebar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      z-index: 1000;
+    }
+
+    .shell-main {
+      position: relative;
+      margin-left: var(--sidebar-width);
+      width: calc(100% - var(--sidebar-width));
+      height: 100vh;
+      background: #f8fafc;
+    }
+
+    #admin-content-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #f8fafc;
+      opacity: 1;
+      transition: opacity 180ms ease;
+    }
+
+    #shell-loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(248, 250, 252, 0.58);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 2;
+    }
+
+    .shell-spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 9999px;
+      border: 4px solid rgba(22, 109, 34, 0.18);
+      border-top-color: #166d22;
+      animation: shellSpin 700ms linear infinite;
+    }
+
+    body.shell-loading #admin-content-frame {
+      opacity: 0.38;
+    }
+
+    body.shell-loading #shell-loading-overlay {
+      opacity: 1;
+    }
+
+    @keyframes shellSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --sidebar-width: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+
+  <main class="shell-main" aria-label="Admin content">
+    <div id="shell-loading-overlay" aria-hidden="true">
+      <div class="shell-spinner" aria-label="Loading content"></div>
+    </div>
+    <iframe
+      id="admin-content-frame"
+      title="Admin content"
+      loading="eager"
+      referrerpolicy="same-origin"
+    ></iframe>
+  </main>
+
+  <script src="./shared/sidebar-loader.js"></script>
+</body>
+</html>

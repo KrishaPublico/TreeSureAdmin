@@ -359,11 +359,9 @@
       justify-content: space-between;
       position: fixed;
       top: 0;
-      left: 0;
+      left: 260px;
       right: 0;
       z-index: 5;
-      margin-left: 224px;
-      width: calc(100% - 224px);
       box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4);
       height: auto;
       min-height: 110px;
@@ -1051,9 +1049,13 @@
         window.location.href = target;
       }
     }
+  </script>
 
   <!-- Unified Sidebar System -->
   <script src="../shared/sidebar-loader.js"></script>
+
+  <!-- Dashboard Data Loading -->
+  <script type="module" src="dashboard.js"></script>
 </body>
 
 </html>

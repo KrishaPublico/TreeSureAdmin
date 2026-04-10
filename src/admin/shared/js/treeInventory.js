@@ -580,6 +580,10 @@ function attachEventListeners() {
 }
 
 // ------------------ INITIALIZE ON DOM LOAD ------------------
+export function initTreeInventoryModal() {
+  initElements();
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initElements);
 } else {

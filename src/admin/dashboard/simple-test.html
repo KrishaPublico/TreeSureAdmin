@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Sidebar Test</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui; }
+
+    #sidebar-container {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      width: 260px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 1000 !important;
+      background: white;
+    }
+
+    body { margin-left: 260px; }
+
+    .content { padding: 40px; background: #f9fafb; min-height: 100vh; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-container">
+  <p style="padding: 20px; color: red;">Loading sidebar...</p>
+</div>
+
+<div class="content">
+  <h1>✅ Simple Sidebar Test</h1>
+  <p>If you see the sidebar on the left, scroll down and check console (F12) for logs.</p>
+</div>
+
+<script>
+console.log("=== SIDEBAR LOADER TEST ===");
+
+const container = document.getElementById("sidebar-container");
+console.log("1. Container found:", !!container);
+
+// Use absolute path from root
+const path = "/src/admin/shared/sidebar.html";
+console.log("2. Fetching from:", path);
+
+fetch(path)
+  .then(r => {
+    console.log("3. Response:", r.status, r.statusText);
+    if (!r.ok) throw new Error(r.statusText);
+    return r.text();
+  })
+  .then(html => {
+    console.log("4. HTML length:", html.length);
+    container.innerHTML = html;
+    console.log("5. HTML injected ✅");
+
+    // Setup dropdowns
+    const toggles = document.querySelectorAll(".dropdown-toggle");
+    console.log("6. Found dropdowns:", toggles.length);
+
+    toggles.forEach(t => {
+      t.addEventListener("click", (e) => {
+        e.preventDefault();
+        const parent = t.closest(".dropdown");
+        parent.classList.toggle("open");
+      });
+    });
+
+    console.log("7. Setup complete ✅");
+  })
+  .catch(err => {
+    console.error("❌ ERROR:", err);
+    container.innerHTML = "<p style='padding: 20px; color: red;'>ERROR: " + err.message + "</p>";
+  });
+</script>
+
+</body>
+</html>

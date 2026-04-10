@@ -5,6 +5,7 @@
   <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/src/shared/tailwind.css?v=20260404-forest-green">
+  <link rel="stylesheet" href="applications.css">
   <title>Applications | TreeSure Admin</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -52,11 +53,15 @@
     }
 
     body {
-      margin-left: 260px;
+      margin: 0;
+      padding: 0;
     }
 
     .main-content {
-      margin-left: 0 !important;
+      margin-left: 260px;
+      position: relative;
+      display: block;
+      min-h-screen;
     }
 
     header {
@@ -71,18 +76,6 @@
       visibility: visible !important;
       opacity: 1 !important;
       width: 100% !important;
-      left: 0 !important;
-      right: 0 !important;
-    }
-
-    .main-content {
-      @apply ml-56 min-h-screen;
-      position: relative !important;
-      display: block !important;
-    }
-
-    .main-content header {
-      margin-left: 0 !important;
     }
     .modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; z-index: 99999 !important; background: transparent !important; inset: auto !important; width: auto !important; padding: 0 !important; }
     .modal-content { background: white !important; border: 1px solid #e0e0e0 !important; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important; }
@@ -148,6 +141,26 @@
     </header>
 
     <div class="p-8 space-y-8">
+      <section id="applicationsOverview" class="card p-6 rounded-2xl border border-forest-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 class="text-xl font-semibold text-forest-900">Application Monitoring</h2>
+            <p class="text-sm text-slate-600">Track submissions, inspect uploaded files, and continue processing per application type.</p>
+          </div>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <input id="submissionSearchInput" type="text" placeholder="Search submission ID or applicant"
+              class="w-full rounded-lg border border-forest-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-700/15 sm:w-64" />
+            <select id="submissionStatusFilter"
+              class="w-full rounded-lg border border-forest-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-700/15 sm:w-56">
+              <option value="all">All Statuses</option>
+              <option value="submitted">Submitted</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+        </div>
+        <div id="dashboardStats" class="mt-5"></div>
+      </section>
+
       <div id="applicationTypeHeader" style="display:none;" class="card mb-6">
         <h2 id="applicationTypeTitle" class="text-2xl font-bold text-slate-900 mb-4"></h2>
         <button id="manageTemplatesBtn" class="action-btn-secondary">Manage Templates</button>
@@ -156,6 +169,7 @@
 
       <div id="filesSection" style="display:none;" class="card">
       <h2 id="applicantTitle"></h2>
+      <p id="submissionMeta" style="display:none; margin: 0 0 10px 0; color: #4b5563; font-size: 0.9rem;"></p>
       <!-- Submission selector will be inserted here dynamically -->
       <table id="filesTable">
         <thead>
@@ -396,70 +410,9 @@
     </div>
   </div>
 
-  <!-- Unified Sidebar System -->
-  <script src="../shared/sidebar-loader.js"></script>
-
-  <!-- Application-specific sidebar logic -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Add highlighting for app type buttons
-      document.addEventListener("click", function(e) {
-        const appTypeBtn = e.target.closest(".app-type-btn");
-        if (appTypeBtn) {
-          // Remove active class from all app-type buttons
-          document.querySelectorAll(".app-type-btn").forEach(btn => {
-            btn.classList.remove("active");
-          });
-          // Add active class to clicked button
-          appTypeBtn.classList.add("active");
-          // Store the selected type
-          const btnId = appTypeBtn.id;
-          localStorage.setItem("selectedAppTypeBtn", btnId);
-        }
-      });
-
-      // Restore highlighting for previously selected button
-      const selectedBtnId = localStorage.getItem("selectedAppTypeBtn");
-      if (selectedBtnId) {
-        const selectedBtn = document.getElementById(selectedBtnId);
-        if (selectedBtn) {
-          selectedBtn.classList.add("active");
-        }
-      }
-
-      // Check if we navigated here from dashboard with a selected app type
-      const selectedType = localStorage.getItem("selectedApplicationType");
-      const selectedTitle = localStorage.getItem("selectedApplicationTitle");
-
-      if (selectedType && selectedTitle) {
-        // Clear the stored values
-        localStorage.removeItem("selectedApplicationType");
-        localStorage.removeItem("selectedApplicationTitle");
-
-        // Load the selected application type
-        setTimeout(() => {
-          const appTypeTitle = document.getElementById("applicationTypeTitle");
-          if (appTypeTitle && window.loadApplicants) {
-            appTypeTitle.textContent = selectedTitle;
-            window.loadApplicants(selectedType);
-          }
-        }, 100);
-      }
-
-      // Attempt to call attachSidebarListeners if the module has exposed it
-      (function tryAttach(retries = 0) {
-        if (window.attachSidebarListeners) {
-          window.attachSidebarListeners();
-          return;
-        }
-        if (retries >= 50) return; // give up after ~2.5s
-        setTimeout(() => tryAttach(retries + 1), 50);
-      })();
-    });
-  </script>
-
   <!-- SCRIPTS -->
   <script type="module" src="application.js"></script>
+  <script src="../shared/sidebar-loader.js"></script>
 
 
 </body>

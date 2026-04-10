@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sidebar Debug</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+    .log { background: white; padding: 10px; margin: 5px 0; border-left: 3px solid #2e7d32; }
+    .error { border-left-color: #d32f2f; color: #d32f2f; }
+    #sidebar-container { position: fixed; left: 0; top: 0; width: 260px; height: 100vh; z-index: 1000; }
+    body { margin-left: 260px; }
+    #debug { position: fixed; right: 20px; top: 20px; background: white; padding: 20px; width: 300px; max-height: 80vh; overflow-y: auto; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-container"></div>
+
+<div id="debug">
+  <h2>📋 Debug Log</h2>
+  <div id="log"></div>
+</div>
+
+<div style="padding: 20px;">
+  <h1>🔧 Sidebar Debug Test</h1>
+  <p>If sidebar appears on LEFT, it's working!</p>
+  <p>Check the debug log on the RIGHT →</p>
+</div>
+
+<script>
+function log(msg, type = 'info') {
+  const logEl = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log' + (type === 'error' ? ' error' : '');
+  entry.textContent = msg;
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+log('📍 Page loaded');
+
+const sidebarContainer = document.getElementById('sidebar-container');
+log('📍 Container found: ' + (sidebarContainer ? 'YES' : 'NO'), sidebarContainer ? 'info' : 'error');
+
+// Test fetch
+log('📍 Attempting to fetch sidebar...');
+
+fetch('../shared/sidebar.html')
+  .then(r => {
+    log('📡 Response status: ' + r.status);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  })
+  .then(html => {
+    log('✅ Got HTML, length: ' + html.length);
+    sidebarContainer.innerHTML = html;
+    log('✅ HTML injected into DOM');
+
+    // Initialize dropdowns
+    document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const parent = toggle.closest('.dropdown');
+        parent.classList.toggle('open');
+        log('🔄 Dropdown toggled');
+      });
+    });
+
+    log('✅ Dropdowns initialized');
+  })
+  .catch(err => {
+    log('❌ Error: ' + err.message, 'error');
+  });
+</script>
+
+</body>
+</html>

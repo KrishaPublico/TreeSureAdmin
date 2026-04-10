@@ -215,11 +215,12 @@
   <!-- Main Content -->
   <div class="ml-56 min-h-screen">
     <!-- Header -->
-    <header style="background-color: #166d22 !important; padding: 18px 32px; border: 1px solid #0f4a17; box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4); position: sticky; top: 0; z-index: 5;">
-      <h1 style="font-size: 28px; font-weight: 700; color: #ffffff; margin: 0 0 8px 0;"><i class="fas fa-users" style="color: #ffffff;"></i> User Management</h1>
-      <p style="font-size: 13px; color: rgba(255, 255, 255, 0.9); margin: 0;">Manage admin users and their permissions</p>
-    </header>
-      <button id="openAddUserBtn" class="mt-4 btn-primary" style="background-color: #ffffff; color: #166d22; border: none; cursor: pointer; padding: 10px 16px; border-radius: 6px; font-weight: 600;">
+    <header style="background-color: #166d22 !important; padding: 18px 32px; border: 1px solid #0f4a17; box-shadow: 0 6px 16px rgba(22, 109, 34, 0.4); position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h1 style="font-size: 28px; font-weight: 700; color: #ffffff; margin: 0 0 8px 0;"><i class="fas fa-users" style="color: #ffffff;"></i> User Management</h1>
+        <p style="font-size: 13px; color: rgba(255, 255, 255, 0.9); margin: 0;">Manage admin users and their permissions</p>
+      </div>
+      <button id="openAddUserBtn" class="btn-primary" style="background-color: #ffffff; color: #166d22; border: none; cursor: pointer; padding: 10px 16px; border-radius: 6px; font-weight: 600; white-space: nowrap;">
         <i class="fas fa-plus"></i> Add New User
       </button>
     </header>
@@ -427,6 +428,8 @@
 
   <!-- Load Sidebar Dynamically -->
   <script src="../shared/sidebar-loader.js"></script>
+
+  <script>
     // Modal handlers
     const editModal = document.getElementById("editUserModal");
     const addModal = document.getElementById("addUserModal");

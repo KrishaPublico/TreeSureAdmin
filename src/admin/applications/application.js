@@ -14,7 +14,7 @@ import {
   orderBy,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { setCurrentApplicant, setCurrentApplication, setAppointmentMode } from "./treeInventory.js";
+import { setCurrentApplicant, setCurrentApplication, setAppointmentMode, initTreeInventoryModal } from "../shared/js/treeInventory.js";
 
 // ------------------ INITIALIZATION ------------------
 checkLogin();
@@ -24,6 +24,7 @@ let applicantsContainer, filesSection, filesBody, applicantTitle, applicationTyp
 let submissionSelector, submissionDropdown;
 let scheduleContainer, scheduleBtn, scheduleModal, closeModal, saveAppointmentBtn;
 let proceedBtn;
+let submissionMeta, submissionSearchInput, submissionStatusFilter;
 let commentBtn, commentModal, closeCommentModal, sendCommentBtn, commentDocumentSelect;
 let claimCertificateBtn, claimCertificateModal, closeClaimCertificateModal, sendClaimNotificationBtn;
 let claimApplicantName, claimCertificateType, claimMessage, claimRemarks;
@@ -35,6 +36,8 @@ let currentApplicationType = null;
 let currentApplicantData = null;
 let currentSubmissionId = null;
 let availableSubmissions = [];
+let currentSubmissionUserId = null;
+let currentSubmissionType = null;
 let sidebarListenersAttached = false;
 
 
@@ -47,6 +50,27 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function normalizeApplicationType(type) {
+  const value = String(type || "ctpo").toLowerCase();
+  if (value === "spltp") return "splt";
+  if (value === "permitcut") return "ptc";
+  return value;
+}
+
+function getApplicationTypeTitle(type) {
+  const normalized = normalizeApplicationType(type);
+  const titles = {
+    ctpo: "CTPO Applications",
+    pltp: "PLTP Applications",
+    splt: "SPLTP Applications",
+    ptc: "Permit to Cut Applications",
+    ctt: "Certificate to Transport Applications",
+    chainsaw: "Chainsaw Registration Applications",
+    cov: "Certificate of Verification Applications",
+  };
+  return titles[normalized] || `${normalized.toUpperCase()} Applications`;
 }
 
 let pdfJsLoadingPromise = null;
@@ -495,24 +519,41 @@ function renderDashboardStats(stats) {
 
 // ------------------ LOAD APPLICANTS ------------------
 async function loadApplicants(type = "ctpo") {
-  applicationTypeHeader.style.display = "block";
-  applicationTypeTitle.style.display = "inline-block";
-  applicantsContainer.style.display = "flex";
-  applicantsContainer.style.flexWrap = "wrap";
-  applicantsContainer.style.justifyContent = "flex-start";
-  filesSection.style.display = "none";
-  scheduleContainer.style.display = "none";
+  type = normalizeApplicationType(type);
 
-  currentApplicationType = type;
-  localStorage.setItem("lastApplicationType", type);
-  applicationTypeTitle.textContent = `${type.toUpperCase()} Applications`;
+  // Resolve required elements directly; avoid heavy init during early-load races.
+  applicantsContainer = applicantsContainer || document.getElementById("applicantsContainer");
+  filesSection = filesSection || document.getElementById("filesSection");
+  applicationTypeTitle = applicationTypeTitle || document.getElementById("applicationTypeTitle");
+  applicationTypeHeader = applicationTypeHeader || document.getElementById("applicationTypeHeader");
+  scheduleContainer = scheduleContainer || document.getElementById("scheduleContainer");
 
-  applicantsContainer.innerHTML = `<div style="width:100%; text-align:center;"><span class="spinner"></span> Loading ${type.toUpperCase()} applicants...</div>`;
-
-  // Display available templates for this application type
-  await displayApplicationTypeTemplates(type);
+  if (!applicantsContainer || !filesSection || !applicationTypeTitle || !applicationTypeHeader) {
+    console.warn("⚠️ Application containers not ready yet. Retrying loadApplicants...", { type });
+    setTimeout(() => loadApplicants(type), 120);
+    return;
+  }
 
   try {
+    applicationTypeHeader.style.display = "block";
+    applicationTypeTitle.style.display = "inline-block";
+    applicantsContainer.style.display = "flex";
+    applicantsContainer.style.flexWrap = "wrap";
+    applicantsContainer.style.justifyContent = "flex-start";
+    filesSection.style.display = "none";
+    if (scheduleContainer) {
+      scheduleContainer.style.display = "none";
+    }
+
+    currentApplicationType = type;
+    localStorage.setItem("lastApplicationType", type);
+    applicationTypeTitle.textContent = getApplicationTypeTitle(type);
+
+    applicantsContainer.innerHTML = `<div style="width:100%; text-align:center;"><span class="spinner"></span> Loading ${type.toUpperCase()} applicants...</div>`;
+
+    // Display available templates for this application type
+    await displayApplicationTypeTemplates(type);
+
     const appDoc = doc(db, "applications", type);
     const applicantsSnap = await getDocs(collection(appDoc, "applicants"));
 
@@ -552,7 +593,10 @@ async function loadApplicants(type = "ctpo") {
     });
   } catch (err) {
     console.error("Error loading applicants:", err);
-    applicantsContainer.innerHTML = `<p style='color:red; width:100%; text-align:center;'>Error loading applicants.</p>`;
+    if (applicantsContainer) {
+      applicantsContainer.style.display = "block";
+      applicantsContainer.innerHTML = `<p style='color:red; width:100%; text-align:center;'>Error loading applicants: ${escapeHtml(err?.message || "Unknown error")}</p>`;
+    }
   }
 }
 
@@ -563,8 +607,11 @@ function hideFiles() {
   applicantTitle.textContent = "";
   scheduleContainer.style.display = "none";
   currentOpenUserId = null;
-  appointmentDate.value = "";
-  appointmentTime.value = "";
+  currentSubmissionId = null;
+  if (submissionMeta) {
+    submissionMeta.style.display = "none";
+    submissionMeta.textContent = "";
+  }
 }
 
 async function showApplicantFiles(
@@ -603,6 +650,10 @@ async function showApplicantFiles(
 // ------------------ LOAD SUBMISSIONS FOR APPLICANT ------------------
 async function loadSubmissionsForApplicant(userId, userName, type) {
   try {
+    type = normalizeApplicationType(type);
+    currentSubmissionUserId = userId;
+    currentSubmissionType = type;
+
     console.log(
       "🔍 Fetching submissions from:",
       `applications/${type}/applicants/${userId}/submissions`
@@ -707,6 +758,19 @@ async function loadSubmissionsForApplicant(userId, userName, type) {
 
 // ------------------ DISPLAY SUBMISSIONS LIST ------------------
 function displaySubmissionsList(userId, type) {
+  const normalizedType = normalizeApplicationType(type);
+  const searchTerm = (submissionSearchInput?.value || "").trim().toLowerCase();
+  const statusFilter = (submissionStatusFilter?.value || "all").toLowerCase();
+  const filteredSubmissions = availableSubmissions.filter((submission) => {
+    const matchesSearch =
+      !searchTerm ||
+      submission.id.toLowerCase().includes(searchTerm) ||
+      (submission.applicantName || "").toLowerCase().includes(searchTerm);
+    const submissionStatus = (submission.status || "draft").toLowerCase();
+    const matchesStatus = statusFilter === "all" || submissionStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   console.log("📝 displaySubmissionsList called with:", { userId, type, submissionsCount: availableSubmissions.length });
   
   let listContainer = document.getElementById("submissionSelectorContainer");
@@ -742,7 +806,7 @@ function displaySubmissionsList(userId, type) {
   
   // Build submission cards
   console.log("🎨 Building submission cards HTML for", availableSubmissions.length, "submissions");
-  const cardsHtml = availableSubmissions.map((submission) => {
+  const cardsHtml = filteredSubmissions.map((submission) => {
     const statusBadge = submission.status === "submitted" 
       ? '<span style="background:#4caf50; color:white; padding:4px 8px; border-radius:4px; font-size:0.85em;">✓ Submitted</span>'
       : '<span style="background:#ff9800; color:white; padding:4px 8px; border-radius:4px; font-size:0.85em;">📝 Draft</span>';
@@ -842,11 +906,11 @@ function displaySubmissionsList(userId, type) {
   
   listContainer.innerHTML = `
     <div style="background: #f0f8e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #2d5016;">
-      <h3 style="margin: 0 0 10px 0; color: #2d5016;">📁 Submissions (${availableSubmissions.length})</h3>
-      <p style="margin: 0; font-size: 0.9em; color: #666;">Click on a submission to view its uploaded files</p>
+      <h3 style="margin: 0 0 10px 0; color: #2d5016;">📁 Submissions (${filteredSubmissions.length}/${availableSubmissions.length})</h3>
+      <p style="margin: 0; font-size: 0.9em; color: #666;">Click a submission to view uploaded files for ${normalizedType.toUpperCase()}.</p>
     </div>
     <div id="submissionsCardsContainer">
-      ${cardsHtml}
+      ${cardsHtml || '<div style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:12px 14px; border-radius:8px;">No submissions match the current filters.</div>'}
     </div>
   `;
   
@@ -906,6 +970,13 @@ async function selectAndViewSubmission(userId, type, submissionId) {
   
   // Load submission files
   await loadSubmissionFiles(userId, type, currentSubmissionId);
+
+  const selectedSubmission = availableSubmissions.find((submission) => submission.id === submissionId);
+  if (submissionMeta) {
+    const status = (selectedSubmission?.status || "draft").toUpperCase();
+    submissionMeta.style.display = "block";
+    submissionMeta.textContent = `Selected Submission: ${submissionId} | Status: ${status}`;
+  }
   
   // Update the submission cards to show selected state
   displaySubmissionsList(userId, type);
@@ -1618,94 +1689,66 @@ if (closeFilePreview && !closeFilePreview.dataset.listenerAttached) {
   });
 }
 
-// ------------------ APPLICATION TYPE BUTTONS (wait for sidebar) ------------------
-
-// Function to attach listeners once sidebar is loaded
-function attachSidebarListeners() {
-  if (sidebarListenersAttached) {
-    return;
-  }
-
-  const ctpoBtn = document.getElementById("ctpoBtn");
-  const pltpBtn = document.getElementById("pltpBtn");
-  const spltpBtn = document.getElementById("spltpBtn");
-  const covBtn = document.getElementById("covBtn");
-  const cttBtn = document.getElementById("cttBtn");
-  const chainsawBtn = document.getElementById("chainsawBtn");
-
-  function handleAppButtonClick(type, title) {
-    applicationTypeTitle.textContent = title;
-    loadApplicants(type);
-  }
-
-  function highlightButton(buttonElement) {
-    // Remove active class from all app-type buttons
-    document.querySelectorAll(".app-type-btn").forEach(btn => {
-      btn.classList.remove("active");
+// ========== BUTTON HIGHLIGHTING (restore state on page load) ==========
+// Restore the previously selected button's "active" state
+function restoreSelectedButton() {
+  const selectedBtnId = localStorage.getItem("selectedAppTypeBtn") || "ctpoBtn"; // default to CTPO
+  const btn = document.getElementById(selectedBtnId);
+  if (btn) {
+    document.querySelectorAll(".app-type-btn").forEach(b => {
+      b.classList.remove("active");
     });
-    // Add active class to clicked button
-    if (buttonElement) {
-      buttonElement.classList.add("active");
-      localStorage.setItem("selectedAppTypeBtn", buttonElement.id);
-    }
+    btn.classList.add("active");
+    console.log(`✅ Button highlighted: ${selectedBtnId}`);
   }
-
-  ctpoBtn?.addEventListener("click", () => {
-    console.log("CTPO button clicked");
-    highlightButton(ctpoBtn);
-    handleAppButtonClick("ctpo", "CTPO Applications");
-  });
-  pltpBtn?.addEventListener("click", () => {
-    console.log("PLTP button clicked");
-    highlightButton(pltpBtn);
-    handleAppButtonClick("pltp", "PLTP Applications");
-  });
-  spltpBtn?.addEventListener("click", () => {
-    console.log("SPLTP button clicked");
-    highlightButton(spltpBtn);
-    handleAppButtonClick("splt", "SPLTP Applications");
-  });
-  covBtn?.addEventListener("click", () => {
-    console.log("COV button clicked");
-    highlightButton(covBtn);
-    handleAppButtonClick("cov", "Certificate of Verification Applications");
-  });
-  cttBtn?.addEventListener("click", () => {
-    console.log("CTT button clicked");
-    highlightButton(cttBtn);
-    handleAppButtonClick("ctt", "Certificate to Transport Applications");
-  });
-  chainsawBtn?.addEventListener("click", () => {
-    console.log("Chainsaw button clicked");
-    highlightButton(chainsawBtn);
-    handleAppButtonClick("chainsaw", "Chainsaw Registration Applications");
-  });
-
-  sidebarListenersAttached = true;
-  console.log("✅ Sidebar event listeners attached successfully!");
-  console.log("Found buttons:", { ctpoBtn, pltpBtn, spltpBtn, covBtn, cttBtn, chainsawBtn });
 }
 
-// Wait for sidebar to be loaded dynamically in applications.html
-document.addEventListener("sidebarLoaded", attachSidebarListeners);
+// Restore button state when sidebar loads
+document.addEventListener("sidebarLoaded", () => {
+  console.log("🎯 Sidebar loaded, restoring button state...");
+  // Give sidebar time to fully render
+  setTimeout(restoreSelectedButton, 100);
+});
 
-// Expose for direct calls from pages that load the sidebar dynamically
-window.attachSidebarListeners = attachSidebarListeners;
-// Expose loadApplicants so it can be called from navigation
+// Expose loadApplicants globally so sidebar can call it
 window.loadApplicants = loadApplicants;
+console.log("✅ [APP.JS] window.loadApplicants exposed");
+
+// Also expose helper functions
+window.setCurrentApplicant = setCurrentApplicant;
+window.setCurrentApplication = setCurrentApplication;
+window.setAppointmentMode = setAppointmentMode;
+console.log("✅ [APP.JS] Tree inventory functions exposed");
 
 // ------------------ INITIAL PAGE LOAD ------------------
 window.addEventListener("DOMContentLoaded", async () => {
+  submissionMeta = document.getElementById("submissionMeta");
+  submissionSearchInput = document.getElementById("submissionSearchInput");
+  submissionStatusFilter = document.getElementById("submissionStatusFilter");
+
+  const applySubmissionFilters = () => {
+    if (!currentSubmissionUserId || !currentSubmissionType) return;
+    displaySubmissionsList(currentSubmissionUserId, currentSubmissionType);
+  };
+
+  submissionSearchInput?.addEventListener("input", applySubmissionFilters);
+  submissionStatusFilter?.addEventListener("change", applySubmissionFilters);
+
   await loadApplicationStats(); // load summary stats first
 
-  // Auto-load a default application type so the page is not blank on first open.
-  // If dashboard navigation already set a specific type, inline script will handle it.
-  const preselectedType = localStorage.getItem("selectedApplicationType");
-  if (!preselectedType) {
-    const lastType = localStorage.getItem("lastApplicationType") || "ctpo";
-    if (typeof loadApplicants === "function") {
-      loadApplicants(lastType);
-    }
+  // Always load an initial type so the page never appears blank.
+  // Prefer explicit dashboard selection, then last used, then CTPO.
+  const preselectedType = normalizeApplicationType(localStorage.getItem("selectedApplicationType"));
+  const lastType = normalizeApplicationType(localStorage.getItem("lastApplicationType") || "ctpo");
+  const initialType = preselectedType || lastType || "ctpo";
+
+  // Store for button highlighting
+  if (initialType !== "ctpo") {
+    localStorage.setItem("selectedApplicationType", initialType);
+  }
+
+  if (typeof loadApplicants === "function") {
+    loadApplicants(initialType);
   }
 });
 
@@ -2512,7 +2555,7 @@ function initElements() {
   applicantTitle = document.getElementById("applicantTitle");
   applicationTypeTitle = document.getElementById("applicationTypeTitle");
   applicationTypeHeader = document.getElementById("applicationTypeHeader");
-  
+
   // Get button elements
   proceedBtn = document.getElementById("proceedBtn");
   commentBtn = document.getElementById("commentBtn");
@@ -2525,6 +2568,7 @@ function initElements() {
   initCommentModal();
   initClaimCertificateModal();
   initTemplateModal();
+  initTreeInventoryModal(); // Initialize tree inventory modal integration
 
   // logoutBtn lives inside the dynamically-inserted sidebar
   const _logoutBtn = document.getElementById("logoutBtn");

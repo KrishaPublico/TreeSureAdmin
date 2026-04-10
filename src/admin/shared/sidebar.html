@@ -22,34 +22,34 @@
       </li>
 
       <!-- Applications Dropdown -->
-      <li class="dropdown">
+      <li class="dropdown" id="applicationsDropdown">
         <a href="#" class="dropdown-toggle menu-item">
           <i class="fa-solid fa-file-lines"></i>
           <span>Applications</span>
           <i class="fa-solid fa-caret-down dropdown-icon"></i>
         </a>
-        <ul class="dropdown-menu">
+        <ul class="dropdown-menu mt-2 p-1 rounded-2xl border border-forest-200 bg-white shadow-sm">
           <!-- CTPO -->
           <li>
-            <button class="app-type-btn" id="ctpoBtn">
+            <button class="app-type-btn w-full m-0 rounded-xl px-3 py-2 text-sm font-medium text-emerald-900 hover:bg-forest-50 hover:text-green-700 transition-all duration-200" id="ctpoBtn">
               <i class="fa-solid fa-certificate"></i> CTPO
             </button>
           </li>
 
           <!-- Cutting Permits Submenu -->
-          <li class="dropdown-sub">
-            <button class="app-type-btn sub-toggle">
+          <li class="dropdown-sub rounded-xl border border-forest-200 bg-forest-50 p-1">
+            <button class="app-type-btn sub-toggle w-full m-0 rounded-lg px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-forest-100 transition-all duration-200">
               <i class="fa-solid fa-tree"></i> Cutting Permits
               <i class="fa-solid fa-caret-down sub-icon"></i>
             </button>
-            <ul class="sub-menu">
+            <ul class="sub-menu mt-1 p-1 rounded-lg border border-forest-200 bg-white">
               <li>
-                <button class="app-type-btn" id="pltpBtn">
+                <button class="app-type-btn w-full m-0 rounded-lg px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-forest-50 hover:text-green-700 transition-all duration-200" id="pltpBtn">
                   <i class="fa-solid fa-leaf"></i> PLTP
                 </button>
               </li>
               <li>
-                <button class="app-type-btn" id="spltpBtn">
+                <button class="app-type-btn w-full m-0 rounded-lg px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-forest-50 hover:text-green-700 transition-all duration-200" id="spltpBtn">
                   <i class="fa-solid fa-leaf"></i> SPLTP
                 </button>
               </li>
@@ -58,21 +58,21 @@
 
           <!-- COV -->
           <li>
-            <button class="app-type-btn" id="covBtn">
+            <button class="app-type-btn w-full m-0 rounded-xl px-3 py-2 text-sm font-medium text-emerald-900 hover:bg-forest-50 hover:text-green-700 transition-all duration-200" id="covBtn">
               <i class="fa-solid fa-rectangle-list"></i> COV
             </button>
           </li>
 
           <!-- CTT -->
           <li>
-            <button class="app-type-btn" id="cttBtn">
+            <button class="app-type-btn w-full m-0 rounded-xl px-3 py-2 text-sm font-medium text-emerald-900 hover:bg-forest-50 hover:text-green-700 transition-all duration-200" id="cttBtn">
               <i class="fa-solid fa-truck"></i> CTT
             </button>
           </li>
 
           <!-- Chainsaw -->
           <li>
-            <button class="app-type-btn" id="chainsawBtn">
+            <button class="app-type-btn w-full m-0 rounded-xl px-3 py-2 text-sm font-medium text-emerald-900 hover:bg-forest-50 hover:text-green-700 transition-all duration-200" id="chainsawBtn">
               <i class="fa-solid fa-screwdriver-wrench"></i> Chainsaw
             </button>
           </li>
@@ -193,16 +193,17 @@
   .sidebar .app-type-btn {
     display: flex;
     align-items: center;
+    justify-content: flex-start !important;
     gap: 12px;
     color: var(--sidebar-text);
     text-decoration: none;
-    padding: 12px 20px;
+    padding: 12px 20px !important;
     border-radius: 8px;
     transition: all 0.25s ease;
     font-weight: 600;
     cursor: pointer;
     width: calc(100% - 40px);
-    border: none;
+    border: none !important;
     background: none;
     text-align: left;
     margin: 0 20px;
@@ -240,8 +241,7 @@
   .sidebar .app-type-btn.active {
     background-color: var(--sidebar-hover);
     color: var(--sidebar-active);
-    border-left: 4px solid var(--sidebar-active);
-    padding-left: 16px;
+    box-shadow: inset 0 0 0 1px rgba(27, 94, 32, 0.22);
   }
 
   /* Dropdown Toggle */
@@ -257,16 +257,18 @@
   }
 
   .sidebar .dropdown.open .dropdown-icon {
-    transform: rotate(180deg);
+    transform: none;
   }
 
   /* Dropdown Menu */
   .sidebar .dropdown-menu {
     display: none;
-    list-style: none;
-    padding: 5px 0;
-    margin: 0;
-    background-color: rgba(46, 125, 50, 0.04);
+    margin: 8px 20px 10px;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid rgba(46, 125, 50, 0.28);
+    background: #f9fcf9;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
   }
 
   .sidebar .dropdown.open .dropdown-menu {
@@ -278,20 +280,28 @@
   }
 
   .sidebar .dropdown-menu .app-type-btn {
-    padding-left: 35px;
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #555;
+    width: 100%;
+    margin: 0;
+    border-radius: 10px;
+  }
+
+  .sidebar .dropdown-menu > li + li {
+    margin-top: 4px;
   }
 
   .sidebar .dropdown-menu .app-type-btn:hover {
-    background-color: rgba(46, 125, 50, 0.1);
-    color: var(--sidebar-active);
+    transform: translateX(2px);
   }
 
   /* Sub-menu Toggle */
   .sidebar .sub-toggle {
     position: relative;
+    border: 1px solid rgba(46, 125, 50, 0.24);
+    background: #eef7ef;
+  }
+
+  .sidebar .dropdown-sub.open .sub-toggle {
+    background: #e7f3e9;
   }
 
   .sidebar .sub-icon {
@@ -302,16 +312,21 @@
   }
 
   .sidebar .dropdown-sub.open .sub-icon {
-    transform: rotate(180deg);
+    transform: none;
   }
 
   /* Sub-menu */
   .sidebar .sub-menu {
     display: none;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    background-color: rgba(46, 125, 50, 0.08);
+    margin: 6px 0 4px 12px;
+    padding: 6px;
+    border-left: 2px solid rgba(46, 125, 50, 0.35);
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .sidebar .sub-menu > li + li {
+    margin-top: 4px;
   }
 
   .sidebar .dropdown-sub.open .sub-menu {
@@ -323,14 +338,13 @@
   }
 
   .sidebar .sub-menu .app-type-btn {
-    padding-left: 50px;
-    font-size: 0.85rem;
-    color: #666;
+    width: 100%;
+    margin: 0;
+    border-radius: 8px;
   }
 
   .sidebar .sub-menu .app-type-btn:hover {
-    background-color: rgba(46, 125, 50, 0.12);
-    color: var(--sidebar-active);
+    transform: translateX(2px);
   }
 
   /* Logout Section */

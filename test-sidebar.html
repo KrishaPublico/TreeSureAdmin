@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sidebar Test</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4f6f8;
+    }
+
+    #sidebar-container {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      width: 260px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 1000 !important;
+    }
+
+    body {
+      margin-left: 260px;
+    }
+
+    .main-content {
+      padding: 40px;
+    }
+
+    .main-content h1 {
+      color: #2e7d32;
+      margin-bottom: 20px;
+    }
+
+    .main-content p {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>✅ Sidebar Test Page</h1>
+    <p>
+      <strong>If you can see the professional sidebar on the left with:</strong><br>
+      ✓ TreeSure logo and "Admin Panel" label<br>
+      ✓ Dashboard, Users, Applications, Reports, Settings, Trees menu items<br>
+      ✓ Dropdown menus that expand/collapse<br>
+      ✓ Green hover effects<br>
+      <br>
+      <strong>Then your sidebar is working perfectly!</strong><br>
+      <br>
+      Test the sidebar by:<br>
+      - Hovering over menu items (should turn green)<br>
+      - Clicking Applications dropdown (should expand)<br>
+      - Clicking sub-items in Cutting Permits<br>
+      - Clicking Logout (should redirect)<br>
+    </p>
+  </div>
+
+  <!-- Load Sidebar -->
+  <script>
+    console.log("📋 Test page loaded");
+
+    const sidebarContainer = document.getElementById("sidebar-container");
+
+    fetch("src/admin/shared/sidebar.html")
+      .then(r => r.text())
+      .then(html => {
+        sidebarContainer.innerHTML = html;
+        console.log("✅ Sidebar HTML injected");
+
+        // Initialize dropdown functionality
+        setupDropdowns();
+        setupSubmenus();
+        setupAppButtons();
+        setupLogout();
+      })
+      .catch(err => {
+        console.error("❌ Failed to load sidebar:", err);
+        sidebarContainer.innerHTML = "<div style='padding: 20px; color: red;'>Failed to load sidebar</div>";
+      });
+
+    function setupDropdowns() {
+      const dropdowns = document.querySelectorAll(".dropdown");
+      dropdowns.forEach(dropdown => {
+        const toggle = dropdown.querySelector(".dropdown-toggle");
+        if (!toggle) return;
+
+        toggle.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const isOpen = dropdown.classList.contains("open");
+          document.querySelectorAll(".dropdown.open").forEach(d => d.classList.remove("open"));
+
+          if (!isOpen) {
+            dropdown.classList.add("open");
+            console.log("📖 Dropdown opened");
+          }
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".dropdown")) {
+          document.querySelectorAll(".dropdown.open").forEach(d => d.classList.remove("open"));
+        }
+      });
+    }
+
+    function setupSubmenus() {
+      const subToggles = document.querySelectorAll(".sub-toggle");
+      subToggles.forEach(toggle => {
+        toggle.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const parent = toggle.closest(".dropdown-sub");
+          if (!parent) return;
+
+          const isOpen = parent.classList.contains("open");
+          parent.parentElement.querySelectorAll(".dropdown-sub.open").forEach(sub => {
+            if (sub !== parent) sub.classList.remove("open");
+          });
+
+          if (!isOpen) {
+            parent.classList.add("open");
+            console.log("📚 Submenu opened");
+          } else {
+            parent.classList.remove("open");
+          }
+        });
+      });
+    }
+
+    function setupAppButtons() {
+      const buttons = [
+        { id: "ctpoBtn", type: "ctpo", title: "CTPO Applications" },
+        { id: "pltpBtn", type: "pltp", title: "PLTP Applications" },
+        { id: "spltpBtn", type: "spltp", title: "SPLTP Applications" },
+        { id: "covBtn", type: "cov", title: "COV Applications" },
+        { id: "cttBtn", type: "ctt", title: "Transport Permit (CTT)" },
+        { id: "chainsawBtn", type: "chainsaw", title: "Chainsaw Registration" },
+      ];
+
+      buttons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        if (element) {
+          element.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            alert(`Clicked: ${btn.title}\n\nIn the real app, this would navigate to the applications page.`);
+            console.log("📋 App type clicked:", btn.type);
+          });
+        }
+      });
+    }
+
+    function setupLogout() {
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          alert("Logout clicked! In the real app, this would clear localStorage and redirect to login.");
+          console.log("👋 Logout button clicked");
+        });
+      }
+    }
+  </script>
+</body>
+</html>

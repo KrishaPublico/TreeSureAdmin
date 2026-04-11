@@ -1,4 +1,4 @@
-import { db } from "../../shared/script.js";
+import { db } from "../../../shared/script.js";
 import {
   doc,
   getDoc,

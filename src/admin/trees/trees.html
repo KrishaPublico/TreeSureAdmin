@@ -77,11 +77,11 @@
       justify-content: center;
     }
 
-    #editTreeModal.show, #addTreeModal.show {
+    #editTreeModal.show, #addTreeModal.show, #treeDetailModal.show {
       display: flex !important;
     }
 
-    #editTreeModal.hidden, #addTreeModal.hidden {
+    #editTreeModal.hidden, #addTreeModal.hidden, #treeDetailModal.hidden {
       display: none !important;
     }
 
@@ -221,37 +221,59 @@
     </header>
 
     <div class="space-y-8 p-8">
-      <!-- Search Section -->
+      <!-- Search & Filter Section -->
       <section>
-        <h2 class="mb-6 text-xl font-bold text-slate-900">🔍 Search Trees</h2>
+        <h2 class="mb-6 text-xl font-bold text-slate-900">🔍 Search & Filter Trees</h2>
         <div class="card">
-          <div class="relative">
-            <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="text" id="searchInput" placeholder="Search trees by ID, species, or location..." class="input-base pl-10 w-full" />
+          <div style="display:grid;grid-template-columns:1fr 200px 200px auto;gap:12px;align-items:center;">
+            <div class="relative">
+              <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="searchInput" placeholder="Search by tree no, species, location, forester..." class="input-base pl-10 w-full" />
+            </div>
+            <select id="speciesFilter" class="input-base">
+              <option value="all">All Species</option>
+            </select>
+            <select id="statusFilter" class="input-base">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button id="refreshBtn" style="background:#166d22;color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-size:14px;white-space:nowrap;">
+              <i class="fa fa-refresh"></i> Refresh
+            </button>
           </div>
         </div>
       </section>
 
       <!-- Trees Table Section -->
       <section class="pb-12">
-        <h2 class="mb-6 text-xl font-bold text-slate-900">🌳 Trees Inventory</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <h2 class="text-xl font-bold text-slate-900">🌳 Trees Inventory</h2>
+          <span style="background:#d1fae5;color:#065f46;padding:4px 14px;border-radius:999px;font-size:14px;font-weight:600;">
+            <i class="fa fa-tree"></i> <span id="treeCount">0</span> trees
+          </span>
+        </div>
         <div class="card overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full" id="treesTable">
               <thead class="bg-gradient-to-r from-emerald-50 to-emerald-100 font-semibold text-emerald-900">
                 <tr>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Tree ID</th>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Species</th>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Location</th>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Height (m)</th>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">DBH (cm)</th>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Forester</th>
-                  <th class="border-b border-slate-200 px-6 py-3 text-left text-sm">Status</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Tree No</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Species</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Applicant</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Location</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-center text-sm">Height (m)</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-center text-sm">DBH (cm)</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Forester</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Status</th>
+                  <th class="border-b border-slate-200 px-4 py-3 text-left text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200" id="treesTableBody">
-                <tr class="hover:bg-slate-50 transition-colors">
-                  <td colspan="7" class="px-6 py-8 text-center text-slate-500">
+                <tr>
+                  <td colspan="9" class="px-6 py-8 text-center text-slate-500">
                     <i class="fa fa-spinner fa-spin"></i> Loading trees...
                   </td>
                 </tr>
@@ -260,6 +282,17 @@
           </div>
         </div>
       </section>
+
+      <!-- Tree Detail Modal -->
+      <div id="treeDetailModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:10px;max-width:680px;width:90%;max-height:85vh;overflow-y:auto;padding:32px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <h3 style="font-size:20px;font-weight:700;color:#166d22;"><i class="fa fa-tree"></i> Tree Details</h3>
+            <button id="closeTreeModal" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;">&times;</button>
+          </div>
+          <div id="treeDetailContent"></div>
+        </div>
+      </div>
     </div>
   </div>
 
